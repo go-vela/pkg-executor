@@ -9,7 +9,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/go-vela/worker/executor"
+	"github.com/go-vela/pkg-executor/executor"
 
 	"github.com/go-vela/pkg-runtime/runtime"
 

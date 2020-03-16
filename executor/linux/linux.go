@@ -9,8 +9,6 @@ import (
 	"os"
 	"sync"
 
-	"github.com/go-vela/pkg-executor/executor"
-
 	"github.com/go-vela/pkg-runtime/runtime"
 
 	"github.com/go-vela/sdk-go/vela"
@@ -41,76 +39,27 @@ type client struct {
 }
 
 // New returns an Executor implementation that integrates with a Linux instance.
-func New(c *vela.Client, r runtime.Engine) (*client, error) {
-	// immediately return if a nil Vela client is provided
-	if c == nil {
-		return nil, fmt.Errorf("empty Vela client provided to executor")
-	}
+func New(opts ...Opt) (*client, error) {
+	// create new Linux client
+	c := new(client)
 
-	// immediately return if a nil runtime Engine is provided
-	if r == nil {
-		return nil, fmt.Errorf("empty runtime provided to executor")
+	// apply all provided configuration options
+	for _, opt := range opts {
+		err := opt(c)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// capture the hostname
-	h, _ := os.Hostname()
+	c.Hostname, _ = os.Hostname()
 
 	// create the logger object
-	l := logrus.WithFields(logrus.Fields{
-		"host": h,
+	c.logger = logrus.WithFields(logrus.Fields{
+		"host": c.Hostname,
 	})
 
-	return &client{
-		Vela:        c,
-		Runtime:     r,
-		Hostname:    h,
-		logger:      l,
-		services:    sync.Map{},
-		serviceLogs: sync.Map{},
-		steps:       sync.Map{},
-		stepLogs:    sync.Map{},
-		err:         nil,
-	}, nil
-}
-
-// WithBuild sets the library build type in the Engine.
-func (c *client) WithBuild(b *library.Build) executor.Engine {
-	// set build in engine if one is provided
-	if b != nil {
-		c.build = b
-	}
-
-	return c
-}
-
-// WithPipeline sets the pipeline Build type in the Engine.
-func (c *client) WithPipeline(p *pipeline.Build) executor.Engine {
-	// set pipeline in engine if one is provided
-	if p != nil {
-		c.pipeline = p
-	}
-
-	return c
-}
-
-// WithRepo sets the library Repo type in the Engine.
-func (c *client) WithRepo(r *library.Repo) executor.Engine {
-	// set repo in engine if one is provided
-	if r != nil {
-		c.repo = r
-	}
-
-	return c
-}
-
-// WithUser sets the library User type in the Engine.
-func (c *client) WithUser(u *library.User) executor.Engine {
-	// set user in engine if one is provided
-	if u != nil {
-		c.user = u
-	}
-
-	return c
+	return c, nil
 }
 
 // GetBuild gets the current build in execution.

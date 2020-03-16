@@ -29,10 +29,9 @@ func TestExecutor_CreateStep_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	s := httptest.NewServer(server.FakeHandler())
-	c, _ := vela.NewClient(s.URL, nil)
+	cli, _ := vela.NewClient(s.URL, nil)
 
-	e, _ := New(c, r)
-	e.WithPipeline(&pipeline.Build{
+	p := &pipeline.Build{
 		Version: "1",
 		ID:      "__0",
 		Services: pipeline.ContainerSlice{
@@ -81,7 +80,16 @@ func TestExecutor_CreateStep_Success(t *testing.T) {
 				},
 			},
 		},
-	})
+	}
+
+	e, err := New(
+		WithPipeline(p),
+		WithRuntime(r),
+		WithVelaClient(cli),
+	)
+	if err != nil {
+		t.Errorf("unable to create executor client: %v", err)
+	}
 
 	// run test
 	got := e.CreateStep(context.Background(), e.pipeline.Steps[0])
@@ -99,10 +107,9 @@ func TestExecutor_PlanStep_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	s := httptest.NewServer(server.FakeHandler())
-	c, _ := vela.NewClient(s.URL, nil)
+	cli, _ := vela.NewClient(s.URL, nil)
 
-	e, _ := New(c, r)
-	e.WithBuild(&library.Build{
+	b := &library.Build{
 		Number:       vela.Int(1),
 		Parent:       vela.Int(1),
 		Event:        vela.String("push"),
@@ -126,8 +133,9 @@ func TestExecutor_PlanStep_Success(t *testing.T) {
 		Host:         vela.String("example.company.com"),
 		Runtime:      vela.String("docker"),
 		Distribution: vela.String("linux"),
-	})
-	e.WithPipeline(&pipeline.Build{
+	}
+
+	p := &pipeline.Build{
 		Version: "1",
 		ID:      "__0",
 		Services: pipeline.ContainerSlice{
@@ -176,8 +184,9 @@ func TestExecutor_PlanStep_Success(t *testing.T) {
 				},
 			},
 		},
-	})
-	e.WithRepo(&library.Repo{
+	}
+
+	repo := &library.Repo{
 		Org:         vela.String("github"),
 		Name:        vela.String("octocat"),
 		FullName:    vela.String("github/octocat"),
@@ -193,7 +202,18 @@ func TestExecutor_PlanStep_Success(t *testing.T) {
 		AllowPush:   vela.Bool(true),
 		AllowDeploy: vela.Bool(false),
 		AllowTag:    vela.Bool(false),
-	})
+	}
+
+	e, err := New(
+		WithBuild(b),
+		WithPipeline(p),
+		WithRepo(repo),
+		WithRuntime(r),
+		WithVelaClient(cli),
+	)
+	if err != nil {
+		t.Errorf("unable to create executor client: %v", err)
+	}
 
 	// run test
 	got := e.PlanStep(context.Background(), e.pipeline.Steps[0])
@@ -211,10 +231,9 @@ func TestExecutor_ExecStep_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	s := httptest.NewServer(server.FakeHandler())
-	c, _ := vela.NewClient(s.URL, nil)
+	cli, _ := vela.NewClient(s.URL, nil)
 
-	e, _ := New(c, r)
-	e.WithBuild(&library.Build{
+	b := &library.Build{
 		Number:       vela.Int(1),
 		Parent:       vela.Int(1),
 		Event:        vela.String("push"),
@@ -238,8 +257,9 @@ func TestExecutor_ExecStep_Success(t *testing.T) {
 		Host:         vela.String("example.company.com"),
 		Runtime:      vela.String("docker"),
 		Distribution: vela.String("linux"),
-	})
-	e.WithPipeline(&pipeline.Build{
+	}
+
+	p := &pipeline.Build{
 		Version: "1",
 		ID:      "__0",
 		Services: pipeline.ContainerSlice{
@@ -288,8 +308,9 @@ func TestExecutor_ExecStep_Success(t *testing.T) {
 				},
 			},
 		},
-	})
-	e.WithRepo(&library.Repo{
+	}
+
+	repo := &library.Repo{
 		Org:         vela.String("github"),
 		Name:        vela.String("octocat"),
 		FullName:    vela.String("github/octocat"),
@@ -305,7 +326,19 @@ func TestExecutor_ExecStep_Success(t *testing.T) {
 		AllowPush:   vela.Bool(true),
 		AllowDeploy: vela.Bool(false),
 		AllowTag:    vela.Bool(false),
-	})
+	}
+
+	e, err := New(
+		WithBuild(b),
+		WithPipeline(p),
+		WithRepo(repo),
+		WithRuntime(r),
+		WithVelaClient(cli),
+	)
+	if err != nil {
+		t.Errorf("unable to create executor client: %v", err)
+	}
+
 	e.stepLogs.Store(e.pipeline.Steps[0].ID, new(library.Log))
 	e.steps.Store(e.pipeline.Steps[0].ID, new(library.Step))
 
@@ -325,10 +358,9 @@ func TestExecutor_DestroyStep_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	s := httptest.NewServer(server.FakeHandler())
-	c, _ := vela.NewClient(s.URL, nil)
+	cli, _ := vela.NewClient(s.URL, nil)
 
-	e, _ := New(c, r)
-	e.WithPipeline(&pipeline.Build{
+	p := &pipeline.Build{
 		Version: "1",
 		ID:      "__0",
 		Services: pipeline.ContainerSlice{
@@ -377,7 +409,16 @@ func TestExecutor_DestroyStep_Success(t *testing.T) {
 				},
 			},
 		},
-	})
+	}
+
+	e, err := New(
+		WithPipeline(p),
+		WithRuntime(r),
+		WithVelaClient(cli),
+	)
+	if err != nil {
+		t.Errorf("unable to create executor client: %v", err)
+	}
 
 	// run test
 	got := e.DestroyStep(context.Background(), e.pipeline.Steps[0])

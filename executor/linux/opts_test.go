@@ -16,43 +16,16 @@ import (
 
 	"github.com/go-vela/sdk-go/vela"
 
-	"github.com/go-vela/types/library"
 	"github.com/go-vela/types/pipeline"
 )
 
 func TestLinux_Opt_WithBuild(t *testing.T) {
-	// setup types
-	_build := &library.Build{
-		Number:       vela.Int(1),
-		Parent:       vela.Int(1),
-		Event:        vela.String("push"),
-		Status:       vela.String("success"),
-		Error:        vela.String(""),
-		Enqueued:     vela.Int64(1563474077),
-		Created:      vela.Int64(1563474076),
-		Started:      vela.Int64(1563474078),
-		Finished:     vela.Int64(1563474079),
-		Deploy:       vela.String(""),
-		Clone:        vela.String("https://github.com/github/octocat.git"),
-		Source:       vela.String("https://github.com/github/octocat/abcdefghi123456789"),
-		Title:        vela.String("push received from https://github.com/github/octocat"),
-		Message:      vela.String("First commit..."),
-		Commit:       vela.String("48afb5bdc41ad69bf22588491333f7cf71135163"),
-		Sender:       vela.String("OctoKitty"),
-		Author:       vela.String("OctoKitty"),
-		Branch:       vela.String("master"),
-		Ref:          vela.String("refs/heads/master"),
-		BaseRef:      vela.String(""),
-		Host:         vela.String("example.company.com"),
-		Runtime:      vela.String("docker"),
-		Distribution: vela.String("linux"),
-	}
-
+	// run test
 	e, err := New(
 		WithBuild(_build),
 	)
 	if err != nil {
-		t.Errorf("unable to create executor client: %v", err)
+		t.Errorf("unable to create executor engine: %v", err)
 	}
 
 	if e.build != _build {
@@ -81,7 +54,7 @@ func TestLinux_Opt_WithPipeline(t *testing.T) {
 		WithPipeline(_pipeline),
 	)
 	if err != nil {
-		t.Errorf("unable to create executor client: %v", err)
+		t.Errorf("unable to create executor engine: %v", err)
 	}
 
 	if e.pipeline != _pipeline {
@@ -90,30 +63,12 @@ func TestLinux_Opt_WithPipeline(t *testing.T) {
 }
 
 func TestLinux_Opt_WithRepo(t *testing.T) {
-	// setup types
-	_repo := &library.Repo{
-		Org:         vela.String("github"),
-		Name:        vela.String("octocat"),
-		FullName:    vela.String("github/octocat"),
-		Link:        vela.String("https://github.com/github/octocat"),
-		Clone:       vela.String("https://github.com/github/octocat.git"),
-		Branch:      vela.String("master"),
-		Timeout:     vela.Int64(60),
-		Visibility:  vela.String("public"),
-		Private:     vela.Bool(false),
-		Trusted:     vela.Bool(false),
-		Active:      vela.Bool(true),
-		AllowPull:   vela.Bool(false),
-		AllowPush:   vela.Bool(true),
-		AllowDeploy: vela.Bool(false),
-		AllowTag:    vela.Bool(false),
-	}
-
+	// run test
 	e, err := New(
 		WithRepo(_repo),
 	)
 	if err != nil {
-		t.Errorf("unable to create executor client: %v", err)
+		t.Errorf("unable to create executor engine: %v", err)
 	}
 
 	if e.repo != _repo {
@@ -125,11 +80,12 @@ func TestLinux_Opt_WithRuntime(t *testing.T) {
 	// setup types
 	_runtime, _ := docker.NewMock()
 
+	// run test
 	e, err := New(
 		WithRuntime(_runtime),
 	)
 	if err != nil {
-		t.Errorf("unable to create executor client: %v", err)
+		t.Errorf("unable to create executor engine: %v", err)
 	}
 
 	if e.Runtime != _runtime {
@@ -138,18 +94,12 @@ func TestLinux_Opt_WithRuntime(t *testing.T) {
 }
 
 func TestLinux_Opt_WithUser(t *testing.T) {
-	// setup types
-	_user := &library.User{
-		ID:    vela.Int64(1),
-		Name:  vela.String("octocat"),
-		Token: vela.String("superSecretToken"),
-	}
-
+	// run test
 	e, err := New(
 		WithUser(_user),
 	)
 	if err != nil {
-		t.Errorf("unable to create executor client: %v", err)
+		t.Errorf("unable to create executor engine: %v", err)
 	}
 
 	if e.user != _user {
@@ -162,13 +112,17 @@ func TestLinux_Opt_WithVelaClient(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	s := httptest.NewServer(server.FakeHandler())
-	_client, _ := vela.NewClient(s.URL, nil)
+
+	_client, err := vela.NewClient(s.URL, nil)
+	if err != nil {
+		t.Errorf("unable to create Vela API client: %v", err)
+	}
 
 	e, err := New(
 		WithVelaClient(_client),
 	)
 	if err != nil {
-		t.Errorf("unable to create executor client: %v", err)
+		t.Errorf("unable to create executor engine: %v", err)
 	}
 
 	if e.Vela != _client {

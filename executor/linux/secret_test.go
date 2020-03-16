@@ -24,20 +24,26 @@ import (
 )
 
 func TestExecutor_PullSecret_Success(t *testing.T) {
-	// setup
-	r, _ := docker.NewMock()
-
-	// setup context
+	// setup types
 	gin.SetMode(gin.TestMode)
 
 	s := httptest.NewServer(server.FakeHandler())
-	cli, _ := vela.NewClient(s.URL, nil)
+
+	_client, err := vela.NewClient(s.URL, nil)
+	if err != nil {
+		t.Errorf("unable to create Vela API client: %v", err)
+	}
+
+	_runtime, err := docker.NewMock()
+	if err != nil {
+		t.Errorf("unable to create runtime engine: %v", err)
+	}
 
 	p := &pipeline.Build{
 		Version: "1",
 		ID:      "__0",
 		Steps: pipeline.ContainerSlice{
-			&pipeline.Container{
+			{
 				ID:          "__0_clone",
 				Environment: map[string]string{},
 				Image:       "target/vela-plugins/git:1",
@@ -45,7 +51,7 @@ func TestExecutor_PullSecret_Success(t *testing.T) {
 				Number:      1,
 				Pull:        true,
 			},
-			&pipeline.Container{
+			{
 				ID:          "__0_exit",
 				Environment: map[string]string{},
 				Image:       "alpine:latest",
@@ -57,7 +63,7 @@ func TestExecutor_PullSecret_Success(t *testing.T) {
 				},
 				Commands: []string{"exit 1"},
 			},
-			&pipeline.Container{
+			{
 				ID:          "__0_echo",
 				Environment: map[string]string{},
 				Image:       "alpine:latest",
@@ -66,7 +72,7 @@ func TestExecutor_PullSecret_Success(t *testing.T) {
 				Pull:        true,
 				Commands:    []string{"echo ${FOOBAR}"},
 				Secrets: pipeline.StepSecretSlice{
-					&pipeline.StepSecret{
+					{
 						Source: "foobar",
 						Target: "foobar",
 					},
@@ -74,19 +80,19 @@ func TestExecutor_PullSecret_Success(t *testing.T) {
 			},
 		},
 		Secrets: pipeline.SecretSlice{
-			&pipeline.Secret{
+			{
 				Name:   "foo",
 				Key:    "github/octocat/foo",
 				Engine: "native",
 				Type:   "repo",
 			},
-			&pipeline.Secret{
+			{
 				Name:   "foo",
 				Key:    "github/foo",
 				Engine: "native",
 				Type:   "org",
 			},
-			&pipeline.Secret{
+			{
 				Name:   "foo",
 				Key:    "github/octokitties/foo",
 				Engine: "native",
@@ -96,19 +102,21 @@ func TestExecutor_PullSecret_Success(t *testing.T) {
 	}
 
 	e, err := New(
+		WithBuild(_build),
 		WithPipeline(p),
-		WithRuntime(r),
-		WithVelaClient(cli),
+		WithRepo(_repo),
+		WithRuntime(_runtime),
+		WithUser(_user),
+		WithVelaClient(_client),
 	)
 	if err != nil {
-		t.Errorf("unable to create executor client: %v", err)
+		t.Errorf("unable to create executor engine: %v", err)
 	}
 
 	// run test
-	got := e.PullSecret(context.Background())
-
-	if got != nil {
-		t.Errorf("PullSecret is %v, want nil", got)
+	err = e.PullSecret(context.Background())
+	if err != nil {
+		t.Errorf("PullSecret returned err: %v", err)
 	}
 }
 

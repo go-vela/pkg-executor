@@ -7,6 +7,8 @@ package main
 import (
 	"fmt"
 
+	"github.com/go-vela/pkg-executor/executor"
+
 	"github.com/go-vela/pkg-runtime/runtime"
 
 	"github.com/sirupsen/logrus"
@@ -37,6 +39,12 @@ func run(c *cli.Context) error {
 		logrus.SetLevel(logrus.InfoLevel)
 	}
 
+	// create a vela client
+	vela, err := setupClient(c)
+	if err != nil {
+		return err
+	}
+
 	// setup the compiler
 	compiler, err := setupCompiler(c)
 	if err != nil {
@@ -62,6 +70,22 @@ func run(c *cli.Context) error {
 	}
 
 	fmt.Println("Runtime: ", r)
+
+	// setup the executor
+	e, err := executor.New(&executor.Setup{
+		Driver:   c.String("executor.driver"),
+		Client:   vela,
+		Runtime:  r,
+		Build:    setupBuild(),
+		Pipeline: p,
+		Repo:     setupRepo(),
+		User:     setupUser(),
+	})
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Executor: ", e)
 
 	return nil
 }

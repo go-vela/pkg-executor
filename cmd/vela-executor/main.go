@@ -51,6 +51,16 @@ func main() {
 			Usage:  "path to pipeline configuration file",
 			Value:  "testdata/steps.yml",
 		},
+		cli.StringFlag{
+			EnvVar: "VELA_ADDR,VELA_SERVER,VELA_URL,SERVER_ADDR",
+			Name:   "server.addr",
+			Usage:  "Vela server address as a fully qualified url (<scheme>://<host>)",
+		},
+		cli.StringFlag{
+			EnvVar: "VELA_TOKEN,VELA_API_TOKEN,VELA_SERVER_TOKEN,SERVER_TOKEN",
+			Name:   "server.token",
+			Usage:  "token for communication with the Vela server",
+		},
 
 		// Compiler Flags
 
@@ -77,18 +87,6 @@ func main() {
 			Name:   "executor.driver",
 			Usage:  "executor driver",
 			Value:  "linux",
-		},
-		cli.IntFlag{
-			EnvVar: "VELA_EXECUTOR_THREADS,EXECUTOR_THREADS",
-			Name:   "executor.threads",
-			Usage:  "number of executor threads to create",
-			Value:  1,
-		},
-		cli.DurationFlag{
-			EnvVar: "VELA_EXECUTOR_TIMEOUT,EXECUTOR_TIMEOUT",
-			Name:   "executor.timeout",
-			Usage:  "max time an executor will run a build",
-			Value:  60 * time.Minute,
 		},
 
 		// Runtime Flags

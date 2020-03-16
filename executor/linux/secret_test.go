@@ -31,10 +31,9 @@ func TestExecutor_PullSecret_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	s := httptest.NewServer(server.FakeHandler())
-	vela, _ := vela.NewClient(s.URL, nil)
+	cli, _ := vela.NewClient(s.URL, nil)
 
-	e, _ := New(vela, r)
-	e.WithPipeline(&pipeline.Build{
+	p := &pipeline.Build{
 		Version: "1",
 		ID:      "__0",
 		Steps: pipeline.ContainerSlice{
@@ -94,7 +93,16 @@ func TestExecutor_PullSecret_Success(t *testing.T) {
 				Type:   "shared",
 			},
 		},
-	})
+	}
+
+	e, err := New(
+		WithPipeline(p),
+		WithRuntime(r),
+		WithVelaClient(cli),
+	)
+	if err != nil {
+		t.Errorf("unable to create executor client: %v", err)
+	}
 
 	// run test
 	got := e.PullSecret(context.Background())

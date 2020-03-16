@@ -67,26 +67,33 @@ func TestExecutor_CreateBuild_Success(t *testing.T) {
 			AllowDeploy: vela.Bool(false),
 			AllowTag:    vela.Bool(false),
 		}
+
+		_user = &library.User{
+			ID:    vela.Int64(1),
+			Name:  vela.String("octocat"),
+			Token: vela.String("superSecretToken"),
+		}
 	)
 
 	// setup context
 	gin.SetMode(gin.TestMode)
 
 	s := httptest.NewServer(server.FakeHandler())
-	vela, _ := vela.NewClient(s.URL, nil)
+	cli, _ := vela.NewClient(s.URL, nil)
 
 	// setup types
 	r, _ := docker.NewMock()
-
-	e, _ := New(vela, r)
 
 	tests := []struct {
 		build    *library.Build
 		pipeline *pipeline.Build
 		repo     *library.Repo
+		user     *library.User
 	}{
 		{ // pipeline with steps
 			build: _build,
+			repo:  _repo,
+			user:  _user,
 			pipeline: &pipeline.Build{
 				Version: "1",
 				ID:      "__0",
@@ -137,10 +144,11 @@ func TestExecutor_CreateBuild_Success(t *testing.T) {
 					},
 				},
 			},
-			repo: _repo,
 		},
 		{ // pipeline with stages
 			build: _build,
+			repo:  _repo,
+			user:  _user,
 			pipeline: &pipeline.Build{
 				Version: "1",
 				ID:      "__0",
@@ -207,15 +215,22 @@ func TestExecutor_CreateBuild_Success(t *testing.T) {
 					},
 				},
 			},
-			repo: _repo,
 		},
 	}
 
 	// run test
 	for _, test := range tests {
-		e.WithBuild(test.build)
-		e.WithPipeline(test.pipeline)
-		e.WithRepo(test.repo)
+		e, err := New(
+			WithBuild(test.build),
+			WithPipeline(test.pipeline),
+			WithRepo(test.repo),
+			WithRuntime(r),
+			WithUser(test.user),
+			WithVelaClient(cli),
+		)
+		if err != nil {
+			t.Errorf("unable to create executor client: %v", err)
+		}
 
 		got := e.CreateBuild(context.Background())
 
@@ -271,26 +286,33 @@ func TestExecutor_ExecBuild_Success(t *testing.T) {
 			AllowDeploy: vela.Bool(false),
 			AllowTag:    vela.Bool(false),
 		}
+
+		_user = &library.User{
+			ID:    vela.Int64(1),
+			Name:  vela.String("octocat"),
+			Token: vela.String("superSecretToken"),
+		}
 	)
 
 	// setup context
 	gin.SetMode(gin.TestMode)
 
 	s := httptest.NewServer(server.FakeHandler())
-	vela, _ := vela.NewClient(s.URL, nil)
+	cli, _ := vela.NewClient(s.URL, nil)
 
 	// setup types
 	r, _ := docker.NewMock()
-
-	e, _ := New(vela, r)
 
 	tests := []struct {
 		build    *library.Build
 		pipeline *pipeline.Build
 		repo     *library.Repo
+		user     *library.User
 	}{
 		{ // pipeline with steps
 			build: _build,
+			repo:  _repo,
+			user:  _user,
 			pipeline: &pipeline.Build{
 				Version: "1",
 				ID:      "__0",
@@ -342,10 +364,11 @@ func TestExecutor_ExecBuild_Success(t *testing.T) {
 					},
 				},
 			},
-			repo: _repo,
 		},
 		{ // pipeline with stages
 			build: _build,
+			repo:  _repo,
+			user:  _user,
 			pipeline: &pipeline.Build{
 				Version: "1",
 				ID:      "__0",
@@ -413,17 +436,24 @@ func TestExecutor_ExecBuild_Success(t *testing.T) {
 					},
 				},
 			},
-			repo: _repo,
 		},
 	}
 
 	// run test
 	for _, test := range tests {
-		e.WithBuild(test.build)
-		e.WithPipeline(test.pipeline)
-		e.WithRepo(test.repo)
+		e, err := New(
+			WithBuild(test.build),
+			WithPipeline(test.pipeline),
+			WithRepo(test.repo),
+			WithRuntime(r),
+			WithUser(test.user),
+			WithVelaClient(cli),
+		)
+		if err != nil {
+			t.Errorf("unable to create executor client: %v", err)
+		}
 
-		err := e.PlanBuild(context.Background())
+		err = e.PlanBuild(context.Background())
 		if err != nil {
 			t.Errorf("PlanBuild returned err: %v", err)
 		}
@@ -481,26 +511,33 @@ func TestExecutor_DestroyBuild_Success(t *testing.T) {
 			AllowDeploy: vela.Bool(false),
 			AllowTag:    vela.Bool(false),
 		}
+
+		_user = &library.User{
+			ID:    vela.Int64(1),
+			Name:  vela.String("octocat"),
+			Token: vela.String("superSecretToken"),
+		}
 	)
 
 	// setup context
 	gin.SetMode(gin.TestMode)
 
 	s := httptest.NewServer(server.FakeHandler())
-	c, _ := vela.NewClient(s.URL, nil)
+	cli, _ := vela.NewClient(s.URL, nil)
 
 	// setup types
 	r, _ := docker.NewMock()
-
-	e, _ := New(c, r)
 
 	tests := []struct {
 		build    *library.Build
 		pipeline *pipeline.Build
 		repo     *library.Repo
+		user     *library.User
 	}{
 		{ // pipeline with steps
 			build: _build,
+			repo:  _repo,
+			user:  _user,
 			pipeline: &pipeline.Build{
 				Version: "1",
 				ID:      "__0",
@@ -552,10 +589,11 @@ func TestExecutor_DestroyBuild_Success(t *testing.T) {
 					},
 				},
 			},
-			repo: _repo,
 		},
 		{ // pipeline with stages
 			build: _build,
+			repo:  _repo,
+			user:  _user,
 			pipeline: &pipeline.Build{
 				Version: "1",
 				ID:      "__0",
@@ -623,15 +661,22 @@ func TestExecutor_DestroyBuild_Success(t *testing.T) {
 					},
 				},
 			},
-			repo: _repo,
 		},
 	}
 
 	// run test
 	for _, test := range tests {
-		e.WithBuild(test.build)
-		e.WithPipeline(test.pipeline)
-		e.WithRepo(test.repo)
+		e, err := New(
+			WithBuild(test.build),
+			WithPipeline(test.pipeline),
+			WithRepo(test.repo),
+			WithRuntime(r),
+			WithUser(test.user),
+			WithVelaClient(cli),
+		)
+		if err != nil {
+			t.Errorf("unable to create executor client: %v", err)
+		}
 
 		svc := new(library.Service)
 		svc.SetNumber(1)

@@ -14,17 +14,74 @@ import (
 	"github.com/go-vela/types/pipeline"
 )
 
+// setup global variables used for testing
+var (
+	_build = &library.Build{
+		ID:           vela.Int64(1),
+		Number:       vela.Int(1),
+		Parent:       vela.Int(1),
+		Event:        vela.String("push"),
+		Status:       vela.String("success"),
+		Error:        vela.String(""),
+		Enqueued:     vela.Int64(1563474077),
+		Created:      vela.Int64(1563474076),
+		Started:      vela.Int64(1563474077),
+		Finished:     vela.Int64(0),
+		Deploy:       vela.String(""),
+		Clone:        vela.String("https://github.com/github/octocat.git"),
+		Source:       vela.String("https://github.com/github/octocat/abcdefghi123456789"),
+		Title:        vela.String("push received from https://github.com/github/octocat"),
+		Message:      vela.String("First commit..."),
+		Commit:       vela.String("48afb5bdc41ad69bf22588491333f7cf71135163"),
+		Sender:       vela.String("OctoKitty"),
+		Author:       vela.String("OctoKitty"),
+		Branch:       vela.String("master"),
+		Ref:          vela.String("refs/heads/master"),
+		BaseRef:      vela.String(""),
+		Host:         vela.String("example.company.com"),
+		Runtime:      vela.String("docker"),
+		Distribution: vela.String("linux"),
+	}
+
+	_repo = &library.Repo{
+		ID:          vela.Int64(1),
+		Org:         vela.String("github"),
+		Name:        vela.String("octocat"),
+		FullName:    vela.String("github/octocat"),
+		Link:        vela.String("https://github.com/github/octocat"),
+		Clone:       vela.String("https://github.com/github/octocat.git"),
+		Branch:      vela.String("master"),
+		Timeout:     vela.Int64(60),
+		Visibility:  vela.String("public"),
+		Private:     vela.Bool(false),
+		Trusted:     vela.Bool(false),
+		Active:      vela.Bool(true),
+		AllowPull:   vela.Bool(false),
+		AllowPush:   vela.Bool(true),
+		AllowDeploy: vela.Bool(false),
+		AllowTag:    vela.Bool(false),
+	}
+
+	_user = &library.User{
+		ID:        vela.Int64(1),
+		Name:      vela.String("octocat"),
+		Token:     vela.String("superSecretToken"),
+		Hash:      vela.String("MzM4N2MzMDAtNmY4Mi00OTA5LWFhZDAtNWIzMTlkNTJkODMy"),
+		Favorites: vela.Strings([]string{"github/octocat"}),
+		Active:    vela.Bool(true),
+		Admin:     vela.Bool(false),
+	}
+)
+
 func TestLinux_GetBuild(t *testing.T) {
 	// setup types
-	b := &library.Build{ID: vela.Int64(1)}
-
-	want := b
+	want := _build
 
 	e, err := New(
-		WithBuild(b),
+		WithBuild(_build),
 	)
 	if err != nil {
-		t.Errorf("unable to create executor client: %v", err)
+		t.Errorf("unable to create executor engine: %v", err)
 	}
 
 	// run test
@@ -48,7 +105,7 @@ func TestLinux_GetPipeline(t *testing.T) {
 		WithPipeline(p),
 	)
 	if err != nil {
-		t.Errorf("unable to create executor client: %v", err)
+		t.Errorf("unable to create executor engine: %v", err)
 	}
 
 	// run test
@@ -64,15 +121,13 @@ func TestLinux_GetPipeline(t *testing.T) {
 
 func TestLinux_GetRepo(t *testing.T) {
 	// setup types
-	r := &library.Repo{ID: vela.Int64(1)}
-
-	want := r
+	want := _repo
 
 	e, err := New(
-		WithRepo(r),
+		WithRepo(_repo),
 	)
 	if err != nil {
-		t.Errorf("unable to create executor client: %v", err)
+		t.Errorf("unable to create executor engine: %v", err)
 	}
 
 	// run test

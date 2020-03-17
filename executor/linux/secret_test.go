@@ -23,7 +23,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestExecutor_PullSecret_Success(t *testing.T) {
+func TestLinux_PullSecret_Success(t *testing.T) {
 	// setup types
 	gin.SetMode(gin.TestMode)
 

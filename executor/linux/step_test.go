@@ -21,7 +21,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func TestExecutor_CreateStep_Success(t *testing.T) {
+func TestLinux_CreateStep_Success(t *testing.T) {
 	// setup types
 	gin.SetMode(gin.TestMode)
 
@@ -108,7 +108,7 @@ func TestExecutor_CreateStep_Success(t *testing.T) {
 	}
 }
 
-func TestExecutor_PlanStep_Success(t *testing.T) {
+func TestLinux_PlanStep_Success(t *testing.T) {
 	// setup types
 	gin.SetMode(gin.TestMode)
 
@@ -194,7 +194,7 @@ func TestExecutor_PlanStep_Success(t *testing.T) {
 	}
 }
 
-func TestExecutor_ExecStep_Success(t *testing.T) {
+func TestLinux_ExecStep_Success(t *testing.T) {
 	// setup types
 	gin.SetMode(gin.TestMode)
 
@@ -283,7 +283,7 @@ func TestExecutor_ExecStep_Success(t *testing.T) {
 	}
 }
 
-func TestExecutor_DestroyStep_Success(t *testing.T) {
+func TestLinux_DestroyStep_Success(t *testing.T) {
 	// setup types
 	gin.SetMode(gin.TestMode)
 

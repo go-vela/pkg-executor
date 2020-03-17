@@ -21,7 +21,7 @@ import (
 	"github.com/go-vela/types/pipeline"
 )
 
-func TestExecutor_CreateService_Success(t *testing.T) {
+func TestLinux_CreateService_Success(t *testing.T) {
 	// setup types
 	gin.SetMode(gin.TestMode)
 
@@ -72,7 +72,7 @@ func TestExecutor_CreateService_Success(t *testing.T) {
 	}
 }
 
-func TestExecutor_PlanService_Success(t *testing.T) {
+func TestLinux_PlanService_Success(t *testing.T) {
 	// setup types
 	gin.SetMode(gin.TestMode)
 
@@ -93,7 +93,7 @@ func TestExecutor_PlanService_Success(t *testing.T) {
 		ID:      "__0",
 		Services: pipeline.ContainerSlice{
 			{
-				ID:          "service_org_repo_0_postgres;",
+				ID:          "service_org_repo_0_postgres",
 				Environment: map[string]string{},
 				Image:       "postgres:11-alpine",
 				Name:        "postgres",
@@ -122,7 +122,7 @@ func TestExecutor_PlanService_Success(t *testing.T) {
 	}
 }
 
-func TestExecutor_ExecService_Success(t *testing.T) {
+func TestLinux_ExecService_Success(t *testing.T) {
 	// setup types
 	gin.SetMode(gin.TestMode)
 
@@ -143,7 +143,7 @@ func TestExecutor_ExecService_Success(t *testing.T) {
 		ID:      "__0",
 		Services: pipeline.ContainerSlice{
 			{
-				ID:          "service_org_repo_0_postgres;",
+				ID:          "service_org_repo_0_postgres",
 				Environment: map[string]string{},
 				Image:       "postgres:11-alpine",
 				Name:        "postgres",
@@ -175,7 +175,7 @@ func TestExecutor_ExecService_Success(t *testing.T) {
 	}
 }
 
-func TestExecutor_DestroyService_Success(t *testing.T) {
+func TestLinux_DestroyService_Success(t *testing.T) {
 	// setup types
 	gin.SetMode(gin.TestMode)
 
@@ -196,10 +196,11 @@ func TestExecutor_DestroyService_Success(t *testing.T) {
 		ID:      "__0",
 		Services: pipeline.ContainerSlice{
 			{
-				ID:          "service_org_repo_0_postgres;",
+				ID:          "service_org_repo_0_postgres",
 				Environment: map[string]string{},
 				Image:       "postgres:11-alpine",
 				Name:        "postgres",
+				Number:      1,
 				Ports:       []string{"5432:5432"},
 				ExitCode:    0,
 			},

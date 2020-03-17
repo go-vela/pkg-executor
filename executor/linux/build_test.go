@@ -21,7 +21,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func TestExecutor_CreateBuild_Success(t *testing.T) {
+func TestLinux_CreateBuild_Success(t *testing.T) {
 	// setup types
 	gin.SetMode(gin.TestMode)
 
@@ -183,7 +183,7 @@ func TestExecutor_CreateBuild_Success(t *testing.T) {
 	}
 }
 
-func TestExecutor_ExecBuild_Success(t *testing.T) {
+func TestLinux_ExecBuild_Success(t *testing.T) {
 	// setup types
 	gin.SetMode(gin.TestMode)
 
@@ -352,7 +352,7 @@ func TestExecutor_ExecBuild_Success(t *testing.T) {
 	}
 }
 
-func TestExecutor_DestroyBuild_Success(t *testing.T) {
+func TestLinux_DestroyBuild_Success(t *testing.T) {
 	// setup types
 	gin.SetMode(gin.TestMode)
 

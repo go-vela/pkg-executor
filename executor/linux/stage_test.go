@@ -20,7 +20,7 @@ import (
 	"github.com/go-vela/types/pipeline"
 )
 
-func TestExecutor_CreateStage_Success(t *testing.T) {
+func TestLinux_CreateStage_Success(t *testing.T) {
 	// setup types
 	gin.SetMode(gin.TestMode)
 
@@ -140,7 +140,7 @@ func TestExecutor_CreateStage_Success(t *testing.T) {
 	}
 }
 
-func TestExecutor_ExecStage_Success(t *testing.T) {
+func TestLinux_ExecStage_Success(t *testing.T) {
 	// setup types
 	gin.SetMode(gin.TestMode)
 
@@ -257,7 +257,7 @@ func TestExecutor_ExecStage_Success(t *testing.T) {
 	}
 }
 
-func TestExecutor_DestroyStage_Success(t *testing.T) {
+func TestLinux_DestroyStage_Success(t *testing.T) {
 	// setup types
 	gin.SetMode(gin.TestMode)
 

@@ -62,7 +62,7 @@ func (c *client) CreateBuild(ctx context.Context) error {
 	b, _, err := c.Vela.Build.Update(r.GetOrg(), r.GetName(), b)
 	if err != nil {
 		e = err
-		return fmt.Errorf("unable to upload start state: %w", err)
+		return fmt.Errorf("unable to upload start state: %v", err)
 	}
 
 	c.build = b
@@ -79,8 +79,7 @@ func (c *client) CreateBuild(ctx context.Context) error {
 	return nil
 }
 
-// PlanBuild defines a function that
-// prepares the build for execution.
+// PlanBuild prepares the build for execution.
 func (c *client) PlanBuild(ctx context.Context) error {
 	b := c.build
 	p := c.pipeline
@@ -122,14 +121,6 @@ func (c *client) PlanBuild(ctx context.Context) error {
 			e = err
 			return fmt.Errorf("unable to create %s step: %w", init.Name, err)
 		}
-
-		c.logger.Infof("planning %s step", init.Name)
-		// plan the step
-		err = c.PlanStep(ctx, init)
-		if err != nil {
-			e = err
-			return fmt.Errorf("unable to plan %s step: %w", init.Name, err)
-		}
 	}
 
 	// TODO: make this better
@@ -142,14 +133,6 @@ func (c *client) PlanBuild(ctx context.Context) error {
 		if err != nil {
 			e = err
 			return fmt.Errorf("unable to create %s step: %w", init.Name, err)
-		}
-
-		c.logger.Infof("planning %s step", init.Name)
-		// plan the step
-		err = c.PlanStep(ctx, init)
-		if err != nil {
-			e = err
-			return fmt.Errorf("unable to plan %s step: %w", init.Name, err)
 		}
 	}
 

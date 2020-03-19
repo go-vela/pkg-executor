@@ -136,17 +136,12 @@ func (c *client) ExecService(ctx context.Context, ctn *pipeline.Container) error
 
 // StreamService tails the output for a service.
 func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) error {
-	// TODO: remove hardcoded reference
-	if ctn.Name == "init" {
-		return nil
-	}
-
 	b := c.build
 	r := c.repo
 
-	result, ok := c.stepLogs.Load(ctn.ID)
+	result, ok := c.serviceLogs.Load(ctn.ID)
 	if !ok {
-		return fmt.Errorf("unable to get step log from client")
+		return fmt.Errorf("unable to get service log from client")
 	}
 
 	l := result.(*library.Log)

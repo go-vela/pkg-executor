@@ -62,6 +62,115 @@ var (
 		AllowTag:    vela.Bool(false),
 	}
 
+	_stages = &pipeline.Build{
+		Version: "1",
+		ID:      "github_octocat_1",
+		Services: pipeline.ContainerSlice{
+			{
+				ID:          "service_github_octocat_1_postgres",
+				Directory:   "/home/github/octocat",
+				Environment: map[string]string{"FOO": "bar"},
+				Image:       "postgres:12-alpine",
+				Name:        "postgres",
+				Number:      1,
+				Ports:       []string{"5432:5432"},
+			},
+		},
+		Stages: pipeline.StageSlice{
+			{
+				Name: "init",
+				Steps: pipeline.ContainerSlice{
+					{
+						ID:          "github_octocat_1_init_init",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "#init",
+						Name:        "init",
+						Number:      1,
+						Pull:        true,
+					},
+				},
+			},
+			{
+				Name:  "clone",
+				Needs: []string{"init"},
+				Steps: pipeline.ContainerSlice{
+					{
+						ID:          "github_octocat_1_clone_clone",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "target/vela-git:v0.3.0",
+						Name:        "clone",
+						Number:      2,
+						Pull:        true,
+					},
+				},
+			},
+			{
+				Name:  "echo",
+				Needs: []string{"clone"},
+				Steps: pipeline.ContainerSlice{
+					{
+						ID:          "github_octocat_1_echo_echo",
+						Commands:    []string{"echo hello"},
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "alpine:latest",
+						Name:        "echo",
+						Number:      3,
+						Pull:        true,
+					},
+				},
+			},
+		},
+	}
+
+	_steps = &pipeline.Build{
+		Version: "1",
+		ID:      "github_octocat_1",
+		Services: pipeline.ContainerSlice{
+			{
+				ID:          "service_github_octocat_1_postgres",
+				Directory:   "/home/github/octocat",
+				Environment: map[string]string{"FOO": "bar"},
+				Image:       "postgres:12-alpine",
+				Name:        "postgres",
+				Number:      1,
+				Ports:       []string{"5432:5432"},
+			},
+		},
+		Steps: pipeline.ContainerSlice{
+			{
+				ID:          "step_github_octocat_1_init",
+				Directory:   "/home/github/octocat",
+				Environment: map[string]string{"FOO": "bar"},
+				Image:       "#init",
+				Name:        "init",
+				Number:      1,
+				Pull:        true,
+			},
+			{
+				ID:          "step_github_octocat_1_clone",
+				Directory:   "/home/github/octocat",
+				Environment: map[string]string{"FOO": "bar"},
+				Image:       "target/vela-git:v0.3.0",
+				Name:        "clone",
+				Number:      2,
+				Pull:        true,
+			},
+			{
+				ID:          "step_github_octocat_1_echo",
+				Commands:    []string{"echo hello"},
+				Directory:   "/home/github/octocat",
+				Environment: map[string]string{"FOO": "bar"},
+				Image:       "alpine:latest",
+				Name:        "echo",
+				Number:      3,
+				Pull:        true,
+			},
+		},
+	}
+
 	_user = &library.User{
 		ID:        vela.Int64(1),
 		Name:      vela.String("octocat"),
@@ -75,68 +184,138 @@ var (
 
 func TestLinux_GetBuild(t *testing.T) {
 	// setup types
-	want := _build
-
-	e, err := New(
+	_engine, err := New(
 		WithBuild(_build),
 	)
 	if err != nil {
 		t.Errorf("unable to create executor engine: %v", err)
 	}
 
-	// run test
-	got, err := e.GetBuild()
-	if err != nil {
-		t.Errorf("unable to get build from executor: %v", err)
+	// setup tests
+	tests := []struct {
+		failure bool
+		engine  *client
+	}{
+		{
+			failure: false,
+			engine:  _engine,
+		},
+		{
+			failure: true,
+			engine:  new(client),
+		},
 	}
 
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("GetBuild is %v, want %v", got, want)
+	// run tests
+	for _, test := range tests {
+		got, err := test.engine.GetBuild()
+
+		if test.failure {
+			if err == nil {
+				t.Errorf("GetBuild should have returned err")
+			}
+
+			continue
+		}
+
+		if err != nil {
+			t.Errorf("GetBuild returned err: %v", err)
+		}
+
+		if !reflect.DeepEqual(got, _build) {
+			t.Errorf("GetBuild is %v, want %v", got, _build)
+		}
 	}
 }
 
 func TestLinux_GetPipeline(t *testing.T) {
 	// setup types
-	p := &pipeline.Build{ID: "1"}
-
-	want := p
-
-	e, err := New(
-		WithPipeline(p),
+	_engine, err := New(
+		WithPipeline(_steps),
 	)
 	if err != nil {
 		t.Errorf("unable to create executor engine: %v", err)
 	}
 
-	// run test
-	got, err := e.GetPipeline()
-	if err != nil {
-		t.Errorf("unable to get pipeline from compiler: %v", err)
+	// setup tests
+	tests := []struct {
+		failure bool
+		engine  *client
+	}{
+		{
+			failure: false,
+			engine:  _engine,
+		},
+		{
+			failure: true,
+			engine:  new(client),
+		},
 	}
 
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("GetPipeline is %v, want %v", got, want)
+	// run tests
+	for _, test := range tests {
+		got, err := test.engine.GetPipeline()
+
+		if test.failure {
+			if err == nil {
+				t.Errorf("GetPipeline should have returned err")
+			}
+
+			continue
+		}
+
+		if err != nil {
+			t.Errorf("GetPipeline returned err: %v", err)
+		}
+
+		if !reflect.DeepEqual(got, _steps) {
+			t.Errorf("GetPipeline is %v, want %v", got, _steps)
+		}
 	}
 }
 
 func TestLinux_GetRepo(t *testing.T) {
 	// setup types
-	want := _repo
-
-	e, err := New(
+	_engine, err := New(
 		WithRepo(_repo),
 	)
 	if err != nil {
 		t.Errorf("unable to create executor engine: %v", err)
 	}
 
-	// run test
-	got, err := e.GetRepo()
-	if err != nil {
-		t.Errorf("unable to get repo from compiler: %v", err)
+	// setup tests
+	tests := []struct {
+		failure bool
+		engine  *client
+	}{
+		{
+			failure: false,
+			engine:  _engine,
+		},
+		{
+			failure: true,
+			engine:  new(client),
+		},
 	}
 
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("GetRepo is %v, want %v", got, want)
+	// run tests
+	for _, test := range tests {
+		got, err := test.engine.GetRepo()
+
+		if test.failure {
+			if err == nil {
+				t.Errorf("GetRepo should have returned err")
+			}
+
+			continue
+		}
+
+		if err != nil {
+			t.Errorf("GetRepo returned err: %v", err)
+		}
+
+		if !reflect.DeepEqual(got, _repo) {
+			t.Errorf("GetRepo is %v, want %v", got, _repo)
+		}
 	}
 }

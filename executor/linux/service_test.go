@@ -21,7 +21,7 @@ import (
 	"github.com/go-vela/types/pipeline"
 )
 
-func TestLinux_CreateService_Success(t *testing.T) {
+func TestLinux_CreateService(t *testing.T) {
 	// setup types
 	gin.SetMode(gin.TestMode)
 
@@ -37,42 +37,68 @@ func TestLinux_CreateService_Success(t *testing.T) {
 		t.Errorf("unable to create runtime engine: %v", err)
 	}
 
-	p := &pipeline.Build{
-		Version: "1",
-		ID:      "__0",
-		Services: pipeline.ContainerSlice{
-			{
-				ID:          "service_org_repo_0_postgres",
-				Environment: map[string]string{},
-				Image:       "postgres:11-alpine",
+	// setup tests
+	tests := []struct {
+		failure   bool
+		container *pipeline.Container
+	}{
+		{
+			failure: false,
+			container: &pipeline.Container{
+				ID:          "service_github_octocat_1_postgres",
+				Directory:   "/home/github/octocat",
+				Environment: map[string]string{"FOO": "bar"},
+				Image:       "postgres:12-alpine",
 				Name:        "postgres",
 				Number:      1,
 				Ports:       []string{"5432:5432"},
-				Pull:        true,
+			},
+		},
+		{
+			failure: true,
+			container: &pipeline.Container{
+				ID:          "service_github_octocat_1_postgres",
+				Directory:   "/home/github/octocat",
+				Environment: map[string]string{"FOO": "bar"},
+				Image:       "postgres:12-alpine",
+				Name:        "postgres",
+				Number:      0,
+				Ports:       []string{"5432:5432"},
 			},
 		},
 	}
 
-	e, err := New(
-		WithBuild(_build),
-		WithPipeline(p),
-		WithRepo(_repo),
-		WithRuntime(_runtime),
-		WithUser(_user),
-		WithVelaClient(_client),
-	)
-	if err != nil {
-		t.Errorf("unable to create executor engine: %v", err)
-	}
+	// run tests
+	for _, test := range tests {
+		_engine, err := New(
+			WithBuild(_build),
+			WithPipeline(_steps),
+			WithRepo(_repo),
+			WithRuntime(_runtime),
+			WithUser(_user),
+			WithVelaClient(_client),
+		)
+		if err != nil {
+			t.Errorf("unable to create executor engine: %v", err)
+		}
 
-	// run test
-	err = e.CreateService(context.Background(), e.pipeline.Services[0])
-	if err != nil {
-		t.Errorf("CreateService returned err: %v", err)
+		err = _engine.CreateService(context.Background(), test.container)
+
+		if test.failure {
+			if err == nil {
+				t.Errorf("CreateService should have returned err")
+			}
+
+			continue
+		}
+
+		if err != nil {
+			t.Errorf("CreateService returned err: %v", err)
+		}
 	}
 }
 
-func TestLinux_PlanService_Success(t *testing.T) {
+func TestLinux_PlanService(t *testing.T) {
 	// setup types
 	gin.SetMode(gin.TestMode)
 
@@ -88,14 +114,18 @@ func TestLinux_PlanService_Success(t *testing.T) {
 		t.Errorf("unable to create runtime engine: %v", err)
 	}
 
-	p := &pipeline.Build{
-		Version: "1",
-		ID:      "__0",
-		Services: pipeline.ContainerSlice{
-			{
-				ID:          "service_org_repo_0_postgres",
-				Environment: map[string]string{},
-				Image:       "postgres:11-alpine",
+	// setup tests
+	tests := []struct {
+		failure   bool
+		container *pipeline.Container
+	}{
+		{
+			failure: false,
+			container: &pipeline.Container{
+				ID:          "service_github_octocat_1_postgres",
+				Directory:   "/home/github/octocat",
+				Environment: map[string]string{"FOO": "bar"},
+				Image:       "postgres:12-alpine",
 				Name:        "postgres",
 				Number:      1,
 				Ports:       []string{"5432:5432"},
@@ -103,26 +133,37 @@ func TestLinux_PlanService_Success(t *testing.T) {
 		},
 	}
 
-	e, err := New(
-		WithBuild(_build),
-		WithPipeline(p),
-		WithRepo(_repo),
-		WithRuntime(_runtime),
-		WithUser(_user),
-		WithVelaClient(_client),
-	)
-	if err != nil {
-		t.Errorf("unable to create executor engine: %v", err)
-	}
+	// run tests
+	for _, test := range tests {
+		_engine, err := New(
+			WithBuild(_build),
+			WithPipeline(_steps),
+			WithRepo(_repo),
+			WithRuntime(_runtime),
+			WithUser(_user),
+			WithVelaClient(_client),
+		)
+		if err != nil {
+			t.Errorf("unable to create executor engine: %v", err)
+		}
 
-	// run test
-	err = e.PlanService(context.Background(), e.pipeline.Services[0])
-	if err != nil {
-		t.Errorf("PlanService returned err: %v", err)
+		err = _engine.PlanService(context.Background(), test.container)
+
+		if test.failure {
+			if err == nil {
+				t.Errorf("PlanService should have returned err")
+			}
+
+			continue
+		}
+
+		if err != nil {
+			t.Errorf("PlanService returned err: %v", err)
+		}
 	}
 }
 
-func TestLinux_ExecService_Success(t *testing.T) {
+func TestLinux_ExecService(t *testing.T) {
 	// setup types
 	gin.SetMode(gin.TestMode)
 
@@ -138,14 +179,18 @@ func TestLinux_ExecService_Success(t *testing.T) {
 		t.Errorf("unable to create runtime engine: %v", err)
 	}
 
-	p := &pipeline.Build{
-		Version: "1",
-		ID:      "__0",
-		Services: pipeline.ContainerSlice{
-			{
-				ID:          "service_org_repo_0_postgres",
-				Environment: map[string]string{},
-				Image:       "postgres:11-alpine",
+	// setup tests
+	tests := []struct {
+		failure   bool
+		container *pipeline.Container
+	}{
+		{
+			failure: false,
+			container: &pipeline.Container{
+				ID:          "service_github_octocat_1_postgres",
+				Directory:   "/home/github/octocat",
+				Environment: map[string]string{"FOO": "bar"},
+				Image:       "postgres:12-alpine",
 				Name:        "postgres",
 				Number:      1,
 				Ports:       []string{"5432:5432"},
@@ -153,29 +198,40 @@ func TestLinux_ExecService_Success(t *testing.T) {
 		},
 	}
 
-	e, err := New(
-		WithBuild(_build),
-		WithPipeline(p),
-		WithRepo(_repo),
-		WithRuntime(_runtime),
-		WithUser(_user),
-		WithVelaClient(_client),
-	)
-	if err != nil {
-		t.Errorf("unable to create executor engine: %v", err)
-	}
+	// run tests
+	for _, test := range tests {
+		_engine, err := New(
+			WithBuild(_build),
+			WithPipeline(_steps),
+			WithRepo(_repo),
+			WithRuntime(_runtime),
+			WithUser(_user),
+			WithVelaClient(_client),
+		)
+		if err != nil {
+			t.Errorf("unable to create executor engine: %v", err)
+		}
 
-	e.serviceLogs.Store(e.pipeline.Services[0].ID, new(library.Log))
-	e.services.Store(e.pipeline.Services[0].ID, new(library.Service))
+		_engine.serviceLogs.Store(test.container.ID, new(library.Log))
+		_engine.services.Store(test.container.ID, new(library.Service))
 
-	// run test
-	err = e.ExecService(context.Background(), e.pipeline.Services[0])
-	if err != nil {
-		t.Errorf("ExecService returned err: %v", err)
+		err = _engine.ExecService(context.Background(), test.container)
+
+		if test.failure {
+			if err == nil {
+				t.Errorf("ExecService should have returned err")
+			}
+
+			continue
+		}
+
+		if err != nil {
+			t.Errorf("ExecService returned err: %v", err)
+		}
 	}
 }
 
-func TestLinux_DestroyService_Success(t *testing.T) {
+func TestLinux_StreamService(t *testing.T) {
 	// setup types
 	gin.SetMode(gin.TestMode)
 
@@ -191,37 +247,150 @@ func TestLinux_DestroyService_Success(t *testing.T) {
 		t.Errorf("unable to create runtime engine: %v", err)
 	}
 
-	p := &pipeline.Build{
-		Version: "1",
-		ID:      "__0",
-		Services: pipeline.ContainerSlice{
-			{
-				ID:          "service_org_repo_0_postgres",
-				Environment: map[string]string{},
-				Image:       "postgres:11-alpine",
+	// setup tests
+	tests := []struct {
+		failure   bool
+		logs      *library.Log
+		container *pipeline.Container
+	}{
+		{
+			failure: false,
+			logs:    new(library.Log),
+			container: &pipeline.Container{
+				ID:          "service_github_octocat_1_postgres",
+				Directory:   "/home/github/octocat",
+				Environment: map[string]string{"FOO": "bar"},
+				Image:       "postgres:12-alpine",
 				Name:        "postgres",
 				Number:      1,
 				Ports:       []string{"5432:5432"},
-				ExitCode:    0,
+			},
+		},
+		{
+			failure: false,
+			logs:    new(library.Log),
+			container: &pipeline.Container{
+				ID:          "service_github_octocat_1_postgres",
+				Directory:   "/home/github/octocat",
+				Environment: map[string]string{"FOO": "bar"},
+				Image:       "postgres:12-alpine",
+				Name:        "postgres",
+				Number:      1,
+				Ports:       []string{"5432:5432"},
+			},
+		},
+		{
+			failure: true,
+			logs:    nil,
+			container: &pipeline.Container{
+				ID:          "service_github_octocat_1_postgres",
+				Directory:   "/home/github/octocat",
+				Environment: map[string]string{"FOO": "bar"},
+				Image:       "postgres:12-alpine",
+				Name:        "postgres",
+				Number:      1,
+				Ports:       []string{"5432:5432"},
 			},
 		},
 	}
 
-	e, err := New(
-		WithBuild(_build),
-		WithPipeline(p),
-		WithRepo(_repo),
-		WithRuntime(_runtime),
-		WithUser(_user),
-		WithVelaClient(_client),
-	)
+	// run tests
+	for _, test := range tests {
+		_engine, err := New(
+			WithBuild(_build),
+			WithPipeline(_steps),
+			WithRepo(_repo),
+			WithRuntime(_runtime),
+			WithUser(_user),
+			WithVelaClient(_client),
+		)
+		if err != nil {
+			t.Errorf("unable to create executor engine: %v", err)
+		}
+
+		if test.logs != nil {
+			_engine.serviceLogs.Store(test.container.ID, test.logs)
+		}
+
+		_engine.services.Store(test.container.ID, new(library.Service))
+
+		err = _engine.StreamService(context.Background(), test.container)
+
+		if test.failure {
+			if err == nil {
+				t.Errorf("StreamService should have returned err")
+			}
+
+			continue
+		}
+
+		if err != nil {
+			t.Errorf("StreamService returned err: %v", err)
+		}
+	}
+}
+
+func TestLinux_DestroyService(t *testing.T) {
+	// setup types
+	gin.SetMode(gin.TestMode)
+
+	s := httptest.NewServer(server.FakeHandler())
+
+	_client, err := vela.NewClient(s.URL, nil)
 	if err != nil {
-		t.Errorf("unable to create executor engine: %v", err)
+		t.Errorf("unable to create Vela API client: %v", err)
 	}
 
-	// run test
-	err = e.DestroyService(context.Background(), e.pipeline.Services[0])
+	_runtime, err := docker.NewMock()
 	if err != nil {
-		t.Errorf("DestroyService returned err: %v", err)
+		t.Errorf("unable to create runtime engine: %v", err)
+	}
+
+	// setup tests
+	tests := []struct {
+		failure   bool
+		container *pipeline.Container
+	}{
+		{
+			failure: false,
+			container: &pipeline.Container{
+				ID:          "service_github_octocat_1_postgres",
+				Directory:   "/home/github/octocat",
+				Environment: map[string]string{"FOO": "bar"},
+				Image:       "postgres:12-alpine",
+				Name:        "postgres",
+				Number:      1,
+				Ports:       []string{"5432:5432"},
+			},
+		},
+	}
+
+	// run tests
+	for _, test := range tests {
+		_engine, err := New(
+			WithBuild(_build),
+			WithPipeline(_steps),
+			WithRepo(_repo),
+			WithRuntime(_runtime),
+			WithUser(_user),
+			WithVelaClient(_client),
+		)
+		if err != nil {
+			t.Errorf("unable to create executor engine: %v", err)
+		}
+
+		err = _engine.DestroyService(context.Background(), test.container)
+
+		if test.failure {
+			if err == nil {
+				t.Errorf("DestroyService should have returned err")
+			}
+
+			continue
+		}
+
+		if err != nil {
+			t.Errorf("DestroyService returned err: %v", err)
+		}
 	}
 }

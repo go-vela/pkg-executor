@@ -21,7 +21,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func TestLinux_CreateBuild_Success(t *testing.T) {
+func TestLinux_CreateBuild(t *testing.T) {
 	// setup types
 	gin.SetMode(gin.TestMode)
 
@@ -38,134 +38,31 @@ func TestLinux_CreateBuild_Success(t *testing.T) {
 	}
 
 	tests := []struct {
+		failure  bool
+		build    *library.Build
 		pipeline *pipeline.Build
 	}{
-		{ // pipeline with steps
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "__0",
-				Services: pipeline.ContainerSlice{
-					{
-						ID:          "service_org_repo_0_postgres;",
-						Environment: map[string]string{},
-						Image:       "postgres:11-alpine",
-						Name:        "postgres",
-						Ports:       []string{"5432:5432"},
-					},
-				},
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "__0_clone",
-						Environment: map[string]string{},
-						Image:       "target/vela-plugins/git:1",
-						Name:        "clone",
-						Number:      1,
-						Pull:        true,
-					},
-					{
-						ID:          "__0_exit",
-						Environment: map[string]string{},
-						Image:       "alpine:latest",
-						Name:        "exit",
-						Number:      2,
-						Pull:        true,
-						Ruleset: pipeline.Ruleset{
-							Continue: true,
-						},
-						Commands: []string{"exit 1"},
-					},
-					{
-						ID:          "__0_echo",
-						Environment: map[string]string{},
-						Image:       "alpine:latest",
-						Name:        "echo",
-						Number:      2,
-						Pull:        true,
-						Commands:    []string{"echo ${FOOBAR}"},
-						Secrets: pipeline.StepSecretSlice{
-							{
-								Source: "foobar",
-								Target: "foobar",
-							},
-						},
-					},
-				},
-			},
+		{
+			failure:  false,
+			build:    _build,
+			pipeline: _stages,
 		},
-		{ // pipeline with stages
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "__0",
-				Services: pipeline.ContainerSlice{
-					{
-						ID:          "service_org_repo_0_postgres;",
-						Environment: map[string]string{},
-						Image:       "postgres:11-alpine",
-						Name:        "postgres",
-						Ports:       []string{"5432:5432"},
-					},
-				},
-				Stages: pipeline.StageSlice{
-					{
-						Name: "clone",
-						Steps: pipeline.ContainerSlice{
-							{
-								ID:          "__0_clone_clone",
-								Environment: map[string]string{},
-								Image:       "target/vela-plugins/git:1",
-								Name:        "clone",
-								Number:      1,
-								Pull:        true,
-							},
-						},
-					},
-					{
-						Name:  "exit",
-						Needs: []string{"clone"},
-						Steps: pipeline.ContainerSlice{
-							{
-								ID:          "__0_exit_exit",
-								Environment: map[string]string{},
-								Image:       "alpine:latest",
-								Name:        "exit",
-								Number:      2,
-								Pull:        true,
-								Ruleset: pipeline.Ruleset{
-									Continue: true,
-								},
-								Commands: []string{"exit 1"},
-							},
-						},
-					},
-					{
-						Name:  "echo",
-						Needs: []string{"clone"},
-						Steps: pipeline.ContainerSlice{
-							{
-								ID:          "__0_echo_echo",
-								Environment: map[string]string{},
-								Image:       "alpine:latest",
-								Name:        "echo",
-								Number:      1,
-								Pull:        true,
-								Secrets: pipeline.StepSecretSlice{
-									{
-										Source: "foobar",
-										Target: "foobar",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
+		{
+			failure:  false,
+			build:    _build,
+			pipeline: _steps,
+		},
+		{
+			failure:  true,
+			build:    new(library.Build),
+			pipeline: _steps,
 		},
 	}
 
 	// run test
 	for _, test := range tests {
-		e, err := New(
-			WithBuild(_build),
+		_engine, err := New(
+			WithBuild(test.build),
 			WithPipeline(test.pipeline),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
@@ -176,14 +73,23 @@ func TestLinux_CreateBuild_Success(t *testing.T) {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
 
-		err = e.CreateBuild(context.Background())
+		err = _engine.CreateBuild(context.Background())
+
+		if test.failure {
+			if err == nil {
+				t.Errorf("CreateBuild should have returned err")
+			}
+
+			continue
+		}
+
 		if err != nil {
 			t.Errorf("CreateBuild returned err: %v", err)
 		}
 	}
 }
 
-func TestLinux_ExecBuild_Success(t *testing.T) {
+func TestLinux_PlanBuild(t *testing.T) {
 	// setup types
 	gin.SetMode(gin.TestMode)
 
@@ -200,126 +106,54 @@ func TestLinux_ExecBuild_Success(t *testing.T) {
 	}
 
 	tests := []struct {
+		failure  bool
 		pipeline *pipeline.Build
 	}{
-		{ // pipeline with steps
+		{
+			failure:  false,
+			pipeline: _stages,
+		},
+		{
+			failure:  false,
+			pipeline: _steps,
+		},
+		{
+			failure: true,
 			pipeline: &pipeline.Build{
 				Version: "1",
-				ID:      "__0",
-				Services: pipeline.ContainerSlice{
+				ID:      "github_octocat_1",
+				Stages: pipeline.StageSlice{
 					{
-						ID:          "service_org_repo_0_postgres;",
-						Environment: map[string]string{},
-						Image:       "postgres:11-alpine",
-						Name:        "postgres",
-						Number:      1,
-						Ports:       []string{"5432:5432"},
-					},
-				},
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "__0_clone",
-						Environment: map[string]string{},
-						Image:       "target/vela-plugins/git:1",
-						Name:        "clone",
-						Number:      1,
-						Pull:        true,
-					},
-					{
-						ID:          "__0_exit",
-						Environment: map[string]string{},
-						Image:       "alpine:latest",
-						Name:        "exit",
-						Number:      2,
-						Pull:        true,
-						Ruleset: pipeline.Ruleset{
-							Continue: true,
-						},
-						Commands: []string{"exit 1"},
-					},
-					{
-						ID:          "__0_echo",
-						Environment: map[string]string{},
-						Image:       "alpine:latest",
-						Name:        "echo",
-						Number:      2,
-						Pull:        true,
-						Commands:    []string{"echo ${FOOBAR}"},
-						Secrets: pipeline.StepSecretSlice{
+						Name: "init",
+						Steps: pipeline.ContainerSlice{
 							{
-								Source: "foobar",
-								Target: "foobar",
+								ID:          "github_octocat_1_init_init",
+								Directory:   "/home/github/octocat",
+								Environment: map[string]string{"FOO": "bar"},
+								Image:       "#init",
+								Name:        "init",
+								Number:      0,
+								Pull:        true,
 							},
 						},
 					},
 				},
 			},
 		},
-		{ // pipeline with stages
+		{
+			failure: true,
 			pipeline: &pipeline.Build{
 				Version: "1",
-				ID:      "__0",
-				Services: pipeline.ContainerSlice{
+				ID:      "github_octocat_1",
+				Steps: pipeline.ContainerSlice{
 					{
-						ID:          "service_org_repo_0_postgres;",
-						Environment: map[string]string{},
-						Image:       "postgres:11-alpine",
-						Name:        "postgres",
-						Number:      1,
-						Ports:       []string{"5432:5432"},
-					},
-				},
-				Stages: pipeline.StageSlice{
-					{
-						Name: "clone",
-						Steps: pipeline.ContainerSlice{
-							{
-								ID:          "__0_clone_clone",
-								Environment: map[string]string{},
-								Image:       "target/vela-plugins/git:1",
-								Name:        "clone",
-								Number:      1,
-								Pull:        true,
-							},
-						},
-					},
-					{
-						Name:  "exit",
-						Needs: []string{"clone"},
-						Steps: pipeline.ContainerSlice{
-							{
-								ID:          "__0_exit_exit",
-								Environment: map[string]string{},
-								Image:       "alpine:latest",
-								Name:        "exit",
-								Number:      2,
-								Pull:        true,
-								Ruleset: pipeline.Ruleset{
-									Continue: true,
-								},
-								Commands: []string{"exit 1"},
-							},
-						},
-					},
-					{
-						Name:  "echo",
-						Needs: []string{"clone"},
-						Steps: pipeline.ContainerSlice{
-							{
-								ID:          "__0_echo_echo",
-								Environment: map[string]string{},
-								Image:       "alpine:latest",
-								Name:        "echo",
-								Number:      1,
-								Pull:        true,
-								Secrets: pipeline.StepSecretSlice{
-									{
-										Source: "foobar",
-										Target: "foobar",
-									},
-								},
-							},
-						},
+						ID:          "step_github_octocat_1_init",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "#init",
+						Name:        "init",
+						Number:      0,
+						Pull:        true,
 					},
 				},
 			},
@@ -328,7 +162,7 @@ func TestLinux_ExecBuild_Success(t *testing.T) {
 
 	// run test
 	for _, test := range tests {
-		e, err := New(
+		_engine, err := New(
 			WithBuild(_build),
 			WithPipeline(test.pipeline),
 			WithRepo(_repo),
@@ -340,19 +174,88 @@ func TestLinux_ExecBuild_Success(t *testing.T) {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
 
-		err = e.PlanBuild(context.Background())
+		err = _engine.PlanBuild(context.Background())
+
+		if test.failure {
+			if err == nil {
+				t.Errorf("PlanBuild should have returned err")
+			}
+
+			continue
+		}
+
+		if err != nil {
+			t.Errorf("PlanBuild returned err: %v", err)
+		}
+	}
+}
+
+func TestLinux_ExecBuild(t *testing.T) {
+	// setup types
+	gin.SetMode(gin.TestMode)
+
+	s := httptest.NewServer(server.FakeHandler())
+
+	_client, err := vela.NewClient(s.URL, nil)
+	if err != nil {
+		t.Errorf("unable to create Vela API client: %v", err)
+	}
+
+	_runtime, err := docker.NewMock()
+	if err != nil {
+		t.Errorf("unable to create runtime engine: %v", err)
+	}
+
+	tests := []struct {
+		failure  bool
+		pipeline *pipeline.Build
+	}{
+		{
+			failure:  false,
+			pipeline: _stages,
+		},
+		{
+			failure:  false,
+			pipeline: _steps,
+		},
+	}
+
+	// run test
+	for _, test := range tests {
+		_engine, err := New(
+			WithBuild(_build),
+			WithPipeline(test.pipeline),
+			WithRepo(_repo),
+			WithRuntime(_runtime),
+			WithUser(_user),
+			WithVelaClient(_client),
+		)
+		if err != nil {
+			t.Errorf("unable to create executor engine: %v", err)
+		}
+
+		err = _engine.PlanBuild(context.Background())
 		if err != nil {
 			t.Errorf("PlanBuild returned err: %v", err)
 		}
 
-		err = e.ExecBuild(context.Background())
+		err = _engine.ExecBuild(context.Background())
+
+		if test.failure {
+			if err == nil {
+				t.Errorf("ExecBuild should have returned err")
+			}
+
+			continue
+		}
+
 		if err != nil {
 			t.Errorf("ExecBuild returned err: %v", err)
 		}
 	}
 }
 
-func TestLinux_DestroyBuild_Success(t *testing.T) {
+func TestLinux_DestroyBuild(t *testing.T) {
 	// setup types
 	gin.SetMode(gin.TestMode)
 
@@ -369,135 +272,41 @@ func TestLinux_DestroyBuild_Success(t *testing.T) {
 	}
 
 	tests := []struct {
+		failure  bool
 		pipeline *pipeline.Build
+		service  *library.Service
 	}{
-		{ // pipeline with steps
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "__0",
-				Services: pipeline.ContainerSlice{
-					{
-						ID:          "service_org_repo_0_postgres;",
-						Environment: map[string]string{},
-						Image:       "postgres:11-alpine",
-						Name:        "postgres",
-						Number:      1,
-						Ports:       []string{"5432:5432"},
-					},
-				},
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "__0_clone",
-						Environment: map[string]string{},
-						Image:       "target/vela-plugins/git:1",
-						Name:        "clone",
-						Number:      1,
-						Pull:        true,
-					},
-					{
-						ID:          "__0_exit",
-						Environment: map[string]string{},
-						Image:       "alpine:latest",
-						Name:        "exit",
-						Number:      2,
-						Pull:        true,
-						Ruleset: pipeline.Ruleset{
-							Continue: true,
-						},
-						Commands: []string{"exit 1"},
-					},
-					{
-						ID:          "__0_echo",
-						Environment: map[string]string{},
-						Image:       "alpine:latest",
-						Name:        "echo",
-						Number:      2,
-						Pull:        true,
-						Commands:    []string{"echo ${FOOBAR}"},
-						Secrets: pipeline.StepSecretSlice{
-							{
-								Source: "foobar",
-								Target: "foobar",
-							},
-						},
-					},
-				},
+		{
+			failure:  false,
+			pipeline: _stages,
+			service: &library.Service{
+				Name:   &_stages.Services[0].Name,
+				Number: &_stages.Services[0].Number,
 			},
 		},
-		{ // pipeline with stages
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "__0",
-				Services: pipeline.ContainerSlice{
-					{
-						ID:          "service_org_repo_0_postgres;",
-						Environment: map[string]string{},
-						Image:       "postgres:11-alpine",
-						Name:        "postgres",
-						Number:      1,
-						Ports:       []string{"5432:5432"},
-					},
-				},
-				Stages: pipeline.StageSlice{
-					{
-						Name: "clone",
-						Steps: pipeline.ContainerSlice{
-							{
-								ID:          "__0_clone_clone",
-								Environment: map[string]string{},
-								Image:       "target/vela-plugins/git:1",
-								Name:        "clone",
-								Number:      1,
-								Pull:        true,
-							},
-						},
-					},
-					{
-						Name:  "exit",
-						Needs: []string{"clone"},
-						Steps: pipeline.ContainerSlice{
-							{
-								ID:          "__0_exit_exit",
-								Environment: map[string]string{},
-								Image:       "alpine:latest",
-								Name:        "exit",
-								Number:      2,
-								Pull:        true,
-								Ruleset: pipeline.Ruleset{
-									Continue: true,
-								},
-								Commands: []string{"exit 1"},
-							},
-						},
-					},
-					{
-						Name:  "echo",
-						Needs: []string{"clone"},
-						Steps: pipeline.ContainerSlice{
-							{
-								ID:          "__0_echo_echo",
-								Environment: map[string]string{},
-								Image:       "alpine:latest",
-								Name:        "echo",
-								Number:      1,
-								Pull:        true,
-								Secrets: pipeline.StepSecretSlice{
-									{
-										Source: "foobar",
-										Target: "foobar",
-									},
-								},
-							},
-						},
-					},
-				},
+		{
+			failure:  false,
+			pipeline: _steps,
+			service: &library.Service{
+				Name:   &_steps.Services[0].Name,
+				Number: &_steps.Services[0].Number,
 			},
+		},
+		{
+			failure:  true,
+			pipeline: _steps,
+			service:  nil,
+		},
+		{
+			failure:  true,
+			pipeline: new(pipeline.Build),
+			service:  nil,
 		},
 	}
 
 	// run test
 	for _, test := range tests {
-		e, err := New(
+		_engine, err := New(
 			WithBuild(_build),
 			WithPipeline(test.pipeline),
 			WithRepo(_repo),
@@ -509,11 +318,20 @@ func TestLinux_DestroyBuild_Success(t *testing.T) {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
 
-		svc := new(library.Service)
-		svc.SetNumber(1)
-		e.services.Store(e.pipeline.Services[0].ID, svc)
+		if test.service != nil {
+			_engine.services.Store(_engine.pipeline.Services[0].ID, test.service)
+		}
 
-		err = e.DestroyBuild(context.Background())
+		err = _engine.DestroyBuild(context.Background())
+
+		if test.failure {
+			if err == nil {
+				t.Errorf("DestroyBuild should have returned err")
+			}
+
+			continue
+		}
+
 		if err != nil {
 			t.Errorf("DestroyBuild returned err: %v", err)
 		}

@@ -20,15 +20,30 @@ type Engine interface {
 	// GetBuild defines a function for the API
 	// that gets the current build in execution.
 	GetBuild() (*library.Build, error)
-	// GetRepo defines a function for the API
-	// that gets the current repo in execution.
-	GetRepo() (*library.Repo, error)
 	// GetPipeline defines a function for the API
 	// that gets the current pipeline in execution.
 	GetPipeline() (*pipeline.Build, error)
+	// GetRepo defines a function for the API
+	// that gets the current repo in execution.
+	GetRepo() (*library.Repo, error)
 	// KillBuild defines a function for the API
 	// that kills the current build in execution.
 	KillBuild() (*library.Build, error)
+
+	// Build Engine interface functions
+
+	// CreateBuild defines a function that
+	// configures the build for execution.
+	CreateBuild(context.Context) error
+	// PlanBuild defines a function that
+	// prepares the build for execution.
+	PlanBuild(context.Context) error
+	// ExecBuild defines a function that
+	// runs a pipeline for a build.
+	ExecBuild(context.Context) error
+	// DestroyBuild defines a function that
+	// cleans up the build after execution.
+	DestroyBuild(context.Context) error
 
 	// Secrets Engine Interface Functions
 
@@ -54,6 +69,21 @@ type Engine interface {
 	// cleans up the service after execution.
 	DestroyService(context.Context, *pipeline.Container) error
 
+	// Stage Engine Interface Functions
+
+	// CreateStage defines a function that
+	// configures the stage for execution.
+	CreateStage(context.Context, *pipeline.Stage) error
+	// PlanStage defines a function that
+	// prepares the stage for execution.
+	PlanStage(context.Context, *pipeline.Stage, map[string]chan error) error
+	// ExecStage defines a function that
+	// runs a stage.
+	ExecStage(context.Context, *pipeline.Stage, map[string]chan error) error
+	// DestroyStage defines a function that
+	// cleans up the stage after execution.
+	DestroyStage(context.Context, *pipeline.Stage) error
+
 	// Step Engine Interface Functions
 
 	// CreateStep defines a function that
@@ -71,34 +101,4 @@ type Engine interface {
 	// DestroyStep defines a function that
 	// cleans up the step after execution.
 	DestroyStep(context.Context, *pipeline.Container) error
-
-	// Stage Engine Interface Functions
-
-	// CreateStage defines a function that
-	// configures the stage for execution.
-	CreateStage(context.Context, *pipeline.Stage) error
-	// PlanStage defines a function that
-	// prepares the stage for execution.
-	PlanStage(context.Context, *pipeline.Stage, map[string]chan error) error
-	// ExecStage defines a function that
-	// runs a stage.
-	ExecStage(context.Context, *pipeline.Stage, map[string]chan error) error
-	// DestroyStage defines a function that
-	// cleans up the stage after execution.
-	DestroyStage(context.Context, *pipeline.Stage) error
-
-	// Build Engine interface functions
-
-	// CreateBuild defines a function that
-	// configures the build for execution.
-	CreateBuild(context.Context) error
-	// PlanBuild defines a function that
-	// prepares the build for execution.
-	PlanBuild(context.Context) error
-	// ExecBuild defines a function that
-	// runs a pipeline for a build.
-	ExecBuild(context.Context) error
-	// DestroyBuild defines a function that
-	// cleans up the build after execution.
-	DestroyBuild(context.Context) error
 }

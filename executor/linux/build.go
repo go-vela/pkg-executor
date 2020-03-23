@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"syscall"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -557,24 +556,4 @@ func (c *client) DestroyBuild(ctx context.Context) error {
 	}
 
 	return err
-}
-
-// KillBuild kills the current build in execution.
-func (c *client) KillBuild() (*library.Build, error) {
-	b := c.build
-
-	// check if the build resource is available
-	if b == nil {
-		return nil, fmt.Errorf("build resource not found")
-	}
-
-	// set the build status to killed
-	b.SetStatus(constants.StatusKilled)
-
-	err := syscall.Kill(syscall.Getpid(), syscall.SIGTERM)
-	if err != nil {
-		return nil, fmt.Errorf("unable to kill PID: %w", err)
-	}
-
-	return b, nil
 }

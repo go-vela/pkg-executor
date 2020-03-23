@@ -5,14 +5,76 @@
 package linux
 
 import (
-	"reflect"
+	"net/http/httptest"
 	"testing"
+
+	"github.com/gin-gonic/gin"
+
+	"github.com/go-vela/mock/server"
+
+	"github.com/go-vela/pkg-runtime/runtime/docker"
 
 	"github.com/go-vela/sdk-go/vela"
 
 	"github.com/go-vela/types/library"
 	"github.com/go-vela/types/pipeline"
 )
+
+func TestLinux_New(t *testing.T) {
+	// setup types
+	gin.SetMode(gin.TestMode)
+
+	s := httptest.NewServer(server.FakeHandler())
+
+	_client, err := vela.NewClient(s.URL, nil)
+	if err != nil {
+		t.Errorf("unable to create Vela API client: %v", err)
+	}
+
+	_runtime, err := docker.NewMock()
+	if err != nil {
+		t.Errorf("unable to create runtime engine: %v", err)
+	}
+
+	// setup tests
+	tests := []struct {
+		failure bool
+		build   *library.Build
+	}{
+		{
+			failure: false,
+			build:   _build,
+		},
+		{
+			failure: true,
+			build:   nil,
+		},
+	}
+
+	// run tests
+	for _, test := range tests {
+		_, err := New(
+			WithBuild(test.build),
+			WithPipeline(_steps),
+			WithRepo(_repo),
+			WithRuntime(_runtime),
+			WithUser(_user),
+			WithVelaClient(_client),
+		)
+
+		if test.failure {
+			if err == nil {
+				t.Errorf("New should have returned err")
+			}
+
+			continue
+		}
+
+		if err != nil {
+			t.Errorf("New returned err: %v", err)
+		}
+	}
+}
 
 // setup global variables used for testing
 var (
@@ -181,141 +243,3 @@ var (
 		Admin:     vela.Bool(false),
 	}
 )
-
-func TestLinux_GetBuild(t *testing.T) {
-	// setup types
-	_engine, err := New(
-		WithBuild(_build),
-	)
-	if err != nil {
-		t.Errorf("unable to create executor engine: %v", err)
-	}
-
-	// setup tests
-	tests := []struct {
-		failure bool
-		engine  *client
-	}{
-		{
-			failure: false,
-			engine:  _engine,
-		},
-		{
-			failure: true,
-			engine:  new(client),
-		},
-	}
-
-	// run tests
-	for _, test := range tests {
-		got, err := test.engine.GetBuild()
-
-		if test.failure {
-			if err == nil {
-				t.Errorf("GetBuild should have returned err")
-			}
-
-			continue
-		}
-
-		if err != nil {
-			t.Errorf("GetBuild returned err: %v", err)
-		}
-
-		if !reflect.DeepEqual(got, _build) {
-			t.Errorf("GetBuild is %v, want %v", got, _build)
-		}
-	}
-}
-
-func TestLinux_GetPipeline(t *testing.T) {
-	// setup types
-	_engine, err := New(
-		WithPipeline(_steps),
-	)
-	if err != nil {
-		t.Errorf("unable to create executor engine: %v", err)
-	}
-
-	// setup tests
-	tests := []struct {
-		failure bool
-		engine  *client
-	}{
-		{
-			failure: false,
-			engine:  _engine,
-		},
-		{
-			failure: true,
-			engine:  new(client),
-		},
-	}
-
-	// run tests
-	for _, test := range tests {
-		got, err := test.engine.GetPipeline()
-
-		if test.failure {
-			if err == nil {
-				t.Errorf("GetPipeline should have returned err")
-			}
-
-			continue
-		}
-
-		if err != nil {
-			t.Errorf("GetPipeline returned err: %v", err)
-		}
-
-		if !reflect.DeepEqual(got, _steps) {
-			t.Errorf("GetPipeline is %v, want %v", got, _steps)
-		}
-	}
-}
-
-func TestLinux_GetRepo(t *testing.T) {
-	// setup types
-	_engine, err := New(
-		WithRepo(_repo),
-	)
-	if err != nil {
-		t.Errorf("unable to create executor engine: %v", err)
-	}
-
-	// setup tests
-	tests := []struct {
-		failure bool
-		engine  *client
-	}{
-		{
-			failure: false,
-			engine:  _engine,
-		},
-		{
-			failure: true,
-			engine:  new(client),
-		},
-	}
-
-	// run tests
-	for _, test := range tests {
-		got, err := test.engine.GetRepo()
-
-		if test.failure {
-			if err == nil {
-				t.Errorf("GetRepo should have returned err")
-			}
-
-			continue
-		}
-
-		if err != nil {
-			t.Errorf("GetRepo returned err: %v", err)
-		}
-
-		if !reflect.DeepEqual(got, _repo) {
-			t.Errorf("GetRepo is %v, want %v", got, _repo)
-		}
-	}
-}

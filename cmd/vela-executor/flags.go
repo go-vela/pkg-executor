@@ -6,6 +6,7 @@ package main
 
 import (
 	"github.com/go-vela/pkg-executor/executor"
+	"github.com/go-vela/pkg-runtime/runtime"
 
 	"github.com/urfave/cli"
 )
@@ -55,6 +56,10 @@ func flags() []cli.Flag {
 	// Executor Flags
 
 	f = append(f, executor.Flags...)
+
+	// Runtime Flags
+
+	f = append(f, runtime.Flags...)
 
 	return f
 }

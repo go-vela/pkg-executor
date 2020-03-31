@@ -12,9 +12,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// New creates and returns a Vela engine capable of integrating
-// with the configured executor. Currently the following
-// executors are supported:
+// New creates and returns a Vela engine capable of
+// integrating with the configured executor.
+//
+// Currently the following executors are supported:
 //
 // * linux
 func New(s *Setup) (Engine, error) {
@@ -24,7 +25,7 @@ func New(s *Setup) (Engine, error) {
 		return nil, err
 	}
 
-	logrus.Debug("creating executor client from setup")
+	logrus.Debug("creating executor engine from setup")
 	// process the executor driver being provided
 	switch s.Driver {
 	case constants.DriverDarwin:
@@ -38,6 +39,6 @@ func New(s *Setup) (Engine, error) {
 		return s.Windows()
 	default:
 		// handle an invalid executor driver being provided
-		return nil, fmt.Errorf("invalid executor driver provided in setup: %s", s.Driver)
+		return nil, fmt.Errorf("invalid executor driver provided: %s", s.Driver)
 	}
 }

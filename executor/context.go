@@ -53,8 +53,6 @@ func FromGinContext(c *gin.Context) Engine {
 // WithContext inserts the executor Engine into the context.Context.
 func WithContext(c context.Context, e Engine) context.Context {
 	// set the executor Engine in the context.Context
-	//
-	// https://pkg.go.dev/context?tab=doc#WithValue
 	return context.WithValue(c, key, e)
 }
 

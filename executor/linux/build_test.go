@@ -361,6 +361,124 @@ func TestLinux_ExecBuild(t *testing.T) {
 			failure:  false,
 			pipeline: _steps,
 		},
+		{
+			failure: true,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "github_octocat_1",
+				Services: pipeline.ContainerSlice{
+					{
+						ID:          "service_github_octocat_1_postgres",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "postgres:notfound",
+						Name:        "postgres",
+						Number:      1,
+						Ports:       []string{"5432:5432"},
+					},
+				},
+			},
+		},
+		{
+			failure: true,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "github_octocat_1",
+				Services: pipeline.ContainerSlice{
+					{
+						ID:          "service_github_octocat_1_notfound",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "postgres:12-alpine",
+						Name:        "notfound",
+						Number:      1,
+						Ports:       []string{"5432:5432"},
+					},
+				},
+			},
+		},
+		{
+			failure: true,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "github_octocat_1",
+				Steps: pipeline.ContainerSlice{
+					{
+						ID:          "step_github_octocat_1_clone",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "target/vela-git:notfound",
+						Name:        "clone",
+						Number:      2,
+						Pull:        true,
+					},
+				},
+			},
+		},
+		{
+			failure: true,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "github_octocat_1",
+				Steps: pipeline.ContainerSlice{
+					{
+						ID:          "step_github_octocat_1_notfound",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "target/vela-git:v0.3.0",
+						Name:        "notfound",
+						Number:      2,
+						Pull:        true,
+					},
+				},
+			},
+		},
+		{
+			failure: true,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "github_octocat_1",
+				Stages: pipeline.StageSlice{
+					{
+						Name: "clone",
+						Steps: pipeline.ContainerSlice{
+							{
+								ID:          "github_octocat_1_clone_clone",
+								Directory:   "/home/github/octocat",
+								Environment: map[string]string{"FOO": "bar"},
+								Image:       "target/vela-git:notfound",
+								Name:        "clone",
+								Number:      2,
+								Pull:        true,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			failure: true,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "github_octocat_1",
+				Stages: pipeline.StageSlice{
+					{
+						Name: "clone",
+						Steps: pipeline.ContainerSlice{
+							{
+								ID:          "github_octocat_1_clone_notfound",
+								Directory:   "/home/github/octocat",
+								Environment: map[string]string{"FOO": "bar"},
+								Image:       "target/vela-git:v0.3.0",
+								Name:        "notfound",
+								Number:      2,
+								Pull:        true,
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	// run test
@@ -377,9 +495,36 @@ func TestLinux_ExecBuild(t *testing.T) {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
 
-		err = _engine.PlanBuild(context.Background())
-		if err != nil {
-			t.Errorf("PlanBuild returned err: %v", err)
+		for _, service := range test.pipeline.Services {
+			s := &library.Service{
+				Name:   &service.Name,
+				Number: &service.Number,
+			}
+
+			_engine.services.Store(service.ID, s)
+			_engine.serviceLogs.Store(service.ID, new(library.Log))
+		}
+
+		for _, stage := range test.pipeline.Stages {
+			for _, step := range stage.Steps {
+				s := &library.Step{
+					Name:   &step.Name,
+					Number: &step.Number,
+				}
+
+				_engine.steps.Store(step.ID, s)
+				_engine.stepLogs.Store(step.ID, new(library.Log))
+			}
+		}
+
+		for _, step := range test.pipeline.Steps {
+			s := &library.Step{
+				Name:   &step.Name,
+				Number: &step.Number,
+			}
+
+			_engine.steps.Store(step.ID, s)
+			_engine.stepLogs.Store(step.ID, new(library.Log))
 		}
 
 		err = _engine.ExecBuild(context.Background())

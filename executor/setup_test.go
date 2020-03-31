@@ -96,6 +96,7 @@ func TestExecutor_Setup_Linux(t *testing.T) {
 		User:     _user,
 	}
 
+	// run test
 	got, err := _setup.Linux()
 	if err != nil {
 		t.Errorf("Linux returned err: %v", err)

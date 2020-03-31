@@ -23,7 +23,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestLinux_PullSecret_Success(t *testing.T) {
+func TestLinux_PullSecret(t *testing.T) {
 	// setup types
 	gin.SetMode(gin.TestMode)
 
@@ -39,84 +39,178 @@ func TestLinux_PullSecret_Success(t *testing.T) {
 		t.Errorf("unable to create runtime engine: %v", err)
 	}
 
-	p := &pipeline.Build{
-		Version: "1",
-		ID:      "__0",
-		Steps: pipeline.ContainerSlice{
-			{
-				ID:          "__0_clone",
-				Environment: map[string]string{},
-				Image:       "target/vela-plugins/git:1",
-				Name:        "clone",
-				Number:      1,
-				Pull:        true,
-			},
-			{
-				ID:          "__0_exit",
-				Environment: map[string]string{},
-				Image:       "alpine:latest",
-				Name:        "exit",
-				Number:      2,
-				Pull:        true,
-				Ruleset: pipeline.Ruleset{
-					Continue: true,
-				},
-				Commands: []string{"exit 1"},
-			},
-			{
-				ID:          "__0_echo",
-				Environment: map[string]string{},
-				Image:       "alpine:latest",
-				Name:        "echo",
-				Number:      2,
-				Pull:        true,
-				Commands:    []string{"echo ${FOOBAR}"},
-				Secrets: pipeline.StepSecretSlice{
+	// setup tests
+	tests := []struct {
+		failure  bool
+		pipeline *pipeline.Build
+	}{
+		{
+			failure:  false,
+			pipeline: _stages,
+		},
+		{
+			failure:  false,
+			pipeline: _steps,
+		},
+		{
+			failure: true,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "github_octocat_1",
+				Steps: pipeline.ContainerSlice{
 					{
-						Source: "foobar",
-						Target: "foobar",
+						ID:          "step_github_octocat_1_clone",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "target/vela-git:v0.3.0",
+						Name:        "clone",
+						Number:      2,
+						Pull:        true,
+					},
+				},
+				Secrets: pipeline.SecretSlice{
+					{
+						Name:   "foo",
+						Key:    "github/octocat/foo",
+						Engine: "invalid",
+						Type:   "repo",
 					},
 				},
 			},
 		},
-		Secrets: pipeline.SecretSlice{
-			{
-				Name:   "foo",
-				Key:    "github/octocat/foo",
-				Engine: "native",
-				Type:   "repo",
+		{
+			failure: true,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "github_octocat_1",
+				Steps: pipeline.ContainerSlice{
+					{
+						ID:          "step_github_octocat_1_clone",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "target/vela-git:v0.3.0",
+						Name:        "clone",
+						Number:      2,
+						Pull:        true,
+					},
+				},
+				Secrets: pipeline.SecretSlice{
+					{
+						Name:   "foo",
+						Key:    "github/octocat/foo",
+						Engine: "native",
+						Type:   "invalid",
+					},
+				},
 			},
-			{
-				Name:   "foo",
-				Key:    "github/foo",
-				Engine: "native",
-				Type:   "org",
+		},
+		{
+			failure: true,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "github_octocat_1",
+				Steps: pipeline.ContainerSlice{
+					{
+						ID:          "step_github_octocat_1_clone",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "target/vela-git:v0.3.0",
+						Name:        "clone",
+						Number:      2,
+						Pull:        true,
+					},
+				},
+				Secrets: pipeline.SecretSlice{
+					{
+						Name:   "foo",
+						Key:    "/",
+						Engine: "native",
+						Type:   "repo",
+					},
+				},
 			},
-			{
-				Name:   "foo",
-				Key:    "github/octokitties/foo",
-				Engine: "native",
-				Type:   "shared",
+		},
+		{
+			failure: true,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "github_octocat_1",
+				Steps: pipeline.ContainerSlice{
+					{
+						ID:          "step_github_octocat_1_clone",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "target/vela-git:v0.3.0",
+						Name:        "clone",
+						Number:      2,
+						Pull:        true,
+					},
+				},
+				Secrets: pipeline.SecretSlice{
+					{
+						Name:   "foo",
+						Key:    "/",
+						Engine: "native",
+						Type:   "shared",
+					},
+				},
+			},
+		},
+		{
+			failure: true,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "github_octocat_1",
+				Steps: pipeline.ContainerSlice{
+					{
+						ID:          "step_github_octocat_1_clone",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "target/vela-git:v0.3.0",
+						Name:        "clone",
+						Number:      2,
+						Pull:        true,
+					},
+				},
+				Secrets: pipeline.SecretSlice{
+					{
+						Name:   "foo",
+						Key:    "github/not-found/foo",
+						Engine: "native",
+						Type:   "shared",
+					},
+				},
 			},
 		},
 	}
 
-	e, err := New(
-		WithBuild(_build),
-		WithPipeline(p),
-		WithRepo(_repo),
-		WithRuntime(_runtime),
-		WithUser(_user),
-		WithVelaClient(_client),
-	)
-	if err != nil {
-		t.Errorf("unable to create executor engine: %v", err)
-	}
+	// run tests
+	for _, test := range tests {
+		_engine, err := New(
+			WithBuild(_build),
+			WithPipeline(test.pipeline),
+			WithRepo(_repo),
+			WithRuntime(_runtime),
+			WithUser(_user),
+			WithVelaClient(_client),
+		)
+		if err != nil {
+			t.Errorf("unable to create executor engine: %v", err)
+		}
 
-	// run test
-	err = e.PullSecret(context.Background())
-	if err != nil {
-		t.Errorf("PullSecret returned err: %v", err)
+		err = _engine.PullSecret(context.Background())
+
+		if test.failure {
+			if err == nil {
+				t.Errorf("PullSecret should have returned err")
+			}
+
+			continue
+		}
+
+		if err != nil {
+			t.Errorf("PullSecret returned err: %v", err)
+		}
 	}
 }
 

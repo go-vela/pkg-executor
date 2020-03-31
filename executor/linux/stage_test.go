@@ -208,6 +208,23 @@ func TestLinux_ExecStage(t *testing.T) {
 				},
 			},
 		},
+		{
+			failure: true,
+			stage: &pipeline.Stage{
+				Name: "clone",
+				Steps: pipeline.ContainerSlice{
+					{
+						ID:          "github_octocat_1_clone_notfound",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "target/vela-git:v0.3.0",
+						Name:        "notfound",
+						Number:      2,
+						Pull:        true,
+					},
+				},
+			},
+		},
 	}
 
 	// run tests
@@ -285,6 +302,23 @@ func TestLinux_DestroyStage(t *testing.T) {
 						Environment: map[string]string{"FOO": "bar"},
 						Image:       "target/vela-git:v0.3.0",
 						Name:        "clone",
+						Number:      2,
+						Pull:        true,
+					},
+				},
+			},
+		},
+		{
+			failure: true,
+			stage: &pipeline.Stage{
+				Name: "clone",
+				Steps: pipeline.ContainerSlice{
+					{
+						ID:          "github_octocat_1_clone_notfound",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "target/vela-git:v0.3.0",
+						Name:        "notfound",
 						Number:      2,
 						Pull:        true,
 					},

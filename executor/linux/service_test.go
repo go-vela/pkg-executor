@@ -131,6 +131,18 @@ func TestLinux_PlanService(t *testing.T) {
 				Ports:       []string{"5432:5432"},
 			},
 		},
+		{
+			failure: true,
+			container: &pipeline.Container{
+				ID:          "service_github_octocat_1_postgres",
+				Directory:   "/home/github/octocat",
+				Environment: map[string]string{"FOO": "bar"},
+				Image:       "postgres:notfound",
+				Name:        "postgres",
+				Number:      1,
+				Ports:       []string{"5432:5432"},
+			},
+		},
 	}
 
 	// run tests
@@ -194,6 +206,18 @@ func TestLinux_ExecService(t *testing.T) {
 				Name:        "postgres",
 				Number:      1,
 				Ports:       []string{"5432:5432"},
+			},
+		},
+		{
+			failure: true,
+			container: &pipeline.Container{
+				ID:          "service_github_octocat_1_notfound",
+				Directory:   "/home/github/octocat",
+				Environment: map[string]string{"FOO": "bar"},
+				Image:       "postgres:12-alpine",
+				Name:        "notfound",
+				Number:      2,
+				Pull:        true,
 			},
 		},
 	}
@@ -292,6 +316,19 @@ func TestLinux_StreamService(t *testing.T) {
 				Ports:       []string{"5432:5432"},
 			},
 		},
+		{
+			failure: true,
+			logs:    new(library.Log),
+			container: &pipeline.Container{
+				ID:          "service_github_octocat_1_notfound",
+				Directory:   "/home/github/octocat",
+				Environment: map[string]string{"FOO": "bar"},
+				Image:       "postgres:12-alpine",
+				Name:        "notfound",
+				Number:      1,
+				Ports:       []string{"5432:5432"},
+			},
+		},
 	}
 
 	// run tests
@@ -359,6 +396,30 @@ func TestLinux_DestroyService(t *testing.T) {
 				Environment: map[string]string{"FOO": "bar"},
 				Image:       "postgres:12-alpine",
 				Name:        "postgres",
+				Number:      1,
+				Ports:       []string{"5432:5432"},
+			},
+		},
+		{
+			failure: true,
+			container: &pipeline.Container{
+				ID:          "service_github_octocat_1_notfound",
+				Directory:   "/home/github/octocat",
+				Environment: map[string]string{"FOO": "bar"},
+				Image:       "postgres:12-alpine",
+				Name:        "notfound",
+				Number:      1,
+				Ports:       []string{"5432:5432"},
+			},
+		},
+		{
+			failure: true,
+			container: &pipeline.Container{
+				ID:          "service_github_octocat_1_ignorenotfound",
+				Directory:   "/home/github/octocat",
+				Environment: map[string]string{"FOO": "bar"},
+				Image:       "postgres:12-alpine",
+				Name:        "ignorenotfound",
 				Number:      1,
 				Ports:       []string{"5432:5432"},
 			},

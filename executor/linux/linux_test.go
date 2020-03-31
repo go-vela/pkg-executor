@@ -185,6 +185,26 @@ var (
 				},
 			},
 		},
+		Secrets: pipeline.SecretSlice{
+			{
+				Name:   "foo",
+				Key:    "github/octocat/foo",
+				Engine: "native",
+				Type:   "repo",
+			},
+			{
+				Name:   "foo",
+				Key:    "github/foo",
+				Engine: "native",
+				Type:   "org",
+			},
+			{
+				Name:   "foo",
+				Key:    "github/octokitties/foo",
+				Engine: "native",
+				Type:   "shared",
+			},
+		},
 	}
 
 	_steps = &pipeline.Build{
@@ -229,6 +249,26 @@ var (
 				Name:        "echo",
 				Number:      3,
 				Pull:        true,
+			},
+		},
+		Secrets: pipeline.SecretSlice{
+			{
+				Name:   "foo",
+				Key:    "github/octocat/foo",
+				Engine: "native",
+				Type:   "repo",
+			},
+			{
+				Name:   "foo",
+				Key:    "github/foo",
+				Engine: "native",
+				Type:   "org",
+			},
+			{
+				Name:   "foo",
+				Key:    "github/octokitties/foo",
+				Engine: "native",
+				Type:   "shared",
 			},
 		},
 	}

@@ -57,6 +57,33 @@ func TestLinux_CreateBuild(t *testing.T) {
 			build:    new(library.Build),
 			pipeline: _steps,
 		},
+		{
+			failure: true,
+			build:   _build,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "github_octocat_1",
+				Steps: pipeline.ContainerSlice{
+					{
+						ID:          "step_github_octocat_1_clone",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "target/vela-git:v0.3.0",
+						Name:        "clone",
+						Number:      2,
+						Pull:        true,
+					},
+				},
+				Secrets: pipeline.SecretSlice{
+					{
+						Name:   "foo",
+						Key:    "github/octocat/foo",
+						Engine: "invalid",
+						Type:   "repo",
+					},
+				},
+			},
+		},
 	}
 
 	// run test
@@ -118,6 +145,10 @@ func TestLinux_PlanBuild(t *testing.T) {
 			pipeline: _steps,
 		},
 		{
+			failure:  true,
+			pipeline: new(pipeline.Build),
+		},
+		{
 			failure: true,
 			pipeline: &pipeline.Build{
 				Version: "1",
@@ -152,6 +183,118 @@ func TestLinux_PlanBuild(t *testing.T) {
 						Environment: map[string]string{"FOO": "bar"},
 						Image:       "#init",
 						Name:        "init",
+						Number:      0,
+						Pull:        true,
+					},
+				},
+			},
+		},
+		{
+			failure: true,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "",
+				Steps: pipeline.ContainerSlice{
+					{
+						ID:          "step_github_octocat_1_init",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "#init",
+						Name:        "init",
+						Number:      1,
+						Pull:        true,
+					},
+				},
+			},
+		},
+		{
+			failure: true,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "github_octocat_1",
+				Services: pipeline.ContainerSlice{
+					{
+						ID:          "service_github_octocat_1_postgres",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "postgres:12-alpine",
+						Name:        "postgres",
+						Number:      0,
+						Ports:       []string{"5432:5432"},
+					},
+				},
+				Steps: pipeline.ContainerSlice{
+					{
+						ID:          "step_github_octocat_1_init",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "#init",
+						Name:        "init",
+						Number:      1,
+						Pull:        true,
+					},
+				},
+			},
+		},
+		{
+			failure: true,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "github_octocat_1",
+				Stages: pipeline.StageSlice{
+					{
+						Name: "init",
+						Steps: pipeline.ContainerSlice{
+							{
+								ID:          "github_octocat_1_init_init",
+								Directory:   "/home/github/octocat",
+								Environment: map[string]string{"FOO": "bar"},
+								Image:       "#init",
+								Name:        "init",
+								Number:      1,
+								Pull:        true,
+							},
+						},
+					},
+					{
+						Name:  "clone",
+						Needs: []string{"init"},
+						Steps: pipeline.ContainerSlice{
+							{
+								ID:          "github_octocat_1_clone_clone",
+								Directory:   "/home/github/octocat",
+								Environment: map[string]string{"FOO": "bar"},
+								Image:       "target/vela-git:v0.3.0",
+								Name:        "clone",
+								Number:      0,
+								Pull:        true,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			failure: true,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "github_octocat_1",
+				Steps: pipeline.ContainerSlice{
+					{
+						ID:          "step_github_octocat_1_init",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "#init",
+						Name:        "init",
+						Number:      1,
+						Pull:        true,
+					},
+					{
+						ID:          "step_github_octocat_1_clone",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "target/vela-git:v0.3.0",
+						Name:        "clone",
 						Number:      0,
 						Pull:        true,
 					},

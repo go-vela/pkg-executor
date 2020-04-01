@@ -10,21 +10,18 @@ import (
 	"time"
 
 	"github.com/go-vela/types/constants"
-	"github.com/go-vela/types/library"
 	"github.com/go-vela/types/pipeline"
+
 	"github.com/sirupsen/logrus"
 )
 
 // CreateStage prepares the stage for execution.
 func (c *client) CreateStage(ctx context.Context, s *pipeline.Stage) error {
-	init := c.pipeline.Stages[0].Steps[0]
-	// TODO: make this cleaner
-	result, ok := c.stepLogs.Load(init.ID)
-	if !ok {
-		return fmt.Errorf("unable to get init step log from client")
+	// load the logs for the init step from the client
+	l, err := c.loadStepLogs(c.pipeline.Stages[0].Steps[0].ID)
+	if err != nil {
+		return err
 	}
-
-	l := result.(*library.Log)
 
 	// update engine logger with extra metadata
 	logger := c.logger.WithFields(logrus.Fields{
@@ -136,12 +133,11 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 			return err
 		}
 
-		result, ok := c.steps.Load(step.ID)
-		if !ok {
-			return fmt.Errorf("unable to get step %s from client", step.Name)
+		// load the step from the client
+		cStep, err := c.loadStep(step.ID)
+		if err != nil {
+			return err
 		}
-
-		cStep := result.(*library.Step)
 
 		// check the step exit code
 		if step.ExitCode != 0 {

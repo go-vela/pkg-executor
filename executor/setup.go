@@ -26,8 +26,10 @@ import (
 type Setup struct {
 	// Executor Configuration
 
-	// specifies which executor driver to use
+	// specifies the executor driver to use
 	Driver string
+	// specifies the executor hostname
+	Hostname string
 	// API client for sending requests to Vela
 	Client *vela.Client
 	// engine used for creating runtime resources
@@ -61,6 +63,7 @@ func (s *Setup) Linux() (Engine, error) {
 	// create new Linux executor engine
 	return linux.New(
 		linux.WithBuild(s.Build),
+		linux.WithHostname(s.Hostname),
 		linux.WithPipeline(s.Pipeline),
 		linux.WithRepo(s.Repo),
 		linux.WithRuntime(s.Runtime),

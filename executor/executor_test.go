@@ -42,6 +42,7 @@ func TestExecutor_New(t *testing.T) {
 
 	_engine, err := linux.New(
 		linux.WithBuild(_build),
+		linux.WithHostname("localhost"),
 		linux.WithPipeline(_pipeline),
 		linux.WithRepo(_repo),
 		linux.WithRuntime(_runtime),

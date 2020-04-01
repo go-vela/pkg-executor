@@ -76,6 +76,7 @@ func TestExecutor_Setup_Linux(t *testing.T) {
 
 	want, err := linux.New(
 		linux.WithBuild(_build),
+		linux.WithHostname("localhost"),
 		linux.WithPipeline(_pipeline),
 		linux.WithRepo(_repo),
 		linux.WithRuntime(_runtime),

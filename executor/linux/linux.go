@@ -5,7 +5,6 @@
 package linux
 
 import (
-	"os"
 	"sync"
 
 	"github.com/go-vela/pkg-runtime/runtime"
@@ -49,9 +48,6 @@ func New(opts ...Opt) (*client, error) {
 			return nil, err
 		}
 	}
-
-	// capture the hostname
-	c.Hostname, _ = os.Hostname()
 
 	// create the logger object
 	c.logger = logrus.WithFields(logrus.Fields{

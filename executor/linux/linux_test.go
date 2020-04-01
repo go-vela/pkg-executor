@@ -55,6 +55,7 @@ func TestLinux_New(t *testing.T) {
 	for _, test := range tests {
 		_, err := New(
 			WithBuild(test.build),
+			WithHostname("localhost"),
 			WithPipeline(_steps),
 			WithRepo(_repo),
 			WithRuntime(_runtime),

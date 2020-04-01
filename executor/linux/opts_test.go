@@ -62,6 +62,37 @@ func TestLinux_Opt_WithBuild(t *testing.T) {
 	}
 }
 
+func TestLinux_Opt_WithHostname(t *testing.T) {
+	// setup tests
+	tests := []struct {
+		hostname string
+		want     string
+	}{
+		{
+			hostname: "vela.worker.localhost",
+			want:     "vela.worker.localhost",
+		},
+		{
+			hostname: "",
+			want:     "localhost",
+		},
+	}
+
+	// run tests
+	for _, test := range tests {
+		_engine, err := New(
+			WithHostname(test.hostname),
+		)
+		if err != nil {
+			t.Errorf("unable to create linux engine: %v", err)
+		}
+
+		if !reflect.DeepEqual(_engine.Hostname, test.want) {
+			t.Errorf("WithHostname is %v, want %v", _engine.Hostname, test.want)
+		}
+	}
+}
+
 func TestLinux_Opt_WithPipeline(t *testing.T) {
 	// setup tests
 	tests := []struct {

@@ -37,6 +37,24 @@ func WithBuild(b *library.Build) Opt {
 	}
 }
 
+// WithHostname sets the hostname in the client.
+func WithHostname(hostname string) Opt {
+	logrus.Trace("configuring hostname in linux client")
+
+	return func(c *client) error {
+		// check if a hostname is provided
+		if len(hostname) == 0 {
+			// default the hostname to localhost
+			hostname = "localhost"
+		}
+
+		// set the hostname in the client
+		c.Hostname = hostname
+
+		return nil
+	}
+}
+
 // WithPipeline sets the pipeline build in the client.
 func WithPipeline(p *pipeline.Build) Opt {
 	logrus.Trace("configuring pipeline in linux client")

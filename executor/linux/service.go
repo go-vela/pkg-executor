@@ -139,12 +139,11 @@ func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) err
 	b := c.build
 	r := c.repo
 
-	result, ok := c.serviceLogs.Load(ctn.ID)
-	if !ok {
-		return fmt.Errorf("unable to get service log from client")
+	// load the logs for the service from the client
+	l, err := c.loadServiceLogs(ctn.ID)
+	if err != nil {
+		return err
 	}
-
-	l := result.(*library.Log)
 
 	// update engine logger with extra metadata
 	logger := c.logger.WithFields(logrus.Fields{
@@ -225,4 +224,36 @@ func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) er
 	}
 
 	return nil
+}
+
+// loadService is a helper function to capture
+// a service from the client.
+func (c *client) loadService(name string) (*library.Service, error) {
+	result, ok := c.services.Load(name)
+	if !ok {
+		return nil, fmt.Errorf("unable to load service %s", name)
+	}
+
+	s, ok := result.(*library.Service)
+	if !ok {
+		return nil, fmt.Errorf("service %s had unexpected value", name)
+	}
+
+	return s, nil
+}
+
+// loadServiceLog is a helper function to capture
+// the logs for a service from the client.
+func (c *client) loadServiceLogs(name string) (*library.Log, error) {
+	result, ok := c.serviceLogs.Load(name)
+	if !ok {
+		return nil, fmt.Errorf("unable to load logs for service %s", name)
+	}
+
+	l, ok := result.(*library.Log)
+	if !ok {
+		return nil, fmt.Errorf("logs for service %s had unexpected value", name)
+	}
+
+	return l, nil
 }

@@ -198,12 +198,11 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 	b := c.build
 	r := c.repo
 
-	result, ok := c.stepLogs.Load(ctn.ID)
-	if !ok {
-		return fmt.Errorf("unable to get step log from client")
+	// load the logs for the step from the client
+	l, err := c.loadStepLogs(ctn.ID)
+	if err != nil {
+		return err
 	}
-
-	l := result.(*library.Log)
 
 	// update engine logger with extra metadata
 	logger := c.logger.WithFields(logrus.Fields{
@@ -282,4 +281,36 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 	}
 
 	return nil
+}
+
+// loadStep is a helper function to capture
+// a step from the client.
+func (c *client) loadStep(name string) (*library.Step, error) {
+	result, ok := c.steps.Load(name)
+	if !ok {
+		return nil, fmt.Errorf("unable to load step %s", name)
+	}
+
+	s, ok := result.(*library.Step)
+	if !ok {
+		return nil, fmt.Errorf("step %s had unexpected value", name)
+	}
+
+	return s, nil
+}
+
+// loadStepLog is a helper function to capture
+// the logs for a step from the client.
+func (c *client) loadStepLogs(name string) (*library.Log, error) {
+	result, ok := c.stepLogs.Load(name)
+	if !ok {
+		return nil, fmt.Errorf("unable to load logs for step %s", name)
+	}
+
+	l, ok := result.(*library.Log)
+	if !ok {
+		return nil, fmt.Errorf("logs for step %s had unexpected value", name)
+	}
+
+	return l, nil
 }

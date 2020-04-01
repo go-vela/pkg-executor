@@ -455,3 +455,149 @@ func TestLinux_DestroyService(t *testing.T) {
 		}
 	}
 }
+
+func TestLinux_loadService(t *testing.T) {
+	// setup types
+	gin.SetMode(gin.TestMode)
+
+	s := httptest.NewServer(server.FakeHandler())
+
+	_client, err := vela.NewClient(s.URL, nil)
+	if err != nil {
+		t.Errorf("unable to create Vela API client: %v", err)
+	}
+
+	_runtime, err := docker.NewMock()
+	if err != nil {
+		t.Errorf("unable to create runtime engine: %v", err)
+	}
+
+	// setup tests
+	tests := []struct {
+		failure bool
+		name    string
+		value   interface{}
+	}{
+		{
+			failure: false,
+			name:    "service_github_octocat_1_init",
+			value:   new(library.Service),
+		},
+		{
+			failure: true,
+			name:    "service_github_octocat_1_init",
+			value:   nil,
+		},
+		{
+			failure: true,
+			name:    "service_github_octocat_1_init",
+			value:   new(library.Log),
+		},
+	}
+
+	// run tests
+	for _, test := range tests {
+		_engine, err := New(
+			WithBuild(_build),
+			WithPipeline(_steps),
+			WithRepo(_repo),
+			WithRuntime(_runtime),
+			WithUser(_user),
+			WithVelaClient(_client),
+		)
+		if err != nil {
+			t.Errorf("unable to create executor engine: %v", err)
+		}
+
+		if test.value != nil {
+			_engine.services.Store(test.name, test.value)
+		}
+
+		_, err = _engine.loadService(test.name)
+
+		if test.failure {
+			if err == nil {
+				t.Errorf("loadService should have returned err")
+			}
+
+			continue
+		}
+
+		if err != nil {
+			t.Errorf("loadService returned err: %v", err)
+		}
+	}
+}
+
+func TestLinux_loadServiceLogs(t *testing.T) {
+	// setup types
+	gin.SetMode(gin.TestMode)
+
+	s := httptest.NewServer(server.FakeHandler())
+
+	_client, err := vela.NewClient(s.URL, nil)
+	if err != nil {
+		t.Errorf("unable to create Vela API client: %v", err)
+	}
+
+	_runtime, err := docker.NewMock()
+	if err != nil {
+		t.Errorf("unable to create runtime engine: %v", err)
+	}
+
+	// setup tests
+	tests := []struct {
+		failure bool
+		name    string
+		value   interface{}
+	}{
+		{
+			failure: false,
+			name:    "service_github_octocat_1_init",
+			value:   new(library.Log),
+		},
+		{
+			failure: true,
+			name:    "service_github_octocat_1_init",
+			value:   nil,
+		},
+		{
+			failure: true,
+			name:    "service_github_octocat_1_init",
+			value:   new(library.Service),
+		},
+	}
+
+	// run tests
+	for _, test := range tests {
+		_engine, err := New(
+			WithBuild(_build),
+			WithPipeline(_steps),
+			WithRepo(_repo),
+			WithRuntime(_runtime),
+			WithUser(_user),
+			WithVelaClient(_client),
+		)
+		if err != nil {
+			t.Errorf("unable to create executor engine: %v", err)
+		}
+
+		if test.value != nil {
+			_engine.serviceLogs.Store(test.name, test.value)
+		}
+
+		_, err = _engine.loadServiceLogs(test.name)
+
+		if test.failure {
+			if err == nil {
+				t.Errorf("loadServiceLogs should have returned err")
+			}
+
+			continue
+		}
+
+		if err != nil {
+			t.Errorf("loadServiceLogs returned err: %v", err)
+		}
+	}
+}

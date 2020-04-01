@@ -13,7 +13,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/go-vela/types/constants"
-	"github.com/go-vela/types/library"
 	"github.com/go-vela/types/pipeline"
 
 	"github.com/sirupsen/logrus"
@@ -135,26 +134,17 @@ func (c *client) PlanBuild(ctx context.Context) error {
 		}
 	}
 
-	// TODO: make this cleaner
-	result, ok := c.steps.Load(init.ID)
-	if !ok {
-		err := fmt.Errorf("unable to get %s step from client", init.Name)
-		e = err
-
+	// load the init step from the client
+	s, err := c.loadStep(init.ID)
+	if err != nil {
 		return err
 	}
 
-	s := result.(*library.Step)
-
-	result, ok = c.stepLogs.Load(init.ID)
-	if !ok {
-		err := fmt.Errorf("unable to get %s step from client", init.Name)
-		e = err
-
+	// load the logs for the init step from the client
+	l, err := c.loadStepLogs(init.ID)
+	if err != nil {
 		return err
 	}
-
-	l := result.(*library.Log)
 
 	defer func() {
 		s.SetFinished(time.Now().UTC().Unix())
@@ -175,7 +165,7 @@ func (c *client) PlanBuild(ctx context.Context) error {
 
 	c.logger.Info("creating network")
 	// create the runtime network for the pipeline
-	err := c.Runtime.CreateNetwork(ctx, p)
+	err = c.Runtime.CreateNetwork(ctx, p)
 	if err != nil {
 		e = err
 		return fmt.Errorf("unable to create network: %w", err)
@@ -396,13 +386,11 @@ func (c *client) ExecBuild(ctx context.Context) error {
 			return fmt.Errorf("unable to execute step: %w", err)
 		}
 
-		result, ok := c.steps.Load(s.ID)
-		if !ok {
-			e = err
-			return fmt.Errorf("unable to get step %s from client", s.Name)
+		// load the step from the client
+		cStep, err := c.loadStep(s.ID)
+		if err != nil {
+			return err
 		}
-
-		cStep := result.(*library.Step)
 
 		// check the step exit code
 		if s.ExitCode != 0 {
@@ -525,13 +513,12 @@ func (c *client) DestroyBuild(ctx context.Context) error {
 
 		c.logger.Infof("uploading %s service state", s.Name)
 
-		// send API call to update the build
-		result, ok := c.services.Load(s.ID)
-		if !ok {
-			return fmt.Errorf("unable to get service from client")
+		// load the service from the client
+		cService, err := c.loadService(s.ID)
+		if err != nil {
+			return err
 		}
 
-		cService := result.(*library.Service)
 		cService.SetExitCode(s.ExitCode)
 		cService.SetFinished(time.Now().UTC().Unix())
 

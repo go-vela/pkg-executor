@@ -8,8 +8,12 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
+
+	"github.com/drone/envsubst"
 
 	"github.com/go-vela/worker/version"
 
@@ -22,6 +26,68 @@ import (
 
 // CreateService configures the service for execution.
 func (c *client) CreateService(ctx context.Context, ctn *pipeline.Container) error {
+	// update engine logger with extra metadata
+	logger := c.logger.WithFields(logrus.Fields{
+		"service": ctn.Name,
+	})
+
+	ctn.Environment["BUILD_HOST"] = c.Hostname
+	ctn.Environment["VELA_HOST"] = c.Hostname
+	ctn.Environment["VELA_VERSION"] = version.Version.String()
+	// TODO: remove hardcoded reference
+	ctn.Environment["VELA_RUNTIME"] = "docker"
+	ctn.Environment["VELA_DISTRIBUTION"] = "linux"
+
+	logger.Debug("setting up container")
+	// setup the runtime container
+	err := c.Runtime.SetupContainer(ctx, ctn)
+	if err != nil {
+		return err
+	}
+
+	logger.Debug("injecting secrets")
+	// inject secrets for container
+	err = injectSecrets(ctn, c.Secrets)
+	if err != nil {
+		return err
+	}
+
+	logger.Debug("marshaling configuration")
+	// marshal container configuration
+	body, err := json.Marshal(ctn)
+	if err != nil {
+		return fmt.Errorf("unable to marshal configuration: %v", err)
+	}
+
+	// create substitute function
+	subFunc := func(name string) string {
+		env := ctn.Environment[name]
+		if strings.Contains(env, "\n") {
+			env = fmt.Sprintf("%q", env)
+		}
+
+		return env
+	}
+
+	logger.Debug("substituting environment")
+	// substitute the environment variables
+	subStep, err := envsubst.Eval(string(body), subFunc)
+	if err != nil {
+		return fmt.Errorf("unable to substitute environment variables: %v", err)
+	}
+
+	logger.Debug("unmarshaling configuration")
+	// unmarshal container configuration
+	err = json.Unmarshal([]byte(subStep), ctn)
+	if err != nil {
+		return fmt.Errorf("unable to unmarshal configuration: %v", err)
+	}
+
+	return nil
+}
+
+// PlanService prepares the service for execution.
+func (c *client) PlanService(ctx context.Context, ctn *pipeline.Container) error {
 	var err error
 
 	b := c.build
@@ -38,6 +104,12 @@ func (c *client) CreateService(ctx context.Context, ctn *pipeline.Container) err
 	s.SetNumber(ctn.Number)
 	s.SetStatus(constants.StatusRunning)
 	s.SetStarted(time.Now().UTC().Unix())
+
+	// TODO: add these to the library.Service
+	//
+	// s.SetHost(ctn.Environment["VELA_HOST"])
+	// s.SetRuntime(ctn.Environment["VELA_RUNTIME"])
+	// s.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 
 	logger.Debug("uploading service state")
 	// send API call to update the service
@@ -59,32 +131,8 @@ func (c *client) CreateService(ctx context.Context, ctn *pipeline.Container) err
 		return err
 	}
 
-	// add a step log to a map
+	// add a service log to a map
 	c.serviceLogs.Store(ctn.ID, l)
-
-	return nil
-}
-
-// PlanService prepares the service for execution.
-func (c *client) PlanService(ctx context.Context, ctn *pipeline.Container) error {
-	// update engine logger with extra metadata
-	logger := c.logger.WithFields(logrus.Fields{
-		"service": ctn.Name,
-	})
-
-	ctn.Environment["BUILD_HOST"] = c.Hostname
-	ctn.Environment["VELA_HOST"] = c.Hostname
-	ctn.Environment["VELA_VERSION"] = version.Version.String()
-	// TODO: remove hardcoded reference
-	ctn.Environment["VELA_RUNTIME"] = "docker"
-	ctn.Environment["VELA_DISTRIBUTION"] = "linux"
-
-	logger.Debug("setting up container")
-	// setup the runtime container
-	err := c.Runtime.SetupContainer(ctx, ctn)
-	if err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -111,25 +159,6 @@ func (c *client) ExecService(ctx context.Context, ctn *pipeline.Container) error
 			logrus.Error(err)
 		}
 	}()
-
-	// do not wait for detached containers
-	if ctn.Detach {
-		return nil
-	}
-
-	logger.Debug("waiting for container")
-	// wait for the runtime container
-	err = c.Runtime.WaitContainer(ctx, ctn)
-	if err != nil {
-		return err
-	}
-
-	logger.Debug("inspecting container")
-	// inspect the runtime container
-	err = c.Runtime.InspectContainer(ctx, ctn)
-	if err != nil {
-		return err
-	}
 
 	return nil
 }

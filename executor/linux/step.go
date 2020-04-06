@@ -13,23 +13,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/drone/envsubst"
+
 	"github.com/go-vela/worker/version"
 
 	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/library"
 	"github.com/go-vela/types/pipeline"
 
-	"github.com/drone/envsubst"
 	"github.com/sirupsen/logrus"
 )
 
 // CreateStep configures the step for execution.
 func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error {
-	var err error
-
-	b := c.build
-	r := c.repo
-
 	// update engine logger with extra metadata
 	logger := c.logger.WithFields(logrus.Fields{
 		"step": ctn.Name,
@@ -42,53 +38,10 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 	ctn.Environment["VELA_RUNTIME"] = "docker"
 	ctn.Environment["VELA_DISTRIBUTION"] = "linux"
 
-	// update the engine step object
-	s := new(library.Step)
-	s.SetName(ctn.Name)
-	s.SetNumber(ctn.Number)
-	s.SetStatus(constants.StatusRunning)
-	s.SetStarted(time.Now().UTC().Unix())
-	s.SetHost(ctn.Environment["VELA_HOST"])
-	s.SetRuntime(ctn.Environment["VELA_RUNTIME"])
-	s.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
-
-	logger.Debug("uploading step state")
-	// send API call to update the step
-	s, _, err = c.Vela.Step.Update(r.GetOrg(), r.GetName(), b.GetNumber(), s)
-	if err != nil {
-		return err
-	}
-
-	s.SetStatus(constants.StatusSuccess)
-
-	// add a step to a map
-	c.steps.Store(ctn.ID, s)
-
-	// get the step log here
-	logger.Debug("retrieve step log")
-	// send API call to capture the step log
-	l, _, err := c.Vela.Log.GetStep(r.GetOrg(), r.GetName(), b.GetNumber(), s.GetNumber())
-	if err != nil {
-		return err
-	}
-
-	// add a step log to a map
-	c.stepLogs.Store(ctn.ID, l)
-
-	return nil
-}
-
-// PlanStep prepares the step for execution.
-func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
 	// TODO: remove hardcoded reference
 	if ctn.Name == "init" {
 		return nil
 	}
-
-	// update engine logger with extra metadata
-	logger := c.logger.WithFields(logrus.Fields{
-		"step": ctn.Name,
-	})
 
 	logger.Debug("setting up container")
 	// setup the runtime container
@@ -98,7 +51,7 @@ func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
 	}
 
 	logger.Debug("injecting secrets")
-	// inject secrets for step
+	// inject secrets for container
 	err = injectSecrets(ctn, c.Secrets)
 	if err != nil {
 		return err
@@ -134,6 +87,54 @@ func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
 	if err != nil {
 		return fmt.Errorf("unable to unmarshal configuration: %v", err)
 	}
+
+	return nil
+}
+
+// PlanStep prepares the step for execution.
+func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
+	var err error
+
+	b := c.build
+	r := c.repo
+
+	// update engine logger with extra metadata
+	logger := c.logger.WithFields(logrus.Fields{
+		"step": ctn.Name,
+	})
+
+	// update the engine step object
+	s := new(library.Step)
+	s.SetName(ctn.Name)
+	s.SetNumber(ctn.Number)
+	s.SetStatus(constants.StatusRunning)
+	s.SetStarted(time.Now().UTC().Unix())
+	s.SetHost(ctn.Environment["VELA_HOST"])
+	s.SetRuntime(ctn.Environment["VELA_RUNTIME"])
+	s.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
+
+	logger.Debug("uploading step state")
+	// send API call to update the step
+	s, _, err = c.Vela.Step.Update(r.GetOrg(), r.GetName(), b.GetNumber(), s)
+	if err != nil {
+		return err
+	}
+
+	s.SetStatus(constants.StatusSuccess)
+
+	// add a step to a map
+	c.steps.Store(ctn.ID, s)
+
+	// get the step log here
+	logger.Debug("retrieve step log")
+	// send API call to capture the step log
+	l, _, err := c.Vela.Log.GetStep(r.GetOrg(), r.GetName(), b.GetNumber(), s.GetNumber())
+	if err != nil {
+		return err
+	}
+
+	// add a step log to a map
+	c.stepLogs.Store(ctn.ID, l)
 
 	return nil
 }

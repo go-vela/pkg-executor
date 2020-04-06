@@ -6,6 +6,7 @@ package linux
 
 import (
 	"context"
+	"errors"
 	"net/http/httptest"
 	"testing"
 
@@ -89,9 +90,9 @@ func TestLinux_CreateStage(t *testing.T) {
 						ID:          "github_octocat_1_clone_clone",
 						Directory:   "/home/github/octocat",
 						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/vela-git:v0.3.0",
+						Image:       "target/vela-git:notfound",
 						Name:        "clone",
-						Number:      0,
+						Number:      2,
 						Pull:        true,
 					},
 				},
@@ -107,7 +108,7 @@ func TestLinux_CreateStage(t *testing.T) {
 						ID:          "github_octocat_1_clone_clone",
 						Directory:   "/home/github/octocat",
 						Environment: map[string]string{"FOO": "bar"},
-						Image:       "!@#$%^&*()",
+						Image:       "target/vela-git:ignorenotfound",
 						Name:        "clone",
 						Number:      2,
 						Pull:        true,
@@ -149,6 +150,110 @@ func TestLinux_CreateStage(t *testing.T) {
 
 		if err != nil {
 			t.Errorf("CreateStage returned err: %v", err)
+		}
+	}
+}
+
+func TestLinux_PlanStage(t *testing.T) {
+	// setup types
+	gin.SetMode(gin.TestMode)
+
+	s := httptest.NewServer(server.FakeHandler())
+
+	_client, err := vela.NewClient(s.URL, nil)
+	if err != nil {
+		t.Errorf("unable to create Vela API client: %v", err)
+	}
+
+	_runtime, err := docker.NewMock()
+	if err != nil {
+		t.Errorf("unable to create runtime engine: %v", err)
+	}
+
+	// setup tests
+	tests := []struct {
+		failure  bool
+		err      error
+		stageMap map[string]chan error
+		stage    *pipeline.Stage
+	}{
+		{
+			failure:  false,
+			err:      nil,
+			stageMap: map[string]chan error{},
+			stage: &pipeline.Stage{
+				Name: "clone",
+				Steps: pipeline.ContainerSlice{
+					{
+						ID:          "github_octocat_1_clone_clone",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "target/vela-git:v0.3.0",
+						Name:        "clone",
+						Number:      2,
+						Pull:        true,
+					},
+				},
+			},
+		},
+		{
+			failure: true,
+			err:     errors.New("simulated error for stage"),
+			stageMap: map[string]chan error{
+				"init": make(chan error, 1),
+			},
+			stage: &pipeline.Stage{
+				Name:  "clone",
+				Needs: []string{"init"},
+				Steps: pipeline.ContainerSlice{
+					{
+						ID:          "github_octocat_1_clone_clone",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "target/vela-git:v0.3.0",
+						Name:        "clone",
+						Number:      2,
+						Pull:        true,
+					},
+				},
+			},
+		},
+	}
+
+	// run tests
+	for _, test := range tests {
+		_engine, err := New(
+			WithBuild(_build),
+			WithPipeline(_stages),
+			WithRepo(_repo),
+			WithRuntime(_runtime),
+			WithUser(_user),
+			WithVelaClient(_client),
+		)
+		if err != nil {
+			t.Errorf("unable to create executor engine: %v", err)
+		}
+
+		if len(test.stageMap) > 0 {
+			if test.err != nil {
+				test.stageMap["init"] <- test.err
+			}
+
+			close(test.stageMap["init"])
+		}
+
+		err = _engine.PlanStage(context.Background(), test.stage, test.stageMap)
+
+		if test.failure {
+			if err == nil {
+				t.Errorf("PlanStage should have returned err")
+			}
+
+			continue
+		}
+
+		if err != nil {
+			t.Errorf("PlanStage returned err: %v", err)
 		}
 	}
 }
@@ -200,9 +305,9 @@ func TestLinux_ExecStage(t *testing.T) {
 						ID:          "github_octocat_1_clone_clone",
 						Directory:   "/home/github/octocat",
 						Environment: map[string]string{"FOO": "bar"},
-						Image:       "!@#$%^&*()",
+						Image:       "target/vela-git:v0.3.0",
 						Name:        "clone",
-						Number:      2,
+						Number:      0,
 						Pull:        true,
 					},
 				},
@@ -246,8 +351,8 @@ func TestLinux_ExecStage(t *testing.T) {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
 
-		_engine.stepLogs.Store(_stages.Stages[0].Steps[0].ID, new(library.Log))
 		_engine.steps.Store(_stages.Stages[0].Steps[0].ID, new(library.Step))
+		_engine.stepLogs.Store(_stages.Stages[0].Steps[0].ID, new(library.Log))
 
 		err = _engine.CreateStep(context.Background(), test.stage.Steps[0])
 		if err != nil {

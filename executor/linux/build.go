@@ -21,6 +21,7 @@ import (
 // CreateBuild configures the build for execution.
 func (c *client) CreateBuild(ctx context.Context) error {
 	b := c.build
+	p := c.pipeline
 	r := c.repo
 	e := c.err
 
@@ -74,6 +75,33 @@ func (c *client) CreateBuild(ctx context.Context) error {
 		return fmt.Errorf("unable to pull secrets: %v", err)
 	}
 
+	// TODO: make this better
+	init := new(pipeline.Container)
+	if len(p.Steps) > 0 {
+		init = p.Steps[0]
+	}
+
+	// TODO: make this better
+	if len(p.Stages) > 0 {
+		init = p.Stages[0].Steps[0]
+	}
+
+	c.logger.Infof("creating %s step", init.Name)
+	// create the step
+	err = c.CreateStep(ctx, init)
+	if err != nil {
+		e = err
+		return fmt.Errorf("unable to create %s step: %w", init.Name, err)
+	}
+
+	c.logger.Infof("planning %s step", init.Name)
+	// plan the step
+	err = c.PlanStep(ctx, init)
+	if err != nil {
+		e = err
+		return fmt.Errorf("unable to plan %s step: %w", init.Name, err)
+	}
+
 	return nil
 }
 
@@ -111,27 +139,10 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	init := new(pipeline.Container)
 	if len(p.Steps) > 0 {
 		init = p.Steps[0]
-
-		c.logger.Infof("creating %s step", init.Name)
-		// create the step
-		err := c.CreateStep(ctx, init)
-		if err != nil {
-			e = err
-			return fmt.Errorf("unable to create %s step: %w", init.Name, err)
-		}
 	}
-
 	// TODO: make this better
 	if len(p.Stages) > 0 {
 		init = p.Stages[0].Steps[0]
-
-		c.logger.Infof("creating %s step", init.Name)
-		// create the step
-		err := c.CreateStep(ctx, init)
-		if err != nil {
-			e = err
-			return fmt.Errorf("unable to create %s step: %w", init.Name, err)
-		}
 	}
 
 	// load the init step from the client
@@ -516,7 +527,7 @@ func (c *client) DestroyBuild(ctx context.Context) error {
 		// load the service from the client
 		cService, err := c.loadService(s.ID)
 		if err != nil {
-			return err
+			c.logger.Errorf("unable to load service: %v", err)
 		}
 
 		cService.SetExitCode(s.ExitCode)

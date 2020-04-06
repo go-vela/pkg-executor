@@ -527,7 +527,7 @@ func (c *client) DestroyBuild(ctx context.Context) error {
 		// load the service from the client
 		cService, err := c.loadService(s.ID)
 		if err != nil {
-			return err
+			c.logger.Errorf("unable to load service: %v", err)
 		}
 
 		cService.SetExitCode(s.ExitCode)

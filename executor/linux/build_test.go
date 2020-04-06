@@ -436,6 +436,24 @@ func TestLinux_ExecBuild(t *testing.T) {
 				ID:      "github_octocat_1",
 				Services: pipeline.ContainerSlice{
 					{
+						ID:          "service_github_octocat_1_postgres",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "postgres:12-alpine",
+						Name:        "postgres",
+						Number:      0,
+						Ports:       []string{"5432:5432"},
+					},
+				},
+			},
+		},
+		{
+			failure: true,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "github_octocat_1",
+				Services: pipeline.ContainerSlice{
+					{
 						ID:          "service_github_octocat_1_notfound",
 						Directory:   "/home/github/octocat",
 						Environment: map[string]string{"FOO": "bar"},
@@ -460,6 +478,24 @@ func TestLinux_ExecBuild(t *testing.T) {
 						Image:       "target/vela-git:notfound",
 						Name:        "clone",
 						Number:      2,
+						Pull:        true,
+					},
+				},
+			},
+		},
+		{
+			failure: true,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "github_octocat_1",
+				Steps: pipeline.ContainerSlice{
+					{
+						ID:          "step_github_octocat_1_clone",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "target/vela-git:v0.3.0",
+						Name:        "clone",
+						Number:      0,
 						Pull:        true,
 					},
 				},
@@ -631,9 +667,50 @@ func TestLinux_DestroyBuild(t *testing.T) {
 			},
 		},
 		{
-			failure:  true,
-			pipeline: _steps,
-			service:  nil,
+			failure: false,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "github_octocat_1",
+				Services: pipeline.ContainerSlice{
+					{
+						ID:          "service_github_octocat_1_notfound",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "postgres:12-alpine",
+						Name:        "notfound",
+						Number:      1,
+						Ports:       []string{"5432:5432"},
+					},
+				},
+				Steps: pipeline.ContainerSlice{
+					{
+						ID:          "step_github_octocat_1_notfound",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "target/vela-git:v0.3.0",
+						Name:        "notfound",
+						Number:      2,
+						Pull:        true,
+					},
+				},
+				Stages: pipeline.StageSlice{
+					{
+						Name: "clone",
+						Steps: pipeline.ContainerSlice{
+							{
+								ID:          "github_octocat_1_clone_notfound",
+								Directory:   "/home/github/octocat",
+								Environment: map[string]string{"FOO": "bar"},
+								Image:       "target/vela-git:v0.3.0",
+								Name:        "notfound",
+								Number:      2,
+								Pull:        true,
+							},
+						},
+					},
+				},
+			},
+			service: nil,
 		},
 		{
 			failure:  true,

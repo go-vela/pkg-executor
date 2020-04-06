@@ -160,25 +160,6 @@ func (c *client) ExecService(ctx context.Context, ctn *pipeline.Container) error
 		}
 	}()
 
-	// do not wait for detached containers
-	if ctn.Detach {
-		return nil
-	}
-
-	logger.Debug("waiting for container")
-	// wait for the runtime container
-	err = c.Runtime.WaitContainer(ctx, ctn)
-	if err != nil {
-		return err
-	}
-
-	logger.Debug("inspecting container")
-	// inspect the runtime container
-	err = c.Runtime.InspectContainer(ctx, ctn)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 

@@ -9,7 +9,6 @@ import (
 	"errors"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -171,21 +170,16 @@ func TestLinux_PlanStage(t *testing.T) {
 		t.Errorf("unable to create runtime engine: %v", err)
 	}
 
-	cancelCtx, cancel := context.WithCancel(context.Background())
-	cancel()
-
 	// setup tests
 	tests := []struct {
 		failure  bool
 		err      error
-		ctx      context.Context
 		stageMap map[string]chan error
 		stage    *pipeline.Stage
 	}{
 		{
 			failure:  false,
 			err:      nil,
-			ctx:      context.Background(),
 			stageMap: map[string]chan error{},
 			stage: &pipeline.Stage{
 				Name: "clone",
@@ -205,30 +199,6 @@ func TestLinux_PlanStage(t *testing.T) {
 		{
 			failure: true,
 			err:     errors.New("simulated error for stage"),
-			ctx:     context.Background(),
-			stageMap: map[string]chan error{
-				"init": make(chan error, 1),
-			},
-			stage: &pipeline.Stage{
-				Name:  "clone",
-				Needs: []string{"init"},
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "github_octocat_1_clone_clone",
-						Directory:   "/home/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/vela-git:v0.3.0",
-						Name:        "clone",
-						Number:      2,
-						Pull:        true,
-					},
-				},
-			},
-		},
-		{
-			failure: true,
-			err:     nil,
-			ctx:     cancelCtx,
 			stageMap: map[string]chan error{
 				"init": make(chan error, 1),
 			},
@@ -272,10 +242,7 @@ func TestLinux_PlanStage(t *testing.T) {
 			close(test.stageMap["init"])
 		}
 
-		// hack to ensure channels respond properly
-		time.Sleep(1 * time.Second)
-
-		err = _engine.PlanStage(test.ctx, test.stage, test.stageMap)
+		err = _engine.PlanStage(context.Background(), test.stage, test.stageMap)
 
 		if test.failure {
 			if err == nil {

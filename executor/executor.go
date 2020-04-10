@@ -20,6 +20,8 @@ import (
 // * linux
 func New(s *Setup) (Engine, error) {
 	// validate the setup being provided
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/executor?tab=doc#Setup.Validate
 	err := s.Validate()
 	if err != nil {
 		return nil, err
@@ -30,12 +32,18 @@ func New(s *Setup) (Engine, error) {
 	switch s.Driver {
 	case constants.DriverDarwin:
 		// handle the Darwin executor driver being provided
+		//
+		// https://pkg.go.dev/github.com/go-vela/pkg-executor/executor?tab=doc#Setup.Darwin
 		return s.Darwin()
 	case constants.DriverLinux:
 		// handle the Linux executor driver being provided
+		//
+		// https://pkg.go.dev/github.com/go-vela/pkg-executor/executor?tab=doc#Setup.Linux
 		return s.Linux()
 	case constants.DriverWindows:
 		// handle the Windows executor driver being provided
+		//
+		// https://pkg.go.dev/github.com/go-vela/pkg-executor/executor?tab=doc#Setup.Windows
 		return s.Windows()
 	default:
 		// handle an invalid executor driver being provided

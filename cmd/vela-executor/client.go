@@ -8,7 +8,7 @@ import (
 	"github.com/go-vela/sdk-go/vela"
 
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // helper function to setup the queue from the CLI arguments.

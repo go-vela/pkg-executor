@@ -14,6 +14,10 @@ require (
 	github.com/google/go-cmp v0.3.1
 	github.com/joho/godotenv v1.3.0
 	github.com/sirupsen/logrus v1.5.0
-	github.com/urfave/cli v1.22.3
+	github.com/urfave/cli/v2 v2.2.0
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 )
+
+replace github.com/go-vela/compiler => github.com/GregoryDosh/compiler v0.3.1
+
+replace github.com/go-vela/pkg-runtime => github.com/GregoryDosh/pkg-runtime v0.0.0-20200410000527-9a1b10bc1f14

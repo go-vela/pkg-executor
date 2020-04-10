@@ -61,6 +61,8 @@ func (s *Setup) Linux() (Engine, error) {
 	logrus.Trace("creating linux executor client from setup")
 
 	// create new Linux executor engine
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/executor/linux?tab=doc#New
 	return linux.New(
 		linux.WithBuild(s.Build),
 		linux.WithHostname(s.Hostname),

@@ -15,8 +15,6 @@ import (
 
 	"github.com/drone/envsubst"
 
-	"github.com/go-vela/worker/version"
-
 	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/library"
 	"github.com/go-vela/types/pipeline"
@@ -33,7 +31,7 @@ func (c *client) CreateService(ctx context.Context, ctn *pipeline.Container) err
 
 	ctn.Environment["BUILD_HOST"] = c.Hostname
 	ctn.Environment["VELA_HOST"] = c.Hostname
-	ctn.Environment["VELA_VERSION"] = version.Version.String()
+	ctn.Environment["VELA_VERSION"] = "v0.4.0"
 	// TODO: remove hardcoded reference
 	ctn.Environment["VELA_RUNTIME"] = "docker"
 	ctn.Environment["VELA_DISTRIBUTION"] = "linux"

@@ -13,7 +13,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // helper function to setup the pipeline from the CLI arguments.

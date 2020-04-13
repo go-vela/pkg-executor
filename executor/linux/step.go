@@ -18,16 +18,14 @@ import (
 	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/library"
 	"github.com/go-vela/types/pipeline"
-
-	"github.com/sirupsen/logrus"
 )
 
 // CreateStep configures the step for execution.
 func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error {
-	// update engine logger with extra metadata
-	logger := c.logger.WithFields(logrus.Fields{
-		"step": ctn.Name,
-	})
+	// update engine logger with step metadata
+	//
+	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
+	logger := c.logger.WithField("step", ctn.Name)
 
 	ctn.Environment["BUILD_HOST"] = c.Hostname
 	ctn.Environment["VELA_HOST"] = c.Hostname
@@ -96,10 +94,10 @@ func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
 	b := c.build
 	r := c.repo
 
-	// update engine logger with extra metadata
-	logger := c.logger.WithFields(logrus.Fields{
-		"step": ctn.Name,
-	})
+	// update engine logger with step metadata
+	//
+	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
+	logger := c.logger.WithField("step", ctn.Name)
 
 	// update the engine step object
 	s := new(library.Step)
@@ -144,10 +142,10 @@ func (c *client) ExecStep(ctx context.Context, ctn *pipeline.Container) error {
 		return nil
 	}
 
-	// update engine logger with extra metadata
-	logger := c.logger.WithFields(logrus.Fields{
-		"step": ctn.Name,
-	})
+	// update engine logger with step metadata
+	//
+	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
+	logger := c.logger.WithField("step", ctn.Name)
 
 	logger.Debug("running container")
 	// run the runtime container
@@ -161,7 +159,7 @@ func (c *client) ExecStep(ctx context.Context, ctn *pipeline.Container) error {
 		// stream logs from container
 		err := c.StreamStep(ctx, ctn)
 		if err != nil {
-			logrus.Error(err)
+			logger.Error(err)
 		}
 	}()
 
@@ -197,16 +195,16 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 	b := c.build
 	r := c.repo
 
+	// update engine logger with step metadata
+	//
+	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
+	logger := c.logger.WithField("step", ctn.Name)
+
 	// load the logs for the step from the client
 	l, err := c.loadStepLogs(ctn.ID)
 	if err != nil {
 		return err
 	}
-
-	// update engine logger with extra metadata
-	logger := c.logger.WithFields(logrus.Fields{
-		"step": ctn.Name,
-	})
 
 	// create new buffer for uploading logs
 	logs := new(bytes.Buffer)
@@ -271,10 +269,10 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 		return nil
 	}
 
-	// update engine logger with extra metadata
-	logger := c.logger.WithFields(logrus.Fields{
-		"step": ctn.Name,
-	})
+	// update engine logger with step metadata
+	//
+	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
+	logger := c.logger.WithField("step", ctn.Name)
 
 	logger.Debug("removing container")
 	// remove the runtime container

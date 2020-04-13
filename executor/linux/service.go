@@ -18,16 +18,14 @@ import (
 	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/library"
 	"github.com/go-vela/types/pipeline"
-
-	"github.com/sirupsen/logrus"
 )
 
 // CreateService configures the service for execution.
 func (c *client) CreateService(ctx context.Context, ctn *pipeline.Container) error {
-	// update engine logger with extra metadata
-	logger := c.logger.WithFields(logrus.Fields{
-		"service": ctn.Name,
-	})
+	// update engine logger with service metadata
+	//
+	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
+	logger := c.logger.WithField("service", ctn.Name)
 
 	ctn.Environment["BUILD_HOST"] = c.Hostname
 	ctn.Environment["VELA_HOST"] = c.Hostname
@@ -91,10 +89,10 @@ func (c *client) PlanService(ctx context.Context, ctn *pipeline.Container) error
 	b := c.build
 	r := c.repo
 
-	// update engine logger with extra metadata
-	logger := c.logger.WithFields(logrus.Fields{
-		"service": ctn.Name,
-	})
+	// update engine logger with service metadata
+	//
+	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
+	logger := c.logger.WithField("service", ctn.Name)
 
 	// update the engine service object
 	s := new(library.Service)
@@ -137,10 +135,10 @@ func (c *client) PlanService(ctx context.Context, ctn *pipeline.Container) error
 
 // ExecService runs a service.
 func (c *client) ExecService(ctx context.Context, ctn *pipeline.Container) error {
-	// update engine logger with extra metadata
-	logger := c.logger.WithFields(logrus.Fields{
-		"service": ctn.Name,
-	})
+	// update engine logger with service metadata
+	//
+	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
+	logger := c.logger.WithField("service", ctn.Name)
 
 	logger.Debug("running container")
 	// run the runtime container
@@ -154,7 +152,7 @@ func (c *client) ExecService(ctx context.Context, ctn *pipeline.Container) error
 		// stream logs from container
 		err := c.StreamService(ctx, ctn)
 		if err != nil {
-			logrus.Error(err)
+			logger.Error(err)
 		}
 	}()
 
@@ -166,16 +164,16 @@ func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) err
 	b := c.build
 	r := c.repo
 
+	// update engine logger with service metadata
+	//
+	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
+	logger := c.logger.WithField("service", ctn.Name)
+
 	// load the logs for the service from the client
 	l, err := c.loadServiceLogs(ctn.ID)
 	if err != nil {
 		return err
 	}
-
-	// update engine logger with extra metadata
-	logger := c.logger.WithFields(logrus.Fields{
-		"step": ctn.Name,
-	})
 
 	// create new buffer for uploading logs
 	logs := new(bytes.Buffer)
@@ -235,10 +233,10 @@ func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) err
 
 // DestroyService cleans up services after execution.
 func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) error {
-	// update engine logger with extra metadata
-	logger := c.logger.WithFields(logrus.Fields{
-		"service": ctn.Name,
-	})
+	// update engine logger with service metadata
+	//
+	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
+	logger := c.logger.WithField("service", ctn.Name)
 
 	logger.Debug("inspecting container")
 	// inspect the runtime container

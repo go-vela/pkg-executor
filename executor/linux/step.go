@@ -232,7 +232,9 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 			logger.Trace(logs.String())
 
 			// update the existing log with the new bytes
-			l.SetData(append(l.GetData(), logs.Bytes()...))
+			//
+			// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+			l.AppendData(logs.Bytes())
 
 			logger.Debug("appending logs")
 			// send API call to append the logs for the step
@@ -248,7 +250,9 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 	logger.Trace(logs.String())
 
 	// update the existing log with the last bytes
-	l.SetData(append(l.GetData(), logs.Bytes()...))
+	//
+	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+	l.AppendData(logs.Bytes())
 
 	logger.Debug("uploading logs")
 	// send API call to update the logs for the step

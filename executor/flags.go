@@ -19,7 +19,7 @@ var Flags = []cli.Flag{
 	&cli.StringFlag{
 		EnvVars: []string{"EXECUTOR_LOG_LEVEL", "VELA_LOG_LEVEL", "LOG_LEVEL"},
 		Name:    "executor.log.level",
-		Usage:   "set log level - options: (trace|debug|info|warn|error|fatal|panic)",
+		Usage:   "sets the log level for the executor",
 		Value:   "info",
 	},
 
@@ -28,7 +28,7 @@ var Flags = []cli.Flag{
 	&cli.StringFlag{
 		EnvVars: []string{"VELA_EXECUTOR_DRIVER", "EXECUTOR_DRIVER"},
 		Name:    "executor.driver",
-		Usage:   "executor driver",
+		Usage:   "sets the driver to be used for the executor",
 		Value:   constants.DriverLinux,
 	},
 }

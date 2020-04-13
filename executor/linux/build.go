@@ -183,7 +183,9 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	}
 
 	// update the init log with progress
-	l.SetData(append(l.GetData(), []byte("$ Inspecting runtime network...\n")...))
+	//
+	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+	l.AppendData([]byte("$ Inspecting runtime network...\n"))
 
 	// inspect the runtime network for the pipeline
 	network, err := c.Runtime.InspectNetwork(ctx, p)
@@ -193,7 +195,9 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	}
 
 	// update the init log with network info
-	l.SetData(append(l.GetData(), network...))
+	//
+	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+	l.AppendData(network)
 
 	c.logger.Info("creating volume")
 	// create the runtime volume for the pipeline
@@ -204,7 +208,9 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	}
 
 	// update the init log with progress
-	l.SetData(append(l.GetData(), []byte("$ Inspecting runtime volume...\n")...))
+	//
+	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+	l.AppendData([]byte("$ Inspecting runtime volume...\n"))
 
 	// inspect the runtime volume for the pipeline
 	volume, err := c.Runtime.InspectVolume(ctx, p)
@@ -214,10 +220,14 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	}
 
 	// update the init log with volume info
-	l.SetData(append(l.GetData(), volume...))
+	//
+	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+	l.AppendData(volume)
 
 	// update the init log with progress
-	l.SetData(append(l.GetData(), []byte("$ Pulling service images...\n")...))
+	//
+	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+	l.AppendData([]byte("$ Pulling service images...\n"))
 
 	// create the services for the pipeline
 	for _, s := range p.Services {
@@ -227,12 +237,9 @@ func (c *client) PlanBuild(ctx context.Context) error {
 
 		// TODO: remove hardcoded reference
 		// update the init log with progress
-		l.SetData(
-			append(
-				l.GetData(),
-				[]byte(fmt.Sprintf("  $ docker image inspect %s\n", s.Image))...,
-			),
-		)
+		//
+		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+		l.AppendData([]byte(fmt.Sprintf("  $ docker image inspect %s\n", s.Image)))
 
 		c.logger.Infof("creating %s service", s.Name)
 		// create the service
@@ -251,13 +258,15 @@ func (c *client) PlanBuild(ctx context.Context) error {
 		}
 
 		// update the init log with service image info
-		l.SetData(append(l.GetData(), image...))
+		//
+		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+		l.AppendData(image)
 	}
 
 	// update the init log with progress
-	l.SetData(
-		append(l.GetData(), []byte("$ Pulling stage images...\n")...),
-	)
+	//
+	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+	l.AppendData([]byte("$ Pulling stage images...\n"))
 
 	// create the stages for the pipeline
 	for _, s := range p.Stages {
@@ -276,9 +285,9 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	}
 
 	// update the init log with progress
-	l.SetData(
-		append(l.GetData(), []byte("$ Pulling step images...\n")...),
-	)
+	//
+	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+	l.AppendData([]byte("$ Pulling step images...\n"))
 
 	// create the steps for the pipeline
 	for _, s := range p.Steps {
@@ -289,12 +298,9 @@ func (c *client) PlanBuild(ctx context.Context) error {
 
 		// TODO: make this not hardcoded
 		// update the init log with progress
-		l.SetData(
-			append(
-				l.GetData(),
-				[]byte(fmt.Sprintf("  $ docker image inspect %s\n", s.Image))...,
-			),
-		)
+		//
+		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+		l.AppendData([]byte(fmt.Sprintf("  $ docker image inspect %s\n", s.Image)))
 
 		c.logger.Infof("creating %s step", s.Name)
 		// create the step
@@ -313,7 +319,9 @@ func (c *client) PlanBuild(ctx context.Context) error {
 		}
 
 		// update the init log with step image info
-		l.SetData(append(l.GetData(), image...))
+		//
+		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+		l.AppendData(image)
 	}
 
 	return nil

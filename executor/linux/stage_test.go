@@ -395,6 +395,7 @@ func TestLinux_DestroyStage(t *testing.T) {
 	tests := []struct {
 		failure bool
 		stage   *pipeline.Stage
+		step    *library.Step
 	}{
 		{
 			failure: false,
@@ -412,6 +413,7 @@ func TestLinux_DestroyStage(t *testing.T) {
 					},
 				},
 			},
+			step: new(library.Step),
 		},
 		{
 			failure: true,
@@ -429,6 +431,7 @@ func TestLinux_DestroyStage(t *testing.T) {
 					},
 				},
 			},
+			step: new(library.Step),
 		},
 	}
 
@@ -445,6 +448,8 @@ func TestLinux_DestroyStage(t *testing.T) {
 		if err != nil {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
+
+		_engine.steps.Store(test.stage.Steps[0].ID, test.step)
 
 		err = _engine.DestroyStage(context.Background(), test.stage)
 

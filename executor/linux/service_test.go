@@ -17,6 +17,7 @@ import (
 
 	"github.com/go-vela/sdk-go/vela"
 
+	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/library"
 	"github.com/go-vela/types/pipeline"
 )
@@ -412,10 +413,16 @@ func TestLinux_DestroyService(t *testing.T) {
 		t.Errorf("unable to create runtime engine: %v", err)
 	}
 
+	_service := new(library.Service)
+	_service.SetName("postgres")
+	_service.SetNumber(1)
+	_service.SetStatus(constants.StatusPending)
+
 	// setup tests
 	tests := []struct {
 		failure   bool
 		container *pipeline.Container
+		service   *library.Service
 	}{
 		{
 			failure: false,
@@ -428,6 +435,7 @@ func TestLinux_DestroyService(t *testing.T) {
 				Number:      1,
 				Ports:       []string{"5432:5432"},
 			},
+			service: _service,
 		},
 		{
 			failure: true,
@@ -440,6 +448,7 @@ func TestLinux_DestroyService(t *testing.T) {
 				Number:      1,
 				Ports:       []string{"5432:5432"},
 			},
+			service: new(library.Service),
 		},
 		{
 			failure: true,
@@ -452,6 +461,7 @@ func TestLinux_DestroyService(t *testing.T) {
 				Number:      1,
 				Ports:       []string{"5432:5432"},
 			},
+			service: new(library.Service),
 		},
 	}
 
@@ -468,6 +478,8 @@ func TestLinux_DestroyService(t *testing.T) {
 		if err != nil {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
+
+		_engine.services.Store(test.container.ID, test.service)
 
 		err = _engine.DestroyService(context.Background(), test.container)
 

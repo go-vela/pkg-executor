@@ -30,6 +30,7 @@ func (c *client) CreateBuild(ctx context.Context) error {
 		if e != nil {
 			b.SetError(e.Error())
 			b.SetStatus(constants.StatusError)
+			b.SetFinished(time.Now().UTC().Unix())
 		}
 
 		c.logger.Info("uploading build snapshot")
@@ -115,6 +116,7 @@ func (c *client) PlanBuild(ctx context.Context) error {
 		if e != nil {
 			b.SetError(e.Error())
 			b.SetStatus(constants.StatusError)
+			b.SetFinished(time.Now().UTC().Unix())
 		}
 
 		c.logger.Info("uploading build snapshot")
@@ -495,12 +497,8 @@ func (c *client) ExecBuild(ctx context.Context) error {
 func (c *client) DestroyBuild(ctx context.Context) error {
 	var err error
 
-	b := c.build
-	p := c.pipeline
-	r := c.repo
-
 	// destroy the steps for the pipeline
-	for _, s := range p.Steps {
+	for _, s := range c.pipeline.Steps {
 		// TODO: remove hardcoded reference
 		if s.Name == "init" {
 			continue
@@ -515,7 +513,7 @@ func (c *client) DestroyBuild(ctx context.Context) error {
 	}
 
 	// destroy the stages for the pipeline
-	for _, s := range p.Stages {
+	for _, s := range c.pipeline.Stages {
 		// TODO: remove hardcoded reference
 		if s.Name == "init" {
 			continue
@@ -530,44 +528,25 @@ func (c *client) DestroyBuild(ctx context.Context) error {
 	}
 
 	// destroy the services for the pipeline
-	for _, s := range p.Services {
+	for _, s := range c.pipeline.Services {
 		c.logger.Infof("destroying %s service", s.Name)
 		// destroy the service
 		err = c.DestroyService(ctx, s)
 		if err != nil {
 			c.logger.Errorf("unable to destroy service: %v", err)
 		}
-
-		c.logger.Infof("uploading %s service state", s.Name)
-
-		// load the service from the client
-		cService, err := c.loadService(s.ID)
-		if err != nil {
-			c.logger.Errorf("unable to load service: %v", err)
-		}
-
-		cService.SetExitCode(s.ExitCode)
-		cService.SetFinished(time.Now().UTC().Unix())
-
-		// send API call to update the service
-		//
-		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SvcService.Update
-		_, _, err = c.Vela.Svc.Update(r.GetOrg(), r.GetName(), b.GetNumber(), cService)
-		if err != nil {
-			c.logger.Errorf("unable to upload service status: %v", err)
-		}
 	}
 
 	c.logger.Info("deleting volume")
 	// remove the runtime volume for the pipeline
-	err = c.Runtime.RemoveVolume(ctx, p)
+	err = c.Runtime.RemoveVolume(ctx, c.pipeline)
 	if err != nil {
 		c.logger.Errorf("unable to remove volume: %v", err)
 	}
 
 	c.logger.Info("deleting network")
 	// remove the runtime network for the pipeline
-	err = c.Runtime.RemoveNetwork(ctx, p)
+	err = c.Runtime.RemoveNetwork(ctx, c.pipeline)
 	if err != nil {
 		c.logger.Errorf("unable to remove network: %v", err)
 	}

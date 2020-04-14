@@ -34,6 +34,8 @@ func (c *client) CreateBuild(ctx context.Context) error {
 
 		c.logger.Info("uploading build snapshot")
 		// send API call to update the build
+		//
+		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#BuildService.Update
 		_, _, err := c.Vela.Build.Update(r.GetOrg(), r.GetName(), b)
 		if err != nil {
 			c.logger.Errorf("unable to upload build snapshot: %v", err)
@@ -50,6 +52,8 @@ func (c *client) CreateBuild(ctx context.Context) error {
 
 	c.logger.Info("uploading build state")
 	// send API call to update the build
+	//
+	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#BuildService.Update
 	b, _, err := c.Vela.Build.Update(r.GetOrg(), r.GetName(), b)
 	if err != nil {
 		e = err
@@ -113,11 +117,13 @@ func (c *client) PlanBuild(ctx context.Context) error {
 			b.SetStatus(constants.StatusError)
 		}
 
-		c.logger.Info("uploading build state")
+		c.logger.Info("uploading build snapshot")
 		// send API call to update the build
+		//
+		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#BuildService.Update
 		_, _, err := c.Vela.Build.Update(r.GetOrg(), r.GetName(), b)
 		if err != nil {
-			c.logger.Errorf("unable to upload errorred state: %v", err)
+			c.logger.Errorf("unable to upload build snapshot: %v", err)
 		}
 	}()
 
@@ -147,6 +153,8 @@ func (c *client) PlanBuild(ctx context.Context) error {
 		s.SetFinished(time.Now().UTC().Unix())
 		c.logger.Infof("uploading %s step state", init.Name)
 		// send API call to update the step
+		//
+		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
 		_, _, err := c.Vela.Step.Update(r.GetOrg(), r.GetName(), b.GetNumber(), s)
 		if err != nil {
 			c.logger.Errorf("unable to upload %s state: %v", init.Name, err)
@@ -154,6 +162,8 @@ func (c *client) PlanBuild(ctx context.Context) error {
 
 		c.logger.Infof("uploading %s step logs", init.Name)
 		// send API call to update the logs for the step
+		//
+		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateStep
 		l, _, err = c.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), init.Number, l)
 		if err != nil {
 			c.logger.Errorf("unable to upload %s logs: %v", init.Name, err)
@@ -337,6 +347,8 @@ func (c *client) ExecBuild(ctx context.Context) error {
 
 		c.logger.Info("uploading build state")
 		// send API call to update the build
+		//
+		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#BuildService.Update
 		_, _, err := c.Vela.Build.Update(r.GetOrg(), r.GetName(), b)
 		if err != nil {
 			c.logger.Errorf("unable to upload errorred state: %v", err)
@@ -413,6 +425,8 @@ func (c *client) ExecBuild(ctx context.Context) error {
 		cStep.SetFinished(time.Now().UTC().Unix())
 		c.logger.Infof("uploading %s step state", s.Name)
 		// send API call to update the build
+		//
+		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
 		_, _, err = c.Vela.Step.Update(r.GetOrg(), r.GetName(), b.GetNumber(), cStep)
 		if err != nil {
 			e = err
@@ -421,6 +435,8 @@ func (c *client) ExecBuild(ctx context.Context) error {
 	}
 
 	// create an error group with the context for each stage
+	//
+	// https://pkg.go.dev/golang.org/x/sync/errgroup?tab=doc#WithContext
 	stages, stageCtx := errgroup.WithContext(ctx)
 	// create a map to track the progress of each stage
 	stageMap := make(map[string]chan error)
@@ -438,6 +454,9 @@ func (c *client) ExecBuild(ctx context.Context) error {
 		// create a new channel for each stage in the map
 		stageMap[stage.Name] = make(chan error)
 
+		// spawn errgroup routine for the stage
+		//
+		// https://pkg.go.dev/golang.org/x/sync/errgroup?tab=doc#Group.Go
 		stages.Go(func() error {
 			c.logger.Infof("planning %s stage", stage.Name)
 			// plan the stage
@@ -461,6 +480,8 @@ func (c *client) ExecBuild(ctx context.Context) error {
 
 	c.logger.Debug("waiting for stages completion")
 	// wait for the stages to complete or return an error
+	//
+	// https://pkg.go.dev/golang.org/x/sync/errgroup?tab=doc#Group.Wait
 	err := stages.Wait()
 	if err != nil {
 		e = err
@@ -528,6 +549,9 @@ func (c *client) DestroyBuild(ctx context.Context) error {
 		cService.SetExitCode(s.ExitCode)
 		cService.SetFinished(time.Now().UTC().Unix())
 
+		// send API call to update the service
+		//
+		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SvcService.Update
 		_, _, err = c.Vela.Svc.Update(r.GetOrg(), r.GetName(), b.GetNumber(), cService)
 		if err != nil {
 			c.logger.Errorf("unable to upload service status: %v", err)

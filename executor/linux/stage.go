@@ -11,8 +11,6 @@ import (
 
 	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/pipeline"
-
-	"github.com/sirupsen/logrus"
 )
 
 // CreateStage prepares the stage for execution.
@@ -23,10 +21,10 @@ func (c *client) CreateStage(ctx context.Context, s *pipeline.Stage) error {
 		return err
 	}
 
-	// update engine logger with extra metadata
-	logger := c.logger.WithFields(logrus.Fields{
-		"stage": s.Name,
-	})
+	// update engine logger with stage metadata
+	//
+	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
+	logger := c.logger.WithField("stage", s.Name)
 
 	// update the init log with progress
 	//
@@ -66,10 +64,10 @@ func (c *client) CreateStage(ctx context.Context, s *pipeline.Stage) error {
 
 // PlanStage prepares the stage for execution.
 func (c *client) PlanStage(ctx context.Context, s *pipeline.Stage, m map[string]chan error) error {
-	// update engine logger with extra metadata
-	logger := c.logger.WithFields(logrus.Fields{
-		"stage": s.Name,
-	})
+	// update engine logger with stage metadata
+	//
+	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
+	logger := c.logger.WithField("stage", s.Name)
 
 	logger.Debug("gathering stage dependency tree")
 	// ensure dependent stages have completed
@@ -88,7 +86,7 @@ func (c *client) PlanStage(ctx context.Context, s *pipeline.Stage, m map[string]
 			return fmt.Errorf("errgroup context is done")
 		case err := <-stageErr:
 			if err != nil {
-				logger.WithError(err).Errorf("%s stage produced error", needs)
+				logger.Errorf("%s stage returned error: %v", needs, err)
 				return err
 			}
 
@@ -104,10 +102,10 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 	b := c.build
 	r := c.repo
 
-	// update engine logger with extra metadata
-	logger := c.logger.WithFields(logrus.Fields{
-		"stage": s.Name,
-	})
+	// update engine logger with stage metadata
+	//
+	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
+	logger := c.logger.WithField("stage", s.Name)
 
 	// close the stage channel at the end
 	defer close(m[s.Name])
@@ -115,14 +113,14 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 	logger.Debug("starting execution of stage")
 	// execute the steps for the stage
 	for _, step := range s.Steps {
-		c.logger.Infof("planning %s step", step.Name)
+		logger.Debugf("planning %s step", step.Name)
 		// plan the step
 		err := c.PlanStep(ctx, step)
 		if err != nil {
 			return fmt.Errorf("unable to plan step %s: %w", step.Name, err)
 		}
 
-		logger.Debugf("executing %s step", step.Name)
+		logger.Infof("executing %s step", step.Name)
 		// execute the step
 		err = c.ExecStep(ctx, step)
 		if err != nil {
@@ -149,11 +147,11 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 		}
 
 		cStep.SetFinished(time.Now().UTC().Unix())
-		c.logger.Infof("uploading %s step state", step.Name)
+		logger.Infof("uploading %s step state", step.Name)
 		// send API call to update the build
 		_, _, err = c.Vela.Step.Update(r.GetOrg(), r.GetName(), b.GetNumber(), cStep)
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to upload step state: %v", err)
 		}
 	}
 
@@ -162,10 +160,10 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 
 // DestroyStage cleans up the stage after execution.
 func (c *client) DestroyStage(ctx context.Context, s *pipeline.Stage) error {
-	// update logger with extra metadata
-	logger := c.logger.WithFields(logrus.Fields{
-		"stage": s.Name,
-	})
+	// update engine logger with stage metadata
+	//
+	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
+	logger := c.logger.WithField("stage", s.Name)
 
 	// destroy the steps for the stage
 	for _, step := range s.Steps {

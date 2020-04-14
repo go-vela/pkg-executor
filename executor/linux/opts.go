@@ -30,6 +30,11 @@ func WithBuild(b *library.Build) Opt {
 			return fmt.Errorf("empty build provided")
 		}
 
+		// update engine logger with build metadata
+		//
+		// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
+		c.logger.WithField("build", b.GetNumber())
+
 		// set the build in the client
 		c.build = b
 
@@ -47,6 +52,11 @@ func WithHostname(hostname string) Opt {
 			// default the hostname to localhost
 			hostname = "localhost"
 		}
+
+		// update engine logger with host metadata
+		//
+		// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
+		c.logger.WithField("host", c.Hostname)
 
 		// set the hostname in the client
 		c.Hostname = hostname
@@ -82,6 +92,11 @@ func WithRepo(r *library.Repo) Opt {
 			return fmt.Errorf("empty repo provided")
 		}
 
+		// update engine logger with repo metadata
+		//
+		// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
+		c.logger.WithField("repo", r.GetFullName())
+
 		// set the repo in the client
 		c.repo = r
 
@@ -115,6 +130,11 @@ func WithUser(u *library.User) Opt {
 		if u == nil {
 			return fmt.Errorf("empty user provided")
 		}
+
+		// update engine logger with user metadata
+		//
+		// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
+		c.logger.WithField("user", u.GetName())
 
 		// set the user in the client
 		c.user = u

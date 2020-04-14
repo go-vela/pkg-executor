@@ -41,6 +41,16 @@ func New(opts ...Opt) (*client, error) {
 	// create new Linux client
 	c := new(client)
 
+	// create new logger for the client
+	//
+	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#StandardLogger
+	logger := logrus.StandardLogger()
+
+	// create new logger for the client
+	//
+	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#NewEntry
+	c.logger = logrus.NewEntry(logger)
+
 	// apply all provided configuration options
 	for _, opt := range opts {
 		err := opt(c)
@@ -48,11 +58,6 @@ func New(opts ...Opt) (*client, error) {
 			return nil, err
 		}
 	}
-
-	// create the logger object
-	c.logger = logrus.WithFields(logrus.Fields{
-		"host": c.Hostname,
-	})
 
 	return c, nil
 }

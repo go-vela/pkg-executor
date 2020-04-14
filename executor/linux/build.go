@@ -14,8 +14,6 @@ import (
 
 	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/pipeline"
-
-	"github.com/sirupsen/logrus"
 )
 
 // CreateBuild configures the build for execution.
@@ -24,12 +22,6 @@ func (c *client) CreateBuild(ctx context.Context) error {
 	p := c.pipeline
 	r := c.repo
 	e := c.err
-
-	// update engine logger with extra metadata
-	c.logger = c.logger.WithFields(logrus.Fields{
-		"build": b.GetNumber(),
-		"repo":  r.GetFullName(),
-	})
 
 	defer func() {
 		// NOTE: When an error occurs during a build that does not have to do
@@ -40,11 +32,11 @@ func (c *client) CreateBuild(ctx context.Context) error {
 			b.SetStatus(constants.StatusError)
 		}
 
-		c.logger.Info("uploading build state")
+		c.logger.Info("uploading build snapshot")
 		// send API call to update the build
 		_, _, err := c.Vela.Build.Update(r.GetOrg(), r.GetName(), b)
 		if err != nil {
-			c.logger.Errorf("unable to upload errorred state: %v", err)
+			c.logger.Errorf("unable to upload build snapshot: %v", err)
 		}
 	}()
 
@@ -61,7 +53,7 @@ func (c *client) CreateBuild(ctx context.Context) error {
 	b, _, err := c.Vela.Build.Update(r.GetOrg(), r.GetName(), b)
 	if err != nil {
 		e = err
-		return fmt.Errorf("unable to upload start state: %v", err)
+		return fmt.Errorf("unable to upload build state: %v", err)
 	}
 
 	c.build = b
@@ -111,12 +103,6 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	p := c.pipeline
 	r := c.repo
 	e := c.err
-
-	// update engine logger with extra metadata
-	c.logger = c.logger.WithFields(logrus.Fields{
-		"build": b.GetNumber(),
-		"repo":  r.GetFullName(),
-	})
 
 	defer func() {
 		// NOTE: When an error occurs during a build that does not have to do
@@ -429,7 +415,8 @@ func (c *client) ExecBuild(ctx context.Context) error {
 		// send API call to update the build
 		_, _, err = c.Vela.Step.Update(r.GetOrg(), r.GetName(), b.GetNumber(), cStep)
 		if err != nil {
-			return err
+			e = err
+			return fmt.Errorf("unable to upload step state: %v", err)
 		}
 	}
 

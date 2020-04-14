@@ -293,6 +293,8 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 	defer func() {
 		c.logger.Info("uploading step snapshot")
 		// send API call to update the step
+		//
+		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
 		_, _, err := c.Vela.Step.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), step)
 		if err != nil {
 			c.logger.Errorf("unable to upload step snapshot: %v", err)

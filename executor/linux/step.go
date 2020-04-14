@@ -284,9 +284,47 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
 	logger := c.logger.WithField("step", ctn.Name)
 
+	// load the step from the client
+	step, err := c.loadStep(ctn.ID)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		c.logger.Info("uploading step snapshot")
+		// send API call to update the step
+		//
+		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
+		_, _, err := c.Vela.Step.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), step)
+		if err != nil {
+			c.logger.Errorf("unable to upload step snapshot: %v", err)
+		}
+	}()
+
+	// check if the step is in a pending state
+	if step.GetStatus() == constants.StatusPending {
+		// update the step fields
+		step.SetExitCode(137)
+		step.SetStatus(constants.StatusKilled)
+		step.SetFinished(time.Now().UTC().Unix())
+
+		// check if the step was not started
+		if step.GetStarted() == 0 {
+			// set the started time to the finished time
+			step.SetStarted(step.GetFinished())
+		}
+	}
+
+	logger.Debug("inspecting container")
+	// inspect the runtime container
+	err = c.Runtime.InspectContainer(ctx, ctn)
+	if err != nil {
+		return err
+	}
+
 	logger.Debug("removing container")
 	// remove the runtime container
-	err := c.Runtime.RemoveContainer(ctx, ctn)
+	err = c.Runtime.RemoveContainer(ctx, ctn)
 	if err != nil {
 		return err
 	}

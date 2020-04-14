@@ -248,9 +248,40 @@ func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) er
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
 	logger := c.logger.WithField("service", ctn.Name)
 
+	// load the service from the client
+	service, err := c.loadService(ctn.ID)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		c.logger.Info("uploading service snapshot")
+		// send API call to update the step
+		//
+		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SvcService.Update
+		_, _, err := c.Vela.Svc.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), service)
+		if err != nil {
+			c.logger.Errorf("unable to upload service snapshot: %v", err)
+		}
+	}()
+
+	// check if the service is in a pending state
+	if service.GetStatus() == constants.StatusPending {
+		// update the service fields
+		service.SetExitCode(137)
+		service.SetStatus(constants.StatusKilled)
+		service.SetFinished(time.Now().UTC().Unix())
+
+		// check if the service was not started
+		if service.GetStarted() == 0 {
+			// set the started time to the finished time
+			service.SetStarted(service.GetFinished())
+		}
+	}
+
 	logger.Debug("inspecting container")
 	// inspect the runtime container
-	err := c.Runtime.InspectContainer(ctx, ctn)
+	err = c.Runtime.InspectContainer(ctx, ctn)
 	if err != nil {
 		return err
 	}

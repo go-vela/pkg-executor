@@ -67,6 +67,8 @@ func (c *client) CreateService(ctx context.Context, ctn *pipeline.Container) err
 
 	logger.Debug("substituting environment")
 	// substitute the environment variables
+	//
+	// https://pkg.go.dev/github.com/drone/envsubst?tab=doc#Eval
 	subStep, err := envsubst.Eval(string(body), subFunc)
 	if err != nil {
 		return fmt.Errorf("unable to substitute environment variables: %v", err)
@@ -109,6 +111,8 @@ func (c *client) PlanService(ctx context.Context, ctn *pipeline.Container) error
 
 	logger.Debug("uploading service state")
 	// send API call to update the service
+	//
+	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SvcService.Update
 	s, _, err = c.Vela.Svc.Update(r.GetOrg(), r.GetName(), b.GetNumber(), s)
 	if err != nil {
 		return err
@@ -122,6 +126,8 @@ func (c *client) PlanService(ctx context.Context, ctn *pipeline.Container) error
 	// get the service log here
 	logger.Debug("retrieve service log")
 	// send API call to capture the service log
+	//
+	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.GetService
 	l, _, err := c.Vela.Log.GetService(r.GetOrg(), r.GetName(), b.GetNumber(), s.GetNumber())
 	if err != nil {
 		return err
@@ -205,6 +211,8 @@ func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) err
 
 			logger.Debug("appending logs")
 			// send API call to append the logs for the service
+			//
+			// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateService
 			l, _, err = c.Vela.Log.UpdateService(r.GetOrg(), r.GetName(), b.GetNumber(), ctn.Number, l)
 			if err != nil {
 				return err
@@ -223,6 +231,8 @@ func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) err
 
 	logger.Debug("uploading logs")
 	// send API call to update the logs for the service
+	//
+	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateService
 	_, _, err = c.Vela.Log.UpdateService(r.GetOrg(), r.GetName(), b.GetNumber(), ctn.Number, l)
 	if err != nil {
 		return err
@@ -258,11 +268,13 @@ func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) er
 // loadService is a helper function to capture
 // a service from the client.
 func (c *client) loadService(name string) (*library.Service, error) {
+	// load the service key from the client
 	result, ok := c.services.Load(name)
 	if !ok {
 		return nil, fmt.Errorf("unable to load service %s", name)
 	}
 
+	// cast the service key to the expected type
 	s, ok := result.(*library.Service)
 	if !ok {
 		return nil, fmt.Errorf("service %s had unexpected value", name)
@@ -274,11 +286,13 @@ func (c *client) loadService(name string) (*library.Service, error) {
 // loadServiceLog is a helper function to capture
 // the logs for a service from the client.
 func (c *client) loadServiceLogs(name string) (*library.Log, error) {
+	// load the service log key from the client
 	result, ok := c.serviceLogs.Load(name)
 	if !ok {
 		return nil, fmt.Errorf("unable to load logs for service %s", name)
 	}
 
+	// cast the service log key to the expected type
 	l, ok := result.(*library.Log)
 	if !ok {
 		return nil, fmt.Errorf("logs for service %s had unexpected value", name)

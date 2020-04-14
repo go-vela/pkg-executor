@@ -72,6 +72,8 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 
 	logger.Debug("substituting environment")
 	// substitute the environment variables
+	//
+	// https://pkg.go.dev/github.com/drone/envsubst?tab=doc#Eval
 	subStep, err := envsubst.Eval(string(body), subFunc)
 	if err != nil {
 		return fmt.Errorf("unable to substitute environment variables: %v", err)
@@ -111,6 +113,8 @@ func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
 
 	logger.Debug("uploading step state")
 	// send API call to update the step
+	//
+	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
 	s, _, err = c.Vela.Step.Update(r.GetOrg(), r.GetName(), b.GetNumber(), s)
 	if err != nil {
 		return err
@@ -124,6 +128,8 @@ func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
 	// get the step log here
 	logger.Debug("retrieve step log")
 	// send API call to capture the step log
+	//
+	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.GetStep
 	l, _, err := c.Vela.Log.GetStep(r.GetOrg(), r.GetName(), b.GetNumber(), s.GetNumber())
 	if err != nil {
 		return err
@@ -236,6 +242,8 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 
 			logger.Debug("appending logs")
 			// send API call to append the logs for the step
+			//
+			// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateStep
 			l, _, err = c.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), ctn.Number, l)
 			if err != nil {
 				return err
@@ -254,6 +262,8 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 
 	logger.Debug("uploading logs")
 	// send API call to update the logs for the step
+	//
+	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateStep
 	_, _, err = c.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), ctn.Number, l)
 	if err != nil {
 		return err
@@ -287,11 +297,13 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 // loadStep is a helper function to capture
 // a step from the client.
 func (c *client) loadStep(name string) (*library.Step, error) {
+	// load the step key from the client
 	result, ok := c.steps.Load(name)
 	if !ok {
 		return nil, fmt.Errorf("unable to load step %s", name)
 	}
 
+	// cast the step key to the expected type
 	s, ok := result.(*library.Step)
 	if !ok {
 		return nil, fmt.Errorf("step %s had unexpected value", name)
@@ -303,11 +315,13 @@ func (c *client) loadStep(name string) (*library.Step, error) {
 // loadStepLog is a helper function to capture
 // the logs for a step from the client.
 func (c *client) loadStepLogs(name string) (*library.Log, error) {
+	// load the step log key from the client
 	result, ok := c.stepLogs.Load(name)
 	if !ok {
 		return nil, fmt.Errorf("unable to load logs for step %s", name)
 	}
 
+	// cast the step log key to the expected type
 	l, ok := result.(*library.Log)
 	if !ok {
 		return nil, fmt.Errorf("logs for step %s had unexpected value", name)

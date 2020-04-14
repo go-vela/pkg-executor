@@ -101,6 +101,8 @@ func (c *client) getOrg(s *pipeline.Secret) (*library.Secret, error) {
 	}
 
 	// send API call to capture the org secret
+	//
+	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SecretService.Get
 	secret, _, err := c.Vela.Secret.Get(s.Engine, s.Type, org, repo, path)
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve %s secret %s: %w", s.Type, s.Key, err)
@@ -147,6 +149,8 @@ func (c *client) getRepo(s *pipeline.Secret) (*library.Secret, error) {
 	}
 
 	// send API call to capture the repo secret
+	//
+	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SecretService.Get
 	secret, _, err := c.Vela.Secret.Get(s.Engine, s.Type, org, repo, path)
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve %s secret %s: %w", s.Type, s.Key, err)
@@ -196,6 +200,8 @@ func (c *client) getShared(s *pipeline.Secret) (*library.Secret, error) {
 	}
 
 	// send API call to capture the shared secret
+	//
+	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SecretService.Get
 	secret, _, err := c.Vela.Secret.Get(s.Engine, s.Type, org, team, path)
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve %s secret %s: %w", s.Type, s.Key, err)

@@ -17,6 +17,7 @@ import (
 
 	"github.com/go-vela/sdk-go/vela"
 
+	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/library"
 	"github.com/go-vela/types/pipeline"
 )
@@ -436,10 +437,16 @@ func TestLinux_DestroyStep(t *testing.T) {
 		t.Errorf("unable to create runtime engine: %v", err)
 	}
 
+	_step := new(library.Step)
+	_step.SetName("clone")
+	_step.SetNumber(2)
+	_step.SetStatus(constants.StatusPending)
+
 	// setup tests
 	tests := []struct {
 		failure   bool
 		container *pipeline.Container
+		step      *library.Step
 	}{
 		{
 			failure: false,
@@ -452,6 +459,7 @@ func TestLinux_DestroyStep(t *testing.T) {
 				Number:      1,
 				Pull:        true,
 			},
+			step: new(library.Step),
 		},
 		{
 			failure: false,
@@ -464,6 +472,7 @@ func TestLinux_DestroyStep(t *testing.T) {
 				Number:      2,
 				Pull:        true,
 			},
+			step: _step,
 		},
 		{
 			failure: true,
@@ -476,6 +485,20 @@ func TestLinux_DestroyStep(t *testing.T) {
 				Number:      2,
 				Pull:        true,
 			},
+			step: new(library.Step),
+		},
+		{
+			failure: true,
+			container: &pipeline.Container{
+				ID:          "step_github_octocat_1_ignorenotfound",
+				Directory:   "/home/github/octocat",
+				Environment: map[string]string{"FOO": "bar"},
+				Image:       "target/vela-git:v0.3.0",
+				Name:        "ignorenotfound",
+				Number:      2,
+				Pull:        true,
+			},
+			step: new(library.Step),
 		},
 	}
 
@@ -492,6 +515,8 @@ func TestLinux_DestroyStep(t *testing.T) {
 		if err != nil {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
+
+		_engine.steps.Store(test.container.ID, test.step)
 
 		err = _engine.DestroyStep(context.Background(), test.container)
 

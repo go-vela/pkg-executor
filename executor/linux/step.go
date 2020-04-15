@@ -291,6 +291,7 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 		step = new(library.Step)
 		step.SetName(ctn.Name)
 		step.SetNumber(ctn.Number)
+		step.SetStatus(constants.StatusPending)
 		step.SetHost(ctn.Environment["VELA_HOST"])
 		step.SetRuntime(ctn.Environment["VELA_RUNTIME"])
 		step.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])

@@ -255,6 +255,7 @@ func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) er
 		service = new(library.Service)
 		service.SetName(ctn.Name)
 		service.SetNumber(ctn.Number)
+		service.SetStatus(constants.StatusPending)
 
 		// TODO: add these to the library.Service
 		//

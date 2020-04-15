@@ -264,13 +264,13 @@ func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) er
 	}
 
 	defer func() {
-		c.logger.Info("uploading service snapshot")
+		logger.Info("uploading service snapshot")
 		// send API call to update the step
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SvcService.Update
 		_, _, err := c.Vela.Svc.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), service)
 		if err != nil {
-			c.logger.Errorf("unable to upload service snapshot: %v", err)
+			logger.Errorf("unable to upload service snapshot: %v", err)
 		}
 	}()
 

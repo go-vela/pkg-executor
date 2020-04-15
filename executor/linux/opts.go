@@ -56,7 +56,7 @@ func WithHostname(hostname string) Opt {
 		// update engine logger with host metadata
 		//
 		// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
-		c.logger = c.logger.WithField("host", c.Hostname)
+		c.logger = c.logger.WithField("host", hostname)
 
 		// set the hostname in the client
 		c.Hostname = hostname

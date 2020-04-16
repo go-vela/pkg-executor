@@ -33,7 +33,7 @@ func WithBuild(b *library.Build) Opt {
 		// update engine logger with build metadata
 		//
 		// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
-		c.logger.WithField("build", b.GetNumber())
+		c.logger = c.logger.WithField("build", b.GetNumber())
 
 		// set the build in the client
 		c.build = b
@@ -56,7 +56,7 @@ func WithHostname(hostname string) Opt {
 		// update engine logger with host metadata
 		//
 		// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
-		c.logger.WithField("host", c.Hostname)
+		c.logger = c.logger.WithField("host", hostname)
 
 		// set the hostname in the client
 		c.Hostname = hostname
@@ -95,7 +95,7 @@ func WithRepo(r *library.Repo) Opt {
 		// update engine logger with repo metadata
 		//
 		// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
-		c.logger.WithField("repo", r.GetFullName())
+		c.logger = c.logger.WithField("repo", r.GetFullName())
 
 		// set the repo in the client
 		c.repo = r
@@ -134,7 +134,7 @@ func WithUser(u *library.User) Opt {
 		// update engine logger with user metadata
 		//
 		// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
-		c.logger.WithField("user", u.GetName())
+		c.logger = c.logger.WithField("user", u.GetName())
 
 		// set the user in the client
 		c.user = u

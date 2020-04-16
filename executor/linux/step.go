@@ -287,17 +287,24 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 	// load the step from the client
 	step, err := c.loadStep(ctn.ID)
 	if err != nil {
-		return err
+		// create the step from the container
+		step = new(library.Step)
+		step.SetName(ctn.Name)
+		step.SetNumber(ctn.Number)
+		step.SetStatus(constants.StatusPending)
+		step.SetHost(ctn.Environment["VELA_HOST"])
+		step.SetRuntime(ctn.Environment["VELA_RUNTIME"])
+		step.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 	}
 
 	defer func() {
-		c.logger.Info("uploading step snapshot")
+		logger.Info("uploading step snapshot")
 		// send API call to update the step
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
 		_, _, err := c.Vela.Step.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), step)
 		if err != nil {
-			c.logger.Errorf("unable to upload step snapshot: %v", err)
+			logger.Errorf("unable to upload step snapshot: %v", err)
 		}
 	}()
 
@@ -305,8 +312,8 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 	if step.GetStatus() == constants.StatusPending {
 		// update the step fields
 		step.SetExitCode(137)
-		step.SetStatus(constants.StatusKilled)
 		step.SetFinished(time.Now().UTC().Unix())
+		step.SetStatus(constants.StatusKilled)
 
 		// check if the step was not started
 		if step.GetStarted() == 0 {
@@ -320,6 +327,20 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 	err = c.Runtime.InspectContainer(ctx, ctn)
 	if err != nil {
 		return err
+	}
+
+	// check if the step finished
+	if step.GetFinished() == 0 {
+		// update the step fields
+		step.SetFinished(time.Now().UTC().Unix())
+		step.SetStatus(constants.StatusSuccess)
+
+		// check the container for an unsuccessful exit code
+		if ctn.ExitCode > 0 {
+			// update the step fields
+			step.SetExitCode(ctn.ExitCode)
+			step.SetStatus(constants.StatusFailure)
+		}
 	}
 
 	logger.Debug("removing container")

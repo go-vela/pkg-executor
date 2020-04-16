@@ -251,17 +251,27 @@ func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) er
 	// load the service from the client
 	service, err := c.loadService(ctn.ID)
 	if err != nil {
-		return err
+		// create the service from the container
+		service = new(library.Service)
+		service.SetName(ctn.Name)
+		service.SetNumber(ctn.Number)
+		service.SetStatus(constants.StatusPending)
+
+		// TODO: add these to the library.Service
+		//
+		// service.SetHost(ctn.Environment["VELA_HOST"])
+		// service.SetRuntime(ctn.Environment["VELA_RUNTIME"])
+		// service.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 	}
 
 	defer func() {
-		c.logger.Info("uploading service snapshot")
+		logger.Info("uploading service snapshot")
 		// send API call to update the step
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SvcService.Update
 		_, _, err := c.Vela.Svc.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), service)
 		if err != nil {
-			c.logger.Errorf("unable to upload service snapshot: %v", err)
+			logger.Errorf("unable to upload service snapshot: %v", err)
 		}
 	}()
 
@@ -269,8 +279,8 @@ func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) er
 	if service.GetStatus() == constants.StatusPending {
 		// update the service fields
 		service.SetExitCode(137)
-		service.SetStatus(constants.StatusKilled)
 		service.SetFinished(time.Now().UTC().Unix())
+		service.SetStatus(constants.StatusKilled)
 
 		// check if the service was not started
 		if service.GetStarted() == 0 {
@@ -284,6 +294,20 @@ func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) er
 	err = c.Runtime.InspectContainer(ctx, ctn)
 	if err != nil {
 		return err
+	}
+
+	// check if the service finished
+	if service.GetFinished() == 0 {
+		// update the service fields
+		service.SetFinished(time.Now().UTC().Unix())
+		service.SetStatus(constants.StatusSuccess)
+
+		// check the container for an unsuccessful exit code
+		if ctn.ExitCode > 0 {
+			// update the service fields
+			service.SetExitCode(ctn.ExitCode)
+			service.SetStatus(constants.StatusFailure)
+		}
 	}
 
 	logger.Debug("removing container")

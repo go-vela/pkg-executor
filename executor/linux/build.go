@@ -13,6 +13,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/go-vela/types/constants"
+	"github.com/go-vela/types/library"
 	"github.com/go-vela/types/pipeline"
 )
 
@@ -383,10 +384,18 @@ func (c *client) ExecBuild(ctx context.Context) error {
 			continue
 		}
 
-		// check if the build status is successful
-		if !strings.EqualFold(b.GetStatus(), constants.StatusSuccess) {
-			// break out of loop to stop running steps
-			break
+		switch b.GetStatus() {
+		case constants.StatusSuccess:
+		// do nothing, and continue running the build
+		case constants.StatusFailure:
+			fallthrough
+		case constants.StatusError:
+			fallthrough
+		default:
+			// check if you need to run a status failure ruleset
+			if !strings.EqualFold(library.ToString(s.Ruleset.If.Status), constants.StatusFailure) {
+				continue
+			}
 		}
 
 		c.logger.Infof("planning %s step", s.Name)

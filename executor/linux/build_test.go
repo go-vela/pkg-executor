@@ -15,6 +15,7 @@ import (
 
 	"github.com/go-vela/sdk-go/vela"
 
+	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/library"
 	"github.com/go-vela/types/pipeline"
 
@@ -516,6 +517,28 @@ func TestLinux_ExecBuild(t *testing.T) {
 						Number:      2,
 						Pull:        true,
 					},
+				},
+			},
+		},
+		{
+			failure: true,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "github_octocat_1",
+				Steps: pipeline.ContainerSlice{{
+					ID:          "step_github_octocat_1_notfound",
+					Directory:   "/home/github/octocat",
+					Environment: map[string]string{"FOO": "bar"},
+					Image:       "alpine:latest",
+					Name:        "failure",
+					Number:      2,
+					Pull:        true,
+					Ruleset: pipeline.Ruleset{
+						If: pipeline.Rules{
+							Status: []string{constants.StatusFailure},
+						},
+					},
+				},
 				},
 			},
 		},

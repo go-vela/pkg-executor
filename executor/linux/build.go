@@ -13,7 +13,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/go-vela/types/constants"
-	"github.com/go-vela/types/library"
 	"github.com/go-vela/types/pipeline"
 )
 
@@ -396,7 +395,7 @@ func (c *client) ExecBuild(ctx context.Context) error {
 
 			// check if you need to run a status failure ruleset
 			for _, rule := range s.Ruleset.If.Status {
-				if !strings.EqualFold(library.ToString(rule), constants.StatusFailure) {
+				if !strings.EqualFold(rule, constants.StatusFailure) {
 					cont = true
 				}
 			}

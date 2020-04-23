@@ -521,7 +521,7 @@ func TestLinux_ExecBuild(t *testing.T) {
 			},
 		},
 		{
-			failure: true,
+			failure: false,
 			pipeline: &pipeline.Build{
 				Version: "1",
 				ID:      "github_octocat_1",

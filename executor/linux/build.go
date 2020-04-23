@@ -392,8 +392,17 @@ func (c *client) ExecBuild(ctx context.Context) error {
 		case constants.StatusError:
 			fallthrough
 		default:
+			cont := false
+
 			// check if you need to run a status failure ruleset
-			if !strings.EqualFold(library.ToString(s.Ruleset.If.Status), constants.StatusFailure) {
+			for _, rule := range s.Ruleset.If.Status {
+				if !strings.EqualFold(library.ToString(rule), constants.StatusFailure) {
+					cont = true
+				}
+			}
+
+			// continue processing ruleset status
+			if cont {
 				continue
 			}
 		}

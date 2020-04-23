@@ -485,7 +485,6 @@ func (c *client) ExecBuild(ctx context.Context) error {
 				return fmt.Errorf("unable to execute stage: %w", err)
 			}
 
-			fmt.Println("STAGE FINISHED: ", stage.Name)
 			return nil
 		})
 	}

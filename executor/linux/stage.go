@@ -122,17 +122,9 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 		case constants.StatusError:
 			fallthrough
 		default:
-			cont := false
-
 			// check if you need to run a status failure ruleset
-			for _, rule := range step.Ruleset.If.Status {
-				if !strings.EqualFold(rule, constants.StatusFailure) {
-					cont = true
-				}
-			}
-
-			// continue processing ruleset status
-			if cont {
+			rules := strings.Join(step.Ruleset.If.Status, ", ")
+			if !strings.Contains(rules, constants.StatusFailure) {
 				continue
 			}
 		}

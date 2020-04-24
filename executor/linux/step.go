@@ -79,7 +79,7 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 		return fmt.Errorf("unable to substitute environment variables: %v", err)
 	}
 
-	logger.Debug("unmarshaling configuration")
+	logger.Debug("unmarshalling configuration")
 	// unmarshal container configuration
 	err = json.Unmarshal([]byte(subStep), ctn)
 	if err != nil {

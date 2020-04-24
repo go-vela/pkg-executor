@@ -7,7 +7,6 @@ package linux
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/go-vela/types/constants"
@@ -115,18 +114,17 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 	// execute the steps for the stage
 	for _, step := range s.Steps {
 		switch b.GetStatus() {
-		case constants.StatusSuccess:
-		// do nothing, and continue running the build
 		case constants.StatusFailure:
+			// check if you need to run a status failure ruleset
+			if !step.Ruleset.Match(&pipeline.RuleData{Status: b.GetStatus()}) {
+				continue
+			}
+		case constants.StatusSuccess:
 			fallthrough
 		case constants.StatusError:
 			fallthrough
 		default:
-			// check if you need to run a status failure ruleset
-			rules := strings.Join(step.Ruleset.If.Status, ", ")
-			if !strings.Contains(rules, constants.StatusFailure) {
-				continue
-			}
+			// do nothing, and continue running the build
 		}
 
 		logger.Debugf("planning %s step", step.Name)

@@ -87,8 +87,8 @@ github.com/go-vela/sdk-go v0.4.0-rc1 h1:7zhuazKfC4m1VuUuNXpcb8pZZOvIhUcYTND77z6I
 github.com/go-vela/sdk-go v0.4.0-rc1/go.mod h1:B6dtMfwQxVktPE/j2ThtblFMDpH+fKPaVNmzLlor2/o=
 github.com/go-vela/types v0.4.0-rc1 h1:pXHj1pcCCWiBiReAPpACK2V0qltQaBlqf9IPro24FlQ=
 github.com/go-vela/types v0.4.0-rc1/go.mod h1:vph+YTAkIw0fJr7gmlIjXRIuc4QXUnQvdDvH2/Oh7ts=
-github.com/go-vela/types v0.4.0-rc1.0.20200420140708-24f00a4a2aca h1:gbylfHP5bXzUs/Kav03w1AgEclcY3KV9+WN0IZco9dY=
-github.com/go-vela/types v0.4.0-rc1.0.20200420140708-24f00a4a2aca/go.mod h1:ig7fC+MKGsgAlKqovkFsUQlbZtLDLhl/djiedHmsL5s=
+github.com/go-vela/types v0.4.0-rc1.0.20200424125117-e847477bc4e6 h1:5G2TtvcvlQ/+kYsKDrU7waqxThhFNzph1sVQJ2SKsik=
+github.com/go-vela/types v0.4.0-rc1.0.20200424125117-e847477bc4e6/go.mod h1:ig7fC+MKGsgAlKqovkFsUQlbZtLDLhl/djiedHmsL5s=
 github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXPKa29o=
 github.com/gogo/protobuf v1.3.1 h1:DqDEcV5aeaTmdFBePNpYsp3FlcVH/2ISVVM9Qf8PSls=
 github.com/gogo/protobuf v1.3.1/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXPKa29o=

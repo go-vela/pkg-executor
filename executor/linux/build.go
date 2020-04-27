@@ -7,13 +7,11 @@ package linux
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"golang.org/x/sync/errgroup"
 
 	"github.com/go-vela/types/constants"
-	"github.com/go-vela/types/library"
 	"github.com/go-vela/types/pipeline"
 )
 
@@ -385,17 +383,17 @@ func (c *client) ExecBuild(ctx context.Context) error {
 		}
 
 		switch b.GetStatus() {
-		case constants.StatusSuccess:
-		// do nothing, and continue running the build
 		case constants.StatusFailure:
+			// check if you need to run a status failure ruleset
+			if !s.Ruleset.Match(&pipeline.RuleData{Status: b.GetStatus()}) {
+				continue
+			}
+		case constants.StatusSuccess:
 			fallthrough
 		case constants.StatusError:
 			fallthrough
 		default:
-			// check if you need to run a status failure ruleset
-			if !strings.EqualFold(library.ToString(s.Ruleset.If.Status), constants.StatusFailure) {
-				continue
-			}
+			// do nothing, and continue running the build
 		}
 
 		c.logger.Infof("planning %s step", s.Name)

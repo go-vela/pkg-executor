@@ -113,6 +113,20 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 	logger.Debug("starting execution of stage")
 	// execute the steps for the stage
 	for _, step := range s.Steps {
+		switch b.GetStatus() {
+		case constants.StatusFailure:
+			// check if you need to run a status failure ruleset
+			if !step.Ruleset.Match(&pipeline.RuleData{Status: b.GetStatus()}) {
+				continue
+			}
+		case constants.StatusSuccess:
+			fallthrough
+		case constants.StatusError:
+			fallthrough
+		default:
+			// do nothing, and continue running the build
+		}
+
 		logger.Debugf("planning %s step", step.Name)
 		// plan the step
 		err := c.PlanStep(ctx, step)

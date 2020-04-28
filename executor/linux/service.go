@@ -102,12 +102,9 @@ func (c *client) PlanService(ctx context.Context, ctn *pipeline.Container) error
 	s.SetNumber(ctn.Number)
 	s.SetStatus(constants.StatusRunning)
 	s.SetStarted(time.Now().UTC().Unix())
-
-	// TODO: add these to the library.Service
-	//
-	// s.SetHost(ctn.Environment["VELA_HOST"])
-	// s.SetRuntime(ctn.Environment["VELA_RUNTIME"])
-	// s.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
+	s.SetHost(ctn.Environment["VELA_HOST"])
+	s.SetRuntime(ctn.Environment["VELA_RUNTIME"])
+	s.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 
 	logger.Debug("uploading service state")
 	// send API call to update the service
@@ -256,12 +253,9 @@ func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) er
 		service.SetName(ctn.Name)
 		service.SetNumber(ctn.Number)
 		service.SetStatus(constants.StatusPending)
-
-		// TODO: add these to the library.Service
-		//
-		// service.SetHost(ctn.Environment["VELA_HOST"])
-		// service.SetRuntime(ctn.Environment["VELA_RUNTIME"])
-		// service.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
+		service.SetHost(ctn.Environment["VELA_HOST"])
+		service.SetRuntime(ctn.Environment["VELA_RUNTIME"])
+		service.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 	}
 
 	defer func() {

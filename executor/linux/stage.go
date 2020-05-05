@@ -47,7 +47,7 @@ func (c *client) CreateStage(ctx context.Context, s *pipeline.Stage) error {
 			return err
 		}
 
-		c.logger.Infof("inspecting %s step", step.Name)
+		c.logger.Infof("inspecting image %s step", step.Name)
 		// inspect the step image
 		image, err := c.Runtime.InspectImage(ctx, step)
 		if err != nil {
@@ -128,7 +128,8 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 			fmt.Println("DISREGARD two:", disregard)
 
 			// check if you need to run a status failure ruleset
-			if step.Ruleset.Match(&pipeline.RuleData{Status: b.GetStatus()}) {
+			if !(step.Ruleset.If.Empty() && step.Ruleset.Unless.Empty()) &&
+				step.Ruleset.Match(&pipeline.RuleData{Status: b.GetStatus()}) {
 				disregard = false
 				fmt.Println("DISREGARD three:", disregard)
 			}

@@ -392,13 +392,15 @@ func (c *client) ExecBuild(ctx context.Context) error {
 			disregard = true
 
 			// check if you need to run a status failure ruleset
-			if s.Ruleset.Match(&pipeline.RuleData{Status: b.GetStatus()}) {
+			if !(s.Ruleset.If.Empty() && s.Ruleset.Unless.Empty()) &&
+				s.Ruleset.Match(&pipeline.RuleData{Status: b.GetStatus()}) {
 				disregard = false
 			}
 		}
 
 		// check if you need to skip a status failure ruleset
 		if strings.EqualFold(b.GetStatus(), constants.StatusSuccess) &&
+			!(s.Ruleset.If.Empty() && s.Ruleset.Unless.Empty()) &&
 			s.Ruleset.Match(&pipeline.RuleData{Status: constants.StatusFailure}) {
 			disregard = true
 		}

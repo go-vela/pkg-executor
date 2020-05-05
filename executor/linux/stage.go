@@ -142,6 +142,7 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 
 		// check if you need to skip a status failure ruleset
 		if strings.EqualFold(b.GetStatus(), constants.StatusSuccess) &&
+			!(step.Ruleset.If.Empty() && step.Ruleset.Unless.Empty()) &&
 			step.Ruleset.Match(&pipeline.RuleData{Status: constants.StatusFailure}) {
 			disregard = true
 			fmt.Println("DISREGARD four: ", disregard)

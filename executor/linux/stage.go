@@ -7,6 +7,7 @@ package linux
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-vela/types/constants"
@@ -113,19 +114,48 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 	logger.Debug("starting execution of stage")
 	// execute the steps for the stage
 	for _, step := range s.Steps {
-		switch b.GetStatus() {
-		case constants.StatusFailure:
+		fmt.Printf("STEP: %+v \n", s)
+		fmt.Println("BUILD STATUS: ", b.GetStatus())
+
+		// assume you will excute a step by setting flag
+		disregard := false
+		fmt.Println("DISREGARD one:", disregard)
+
+		// check if the build status is successful
+		if !strings.EqualFold(b.GetStatus(), constants.StatusSuccess) {
+			// break out of loop to stop running steps
+			disregard = true
+			fmt.Println("DISREGARD two:", disregard)
+
 			// check if you need to run a status failure ruleset
-			if !step.Ruleset.Match(&pipeline.RuleData{Status: b.GetStatus()}) {
-				continue
+			if step.Ruleset.Match(&pipeline.RuleData{Status: b.GetStatus()}) {
+				disregard = false
+				fmt.Println("DISREGARD three:", disregard)
 			}
-		case constants.StatusSuccess:
-			fallthrough
-		case constants.StatusError:
-			fallthrough
-		default:
-			// do nothing, and continue running the build
 		}
+
+		// check if you need to skip a status failure ruleset
+		fmt.Printf("STEP RULESET: %+v \n", step.Ruleset.If)
+		fmt.Println("WITH !: ", !step.Ruleset.Match(&pipeline.RuleData{Status: constants.StatusFailure}))
+		fmt.Println("WITHOUT !: ", step.Ruleset.Match(&pipeline.RuleData{Status: constants.StatusFailure}))
+
+		// check if you need to skip a status failure ruleset
+		if strings.EqualFold(b.GetStatus(), constants.StatusSuccess) &&
+			step.Ruleset.Match(&pipeline.RuleData{Status: constants.StatusFailure}) {
+			disregard = true
+			fmt.Println("DISREGARD four: ", disregard)
+		}
+
+		fmt.Println("I MADE IT HERE")
+
+		fmt.Println("DISREGARD five: ", disregard)
+
+		// check if you need to excute this step
+		if disregard {
+			continue
+		}
+
+		fmt.Println("I MADE IT HERE ALSO")
 
 		logger.Debugf("planning %s step", step.Name)
 		// plan the step

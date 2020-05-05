@@ -383,48 +383,30 @@ func (c *client) ExecBuild(ctx context.Context) error {
 			continue
 		}
 
-		fmt.Printf("STEP: %+v \n", s)
-		fmt.Println("BUILD STATUS: ", b.GetStatus())
-
 		// assume you will excute a step by setting flag
 		disregard := false
-		fmt.Println("DISREGARD one:", disregard)
 
 		// check if the build status is successful
 		if !strings.EqualFold(b.GetStatus(), constants.StatusSuccess) {
 			// break out of loop to stop running steps
 			disregard = true
-			fmt.Println("DISREGARD two:", disregard)
 
 			// check if you need to run a status failure ruleset
 			if s.Ruleset.Match(&pipeline.RuleData{Status: b.GetStatus()}) {
 				disregard = false
-				fmt.Println("DISREGARD three:", disregard)
 			}
 		}
-
-		// check if you need to skip a status failure ruleset
-		fmt.Printf("STEP RULESET: %+v \n", s.Ruleset.If)
-		fmt.Println("WITH !: ", !s.Ruleset.Match(&pipeline.RuleData{Status: constants.StatusFailure}))
-		fmt.Println("WITHOUT !: ", s.Ruleset.Match(&pipeline.RuleData{Status: constants.StatusFailure}))
 
 		// check if you need to skip a status failure ruleset
 		if strings.EqualFold(b.GetStatus(), constants.StatusSuccess) &&
 			s.Ruleset.Match(&pipeline.RuleData{Status: constants.StatusFailure}) {
 			disregard = true
-			fmt.Println("DISREGARD four: ", disregard)
 		}
-
-		fmt.Println("I MADE IT HERE")
-
-		fmt.Println("DISREGARD five: ", disregard)
 
 		// check if you need to excute this step
 		if disregard {
 			continue
 		}
-
-		fmt.Println("I MADE IT HERE ALSO")
 
 		c.logger.Infof("planning %s step", s.Name)
 		// plan the step

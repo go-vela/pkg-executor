@@ -405,6 +405,8 @@ func (c *client) ExecBuild(ctx context.Context) error {
 
 		// check if you need to skip a status failure ruleset
 		fmt.Printf("STEP RULESET: %+v \n", s.Ruleset.If)
+		fmt.Println("WITH !: ", !s.Ruleset.Match(&pipeline.RuleData{Status: constants.StatusFailure}))
+		fmt.Println("WITHOUT !: ", s.Ruleset.Match(&pipeline.RuleData{Status: constants.StatusFailure}))
 		if !s.Ruleset.Match(&pipeline.RuleData{Status: constants.StatusFailure}) {
 			disregard = true
 			fmt.Println("DISREGARD four: ", disregard)

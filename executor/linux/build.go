@@ -401,11 +401,6 @@ func (c *client) ExecBuild(ctx context.Context) error {
 				disregard = false
 				fmt.Println("DISREGARD three:", disregard)
 			}
-
-			// check if you need to excute this step
-			if disregard {
-				continue
-			}
 		}
 
 		// check if you need to skip a status failure ruleset

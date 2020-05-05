@@ -414,7 +414,8 @@ func (c *client) ExecBuild(ctx context.Context) error {
 		fmt.Println("WITHOUT !: ", s.Ruleset.Match(&pipeline.RuleData{Status: constants.StatusFailure}))
 
 		// check if you need to skip a status failure ruleset
-		if s.Ruleset.Match(&pipeline.RuleData{Status: constants.StatusFailure}) {
+		if strings.EqualFold(b.GetStatus(), constants.StatusSuccess) &&
+			s.Ruleset.Match(&pipeline.RuleData{Status: constants.StatusFailure}) {
 			disregard = true
 			fmt.Println("DISREGARD four: ", disregard)
 		}

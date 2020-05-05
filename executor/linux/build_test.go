@@ -483,110 +483,88 @@ func TestLinux_ExecBuild(t *testing.T) {
 				},
 			},
 		},
-		// {
-		// 	failure: true,
-		// 	pipeline: &pipeline.Build{
-		// 		Version: "1",
-		// 		ID:      "github_octocat_1",
-		// 		Steps: pipeline.ContainerSlice{
-		// 			{
-		// 				ID:          "step_github_octocat_1_clone",
-		// 				Directory:   "/home/github/octocat",
-		// 				Environment: map[string]string{"FOO": "bar"},
-		// 				Image:       "target/vela-git:v0.3.0",
-		// 				Name:        "clone",
-		// 				Number:      0,
-		// 				Pull:        true,
-		// 			},
-		// 		},
-		// 	},
-		// },
-		// {
-		// 	failure: true,
-		// 	pipeline: &pipeline.Build{
-		// 		Version: "1",
-		// 		ID:      "github_octocat_1",
-		// 		Steps: pipeline.ContainerSlice{
-		// 			{
-		// 				ID:          "step_github_octocat_1_notfound",
-		// 				Directory:   "/home/github/octocat",
-		// 				Environment: map[string]string{"FOO": "bar"},
-		// 				Image:       "target/vela-git:v0.3.0",
-		// 				Name:        "notfound",
-		// 				Number:      2,
-		// 				Pull:        true,
-		// 			},
-		// 		},
-		// 	},
-		// },
-		// {
-		// 	failure: true,
-		// 	pipeline: &pipeline.Build{
-		// 		Version: "1",
-		// 		ID:      "github_octocat_1",
-		// 		Steps: pipeline.ContainerSlice{{
-		// 			ID:          "step_github_octocat_1_notfound",
-		// 			Directory:   "/home/github/octocat",
-		// 			Environment: map[string]string{"FOO": "bar"},
-		// 			Image:       "alpine:latest",
-		// 			Name:        "failure",
-		// 			Number:      2,
-		// 			Pull:        true,
-		// 			Ruleset: pipeline.Ruleset{
-		// 				If: pipeline.Rules{
-		// 					Status: []string{constants.StatusFailure},
-		// 				},
-		// 			},
-		// 		},
-		// 		},
-		// 	},
-		// },
-		// {
-		// 	failure: true,
-		// 	pipeline: &pipeline.Build{
-		// 		Version: "1",
-		// 		ID:      "github_octocat_1",
-		// 		Stages: pipeline.StageSlice{
-		// 			{
-		// 				Name: "clone",
-		// 				Steps: pipeline.ContainerSlice{
-		// 					{
-		// 						ID:          "github_octocat_1_clone_clone",
-		// 						Directory:   "/home/github/octocat",
-		// 						Environment: map[string]string{"FOO": "bar"},
-		// 						Image:       "target/vela-git:notfound",
-		// 						Name:        "clone",
-		// 						Number:      2,
-		// 						Pull:        true,
-		// 					},
-		// 				},
-		// 			},
-		// 		},
-		// 	},
-		// },
-		// {
-		// 	failure: true,
-		// 	pipeline: &pipeline.Build{
-		// 		Version: "1",
-		// 		ID:      "github_octocat_1",
-		// 		Stages: pipeline.StageSlice{
-		// 			{
-		// 				Name: "clone",
-		// 				Steps: pipeline.ContainerSlice{
-		// 					{
-		// 						ID:          "github_octocat_1_clone_notfound",
-		// 						Directory:   "/home/github/octocat",
-		// 						Environment: map[string]string{"FOO": "bar"},
-		// 						Image:       "target/vela-git:v0.3.0",
-		// 						Name:        "notfound",
-		// 						Number:      2,
-		// 						Pull:        true,
-		// 					},
-		// 				},
-		// 			},
-		// 		},
-		// 	},
-		// },
+		{
+			failure: true,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "github_octocat_1",
+				Steps: pipeline.ContainerSlice{
+					{
+						ID:          "step_github_octocat_1_clone",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "target/vela-git:v0.3.0",
+						Name:        "clone",
+						Number:      0,
+						Pull:        true,
+					},
+				},
+			},
+		},
+		{
+			failure: true,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "github_octocat_1",
+				Steps: pipeline.ContainerSlice{
+					{
+						ID:          "step_github_octocat_1_notfound",
+						Directory:   "/home/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "target/vela-git:v0.3.0",
+						Name:        "notfound",
+						Number:      2,
+						Pull:        true,
+					},
+				},
+			},
+		},
+		{
+			failure: true,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "github_octocat_1",
+				Stages: pipeline.StageSlice{
+					{
+						Name: "clone",
+						Steps: pipeline.ContainerSlice{
+							{
+								ID:          "github_octocat_1_clone_clone",
+								Directory:   "/home/github/octocat",
+								Environment: map[string]string{"FOO": "bar"},
+								Image:       "target/vela-git:notfound",
+								Name:        "clone",
+								Number:      2,
+								Pull:        true,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			failure: true,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "github_octocat_1",
+				Stages: pipeline.StageSlice{
+					{
+						Name: "clone",
+						Steps: pipeline.ContainerSlice{
+							{
+								ID:          "github_octocat_1_clone_notfound",
+								Directory:   "/home/github/octocat",
+								Environment: map[string]string{"FOO": "bar"},
+								Image:       "target/vela-git:v0.3.0",
+								Name:        "notfound",
+								Number:      2,
+								Pull:        true,
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	// run test

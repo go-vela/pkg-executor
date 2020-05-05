@@ -401,6 +401,11 @@ func (c *client) ExecBuild(ctx context.Context) error {
 				disregard = false
 				fmt.Println("DISREGARD three:", disregard)
 			}
+
+			// check if you need to excute this step
+			if disregard {
+				continue
+			}
 		}
 
 		// check if you need to skip a status failure ruleset
@@ -408,14 +413,10 @@ func (c *client) ExecBuild(ctx context.Context) error {
 		fmt.Println("WITH !: ", !s.Ruleset.Match(&pipeline.RuleData{Status: constants.StatusFailure}))
 		fmt.Println("WITHOUT !: ", s.Ruleset.Match(&pipeline.RuleData{Status: constants.StatusFailure}))
 
-		// check if the build status is successful
-		if strings.EqualFold(b.GetStatus(), constants.StatusSuccess) {
-
-			// check if you need to skip a status failure ruleset
-			if s.Ruleset.Match(&pipeline.RuleData{Status: b.GetStatus()}) {
-				disregard = true
-				fmt.Println("DISREGARD four: ", disregard)
-			}
+		// check if you need to skip a status failure ruleset
+		if s.Ruleset.Match(&pipeline.RuleData{Status: constants.StatusFailure}) {
+			disregard = true
+			fmt.Println("DISREGARD four: ", disregard)
 		}
 
 		fmt.Println("I MADE IT HERE")

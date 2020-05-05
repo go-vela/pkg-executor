@@ -114,7 +114,7 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 	logger.Debug("starting execution of stage")
 	// execute the steps for the stage
 	for _, step := range s.Steps {
-		fmt.Printf("STEP: %+v \n", s)
+		fmt.Printf("STEP: %+v \n", step.Name)
 		fmt.Println("BUILD STATUS: ", b.GetStatus())
 
 		// assume you will excute a step by setting flag

@@ -383,7 +383,7 @@ func (c *client) ExecBuild(ctx context.Context) error {
 			continue
 		}
 
-		fmt.Println("STEP: ", s)
+		fmt.Printf("STEP: %+v \n", s)
 		fmt.Println("BUILD STATUS: ", b.GetStatus())
 
 		// assume you will excute a step by setting flag
@@ -401,10 +401,10 @@ func (c *client) ExecBuild(ctx context.Context) error {
 				disregard = false
 				fmt.Println("DISREGARD three:", disregard)
 			}
-
 		}
 
 		// check if you need to skip a status failure ruleset
+		fmt.Printf("STEP RULESET: %+v \n", s.Ruleset.If)
 		if !s.Ruleset.Match(&pipeline.RuleData{Status: constants.StatusFailure}) {
 			disregard = true
 			fmt.Println("DISREGARD four: ", disregard)

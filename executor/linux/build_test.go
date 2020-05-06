@@ -23,6 +23,12 @@ import (
 
 func TestLinux_CreateBuild(t *testing.T) {
 	// setup types
+	_build := testBuild()
+	_repo := testRepo()
+	_user := testUser()
+	_stages := testStages()
+	_steps := testSteps()
+
 	gin.SetMode(gin.TestMode)
 
 	s := httptest.NewServer(server.FakeHandler())
@@ -180,6 +186,12 @@ func TestLinux_CreateBuild(t *testing.T) {
 
 func TestLinux_PlanBuild(t *testing.T) {
 	// setup types
+	_build := testBuild()
+	_repo := testRepo()
+	_user := testUser()
+	_stages := testStages()
+	_steps := testSteps()
+
 	gin.SetMode(gin.TestMode)
 
 	s := httptest.NewServer(server.FakeHandler())
@@ -385,6 +397,12 @@ func TestLinux_PlanBuild(t *testing.T) {
 
 func TestLinux_ExecBuild(t *testing.T) {
 	// setup types
+	_build := testBuild()
+	_repo := testRepo()
+	_user := testUser()
+	_stages := testStages()
+	_steps := testSteps()
+
 	gin.SetMode(gin.TestMode)
 
 	s := httptest.NewServer(server.FakeHandler())
@@ -631,6 +649,12 @@ func TestLinux_ExecBuild(t *testing.T) {
 
 func TestLinux_DestroyBuild(t *testing.T) {
 	// setup types
+	_build := testBuild()
+	_repo := testRepo()
+	_user := testUser()
+	_stages := testStages()
+	_steps := testSteps()
+
 	gin.SetMode(gin.TestMode)
 
 	s := httptest.NewServer(server.FakeHandler())

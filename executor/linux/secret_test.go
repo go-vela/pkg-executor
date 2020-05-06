@@ -25,6 +25,12 @@ import (
 
 func TestLinux_PullSecret(t *testing.T) {
 	// setup types
+	_build := testBuild()
+	_repo := testRepo()
+	_user := testUser()
+	_stages := testStages()
+	_steps := testSteps()
+
 	gin.SetMode(gin.TestMode)
 
 	s := httptest.NewServer(server.FakeHandler())

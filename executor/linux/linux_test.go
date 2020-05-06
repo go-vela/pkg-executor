@@ -43,7 +43,7 @@ func TestLinux_New(t *testing.T) {
 	}{
 		{
 			failure: false,
-			build:   _build,
+			build:   testBuild(),
 		},
 		{
 			failure: true,
@@ -56,10 +56,10 @@ func TestLinux_New(t *testing.T) {
 		_, err := New(
 			WithBuild(test.build),
 			WithHostname("localhost"),
-			WithPipeline(_steps),
-			WithRepo(_repo),
+			WithPipeline(testSteps()),
+			WithRepo(testRepo()),
 			WithRuntime(_runtime),
-			WithUser(_user),
+			WithUser(testUser()),
 			WithVelaClient(_client),
 		)
 
@@ -77,9 +77,10 @@ func TestLinux_New(t *testing.T) {
 	}
 }
 
-// setup global variables used for testing
-var (
-	_build = &library.Build{
+// testBuild is a test helper function to create a Build
+// type with all fields set to a fake value.
+func testBuild() *library.Build {
+	return &library.Build{
 		ID:           vela.Int64(1),
 		Number:       vela.Int(1),
 		Parent:       vela.Int(1),
@@ -105,8 +106,12 @@ var (
 		Runtime:      vela.String("docker"),
 		Distribution: vela.String("linux"),
 	}
+}
 
-	_repo = &library.Repo{
+// testRepo is a test helper function to create a Repo
+// type with all fields set to a fake value.
+func testRepo() *library.Repo {
+	return &library.Repo{
 		ID:          vela.Int64(1),
 		Org:         vela.String("github"),
 		Name:        vela.String("octocat"),
@@ -124,8 +129,26 @@ var (
 		AllowDeploy: vela.Bool(false),
 		AllowTag:    vela.Bool(false),
 	}
+}
 
-	_stages = &pipeline.Build{
+// testUser is a test helper function to create a User
+// type with all fields set to a fake value.
+func testUser() *library.User {
+	return &library.User{
+		ID:        vela.Int64(1),
+		Name:      vela.String("octocat"),
+		Token:     vela.String("superSecretToken"),
+		Hash:      vela.String("MzM4N2MzMDAtNmY4Mi00OTA5LWFhZDAtNWIzMTlkNTJkODMy"),
+		Favorites: vela.Strings([]string{"github/octocat"}),
+		Active:    vela.Bool(true),
+		Admin:     vela.Bool(false),
+	}
+}
+
+// testStages is a test helper function to create a stages
+// pipeline with fake steps.
+func testStages() *pipeline.Build {
+	return &pipeline.Build{
 		Version: "1",
 		ID:      "github_octocat_1",
 		Services: pipeline.ContainerSlice{
@@ -207,8 +230,12 @@ var (
 			},
 		},
 	}
+}
 
-	_steps = &pipeline.Build{
+// testSteps is a test helper function to create a steps
+// pipeline with fake steps.
+func testSteps() *pipeline.Build {
+	return &pipeline.Build{
 		Version: "1",
 		ID:      "github_octocat_1",
 		Services: pipeline.ContainerSlice{
@@ -273,14 +300,4 @@ var (
 			},
 		},
 	}
-
-	_user = &library.User{
-		ID:        vela.Int64(1),
-		Name:      vela.String("octocat"),
-		Token:     vela.String("superSecretToken"),
-		Hash:      vela.String("MzM4N2MzMDAtNmY4Mi00OTA5LWFhZDAtNWIzMTlkNTJkODMy"),
-		Favorites: vela.Strings([]string{"github/octocat"}),
-		Active:    vela.Bool(true),
-		Admin:     vela.Bool(false),
-	}
-)
+}

@@ -23,6 +23,9 @@ import (
 )
 
 func TestLinux_Opt_WithBuild(t *testing.T) {
+	// setup types
+	_build := testBuild()
+
 	// setup tests
 	tests := []struct {
 		failure bool
@@ -94,6 +97,9 @@ func TestLinux_Opt_WithHostname(t *testing.T) {
 }
 
 func TestLinux_Opt_WithPipeline(t *testing.T) {
+	// setup types
+	_steps := testSteps()
+
 	// setup tests
 	tests := []struct {
 		failure  bool
@@ -134,6 +140,9 @@ func TestLinux_Opt_WithPipeline(t *testing.T) {
 }
 
 func TestLinux_Opt_WithRepo(t *testing.T) {
+	// setup types
+	_repo := testRepo()
+
 	// setup tests
 	tests := []struct {
 		failure bool
@@ -220,6 +229,9 @@ func TestLinux_Opt_WithRuntime(t *testing.T) {
 }
 
 func TestLinux_Opt_WithUser(t *testing.T) {
+	// setup types
+	_user := testUser()
+
 	// setup tests
 	tests := []struct {
 		failure bool

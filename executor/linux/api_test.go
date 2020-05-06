@@ -11,6 +11,8 @@ import (
 
 func TestLinux_GetBuild(t *testing.T) {
 	// setup types
+	_build := testBuild()
+
 	_engine, err := New(
 		WithBuild(_build),
 	)
@@ -57,6 +59,8 @@ func TestLinux_GetBuild(t *testing.T) {
 
 func TestLinux_GetPipeline(t *testing.T) {
 	// setup types
+	_steps := testSteps()
+
 	_engine, err := New(
 		WithPipeline(_steps),
 	)
@@ -103,6 +107,8 @@ func TestLinux_GetPipeline(t *testing.T) {
 
 func TestLinux_GetRepo(t *testing.T) {
 	// setup types
+	_repo := testRepo()
+
 	_engine, err := New(
 		WithRepo(_repo),
 	)

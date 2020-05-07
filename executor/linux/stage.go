@@ -116,18 +116,16 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 	for _, step := range s.Steps {
 		// assume you will excute a step by setting flag
 		disregard := false
-		fmt.Printf("%s with %s one: %v \n", step.ID, b.GetStatus(), disregard)
 
 		// check if the build status is successful
 		if !strings.EqualFold(b.GetStatus(), constants.StatusSuccess) {
-			// break out of loop to stop running steps
+			// disregard the need to run the step
 			disregard = true
-			fmt.Printf("%s two: %v \n", step.ID, disregard)
 
 			// check if you need to run a status failure ruleset
 			if !(step.Ruleset.If.Empty() && step.Ruleset.Unless.Empty()) &&
 				step.Ruleset.Match(&pipeline.RuleData{Status: b.GetStatus()}) {
-				fmt.Printf("%s three: %v \n", step.ID, disregard)
+				// approve the need to run the step
 				disregard = false
 			}
 		}
@@ -136,13 +134,12 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 		if strings.EqualFold(b.GetStatus(), constants.StatusSuccess) &&
 			!(step.Ruleset.If.Empty() && step.Ruleset.Unless.Empty()) &&
 			step.Ruleset.Match(&pipeline.RuleData{Status: constants.StatusFailure}) {
-			fmt.Printf("%s four: %v \n", step.ID, disregard)
+			// disregard the need to run the step
 			disregard = true
 		}
 
 		// check if you need to excute this step
 		if disregard {
-			fmt.Println("I CONTINUED: ", step.ID)
 			continue
 		}
 

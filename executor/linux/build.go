@@ -388,12 +388,13 @@ func (c *client) ExecBuild(ctx context.Context) error {
 
 		// check if the build status is successful
 		if !strings.EqualFold(b.GetStatus(), constants.StatusSuccess) {
-			// break out of loop to stop running steps
+			// disregard the need to run the step
 			disregard = true
 
 			// check if you need to run a status failure ruleset
 			if !(s.Ruleset.If.Empty() && s.Ruleset.Unless.Empty()) &&
 				s.Ruleset.Match(&pipeline.RuleData{Status: b.GetStatus()}) {
+				// approve the need to run the step
 				disregard = false
 			}
 		}
@@ -402,6 +403,7 @@ func (c *client) ExecBuild(ctx context.Context) error {
 		if strings.EqualFold(b.GetStatus(), constants.StatusSuccess) &&
 			!(s.Ruleset.If.Empty() && s.Ruleset.Unless.Empty()) &&
 			s.Ruleset.Match(&pipeline.RuleData{Status: constants.StatusFailure}) {
+			// disregard the need to run the step
 			disregard = true
 		}
 

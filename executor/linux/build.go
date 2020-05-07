@@ -7,6 +7,7 @@ package linux
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -382,18 +383,33 @@ func (c *client) ExecBuild(ctx context.Context) error {
 			continue
 		}
 
-		switch b.GetStatus() {
-		case constants.StatusFailure:
+		// assume you will excute a step by setting flag
+		disregard := false
+
+		// check if the build status is successful
+		if !strings.EqualFold(b.GetStatus(), constants.StatusSuccess) {
+			// disregard the need to run the step
+			disregard = true
+
 			// check if you need to run a status failure ruleset
-			if !s.Ruleset.Match(&pipeline.RuleData{Status: b.GetStatus()}) {
-				continue
+			if !(s.Ruleset.If.Empty() && s.Ruleset.Unless.Empty()) &&
+				s.Ruleset.Match(&pipeline.RuleData{Status: b.GetStatus()}) {
+				// approve the need to run the step
+				disregard = false
 			}
-		case constants.StatusSuccess:
-			fallthrough
-		case constants.StatusError:
-			fallthrough
-		default:
-			// do nothing, and continue running the build
+		}
+
+		// check if you need to skip a status failure ruleset
+		if strings.EqualFold(b.GetStatus(), constants.StatusSuccess) &&
+			!(s.Ruleset.If.Empty() && s.Ruleset.Unless.Empty()) &&
+			s.Ruleset.Match(&pipeline.RuleData{Status: constants.StatusFailure}) {
+			// disregard the need to run the step
+			disregard = true
+		}
+
+		// check if you need to excute this step
+		if disregard {
+			continue
 		}
 
 		c.logger.Infof("planning %s step", s.Name)

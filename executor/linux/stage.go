@@ -7,6 +7,7 @@ package linux
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-vela/types/constants"
@@ -46,7 +47,7 @@ func (c *client) CreateStage(ctx context.Context, s *pipeline.Stage) error {
 			return err
 		}
 
-		c.logger.Infof("inspecting %s step", step.Name)
+		c.logger.Infof("inspecting image %s step", step.Name)
 		// inspect the step image
 		image, err := c.Runtime.InspectImage(ctx, step)
 		if err != nil {
@@ -113,18 +114,33 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 	logger.Debug("starting execution of stage")
 	// execute the steps for the stage
 	for _, step := range s.Steps {
-		switch b.GetStatus() {
-		case constants.StatusFailure:
+		// assume you will excute a step by setting flag
+		disregard := false
+
+		// check if the build status is successful
+		if !strings.EqualFold(b.GetStatus(), constants.StatusSuccess) {
+			// disregard the need to run the step
+			disregard = true
+
 			// check if you need to run a status failure ruleset
-			if !step.Ruleset.Match(&pipeline.RuleData{Status: b.GetStatus()}) {
-				continue
+			if !(step.Ruleset.If.Empty() && step.Ruleset.Unless.Empty()) &&
+				step.Ruleset.Match(&pipeline.RuleData{Status: b.GetStatus()}) {
+				// approve the need to run the step
+				disregard = false
 			}
-		case constants.StatusSuccess:
-			fallthrough
-		case constants.StatusError:
-			fallthrough
-		default:
-			// do nothing, and continue running the build
+		}
+
+		// check if you need to skip a status failure ruleset
+		if strings.EqualFold(b.GetStatus(), constants.StatusSuccess) &&
+			!(step.Ruleset.If.Empty() && step.Ruleset.Unless.Empty()) &&
+			step.Ruleset.Match(&pipeline.RuleData{Status: constants.StatusFailure}) {
+			// disregard the need to run the step
+			disregard = true
+		}
+
+		// check if you need to excute this step
+		if disregard {
+			continue
 		}
 
 		logger.Debugf("planning %s step", step.Name)

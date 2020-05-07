@@ -24,6 +24,11 @@ import (
 
 func TestLinux_CreateService(t *testing.T) {
 	// setup types
+	_build := testBuild()
+	_repo := testRepo()
+	_user := testUser()
+	_steps := testSteps()
+
 	gin.SetMode(gin.TestMode)
 
 	s := httptest.NewServer(server.FakeHandler())
@@ -117,6 +122,11 @@ func TestLinux_CreateService(t *testing.T) {
 
 func TestLinux_PlanService(t *testing.T) {
 	// setup types
+	_build := testBuild()
+	_repo := testRepo()
+	_user := testUser()
+	_steps := testSteps()
+
 	gin.SetMode(gin.TestMode)
 
 	s := httptest.NewServer(server.FakeHandler())
@@ -194,6 +204,11 @@ func TestLinux_PlanService(t *testing.T) {
 
 func TestLinux_ExecService(t *testing.T) {
 	// setup types
+	_build := testBuild()
+	_repo := testRepo()
+	_user := testUser()
+	_steps := testSteps()
+
 	gin.SetMode(gin.TestMode)
 
 	s := httptest.NewServer(server.FakeHandler())
@@ -274,6 +289,11 @@ func TestLinux_ExecService(t *testing.T) {
 
 func TestLinux_StreamService(t *testing.T) {
 	// setup types
+	_build := testBuild()
+	_repo := testRepo()
+	_user := testUser()
+	_steps := testSteps()
+
 	gin.SetMode(gin.TestMode)
 
 	s := httptest.NewServer(server.FakeHandler())
@@ -399,6 +419,11 @@ func TestLinux_StreamService(t *testing.T) {
 
 func TestLinux_DestroyService(t *testing.T) {
 	// setup types
+	_build := testBuild()
+	_repo := testRepo()
+	_user := testUser()
+	_steps := testSteps()
+
 	gin.SetMode(gin.TestMode)
 
 	s := httptest.NewServer(server.FakeHandler())
@@ -499,6 +524,11 @@ func TestLinux_DestroyService(t *testing.T) {
 
 func TestLinux_loadService(t *testing.T) {
 	// setup types
+	_build := testBuild()
+	_repo := testRepo()
+	_user := testUser()
+	_steps := testSteps()
+
 	gin.SetMode(gin.TestMode)
 
 	s := httptest.NewServer(server.FakeHandler())
@@ -572,6 +602,11 @@ func TestLinux_loadService(t *testing.T) {
 
 func TestLinux_loadServiceLogs(t *testing.T) {
 	// setup types
+	_build := testBuild()
+	_repo := testRepo()
+	_user := testUser()
+	_steps := testSteps()
+
 	gin.SetMode(gin.TestMode)
 
 	s := httptest.NewServer(server.FakeHandler())

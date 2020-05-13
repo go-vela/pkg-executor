@@ -383,6 +383,11 @@ func (c *client) ExecBuild(ctx context.Context) error {
 			continue
 		}
 
+		// add the ruleset fields to be evaluated for execution
+		ruledata := &pipeline.RuleData{
+			Status: b.GetStatus(),
+		}
+
 		// assume you will excute a step by setting flag
 		disregard := false
 
@@ -392,17 +397,17 @@ func (c *client) ExecBuild(ctx context.Context) error {
 			disregard = true
 
 			// check if you need to run a status failure ruleset
-			if !(s.Ruleset.If.Empty() && s.Ruleset.Unless.Empty()) &&
-				s.Ruleset.Match(&pipeline.RuleData{Status: b.GetStatus()}) {
+			if s.Ruleset.Execute(ruledata) {
 				// approve the need to run the step
 				disregard = false
 			}
 		}
 
+		ruledata.Status = constants.StatusFailure
+
 		// check if you need to skip a status failure ruleset
 		if strings.EqualFold(b.GetStatus(), constants.StatusSuccess) &&
-			!(s.Ruleset.If.Empty() && s.Ruleset.Unless.Empty()) &&
-			s.Ruleset.Match(&pipeline.RuleData{Status: constants.StatusFailure}) {
+			s.Ruleset.Execute(ruledata) {
 			// disregard the need to run the step
 			disregard = true
 		}

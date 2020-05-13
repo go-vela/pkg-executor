@@ -385,7 +385,20 @@ func (c *client) ExecBuild(ctx context.Context) error {
 
 		// add the ruleset fields to be evaluated for execution
 		ruledata := &pipeline.RuleData{
+			Branch: b.GetBranch(),
+			Event:  b.GetEvent(),
+			Repo:   r.GetFullName(),
 			Status: b.GetStatus(),
+		}
+
+		// add tag when build event is tags
+		if strings.EqualFold(b.GetEvent(), constants.EventTag) {
+			ruledata.Tag = strings.TrimPrefix(b.GetBaseRef(), "refs/tags/")
+		}
+
+		// add target when build event is tags
+		if strings.EqualFold(b.GetEvent(), constants.EventDeploy) {
+			ruledata.Target = b.GetDeploy()
 		}
 
 		// assume you will excute a step by setting flag

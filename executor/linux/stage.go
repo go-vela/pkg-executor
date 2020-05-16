@@ -114,32 +114,26 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 	logger.Debug("starting execution of stage")
 	// execute the steps for the stage
 	for _, step := range s.Steps {
-		// assume you will excute a step by setting flag
-		disregard := false
-
-		// check if the build status is successful
-		if !strings.EqualFold(b.GetStatus(), constants.StatusSuccess) {
-			// disregard the need to run the step
-			disregard = true
-
-			// check if you need to run a status failure ruleset
-			if !(step.Ruleset.If.Empty() && step.Ruleset.Unless.Empty()) &&
-				step.Ruleset.Match(&pipeline.RuleData{Status: b.GetStatus()}) {
-				// approve the need to run the step
-				disregard = false
-			}
+		// extract rule data from build information
+		ruledata := &pipeline.RuleData{
+			Branch: b.GetBranch(),
+			Event:  b.GetEvent(),
+			Repo:   r.GetFullName(),
+			Status: b.GetStatus(),
 		}
 
-		// check if you need to skip a status failure ruleset
-		if strings.EqualFold(b.GetStatus(), constants.StatusSuccess) &&
-			!(step.Ruleset.If.Empty() && step.Ruleset.Unless.Empty()) &&
-			step.Ruleset.Match(&pipeline.RuleData{Status: constants.StatusFailure}) {
-			// disregard the need to run the step
-			disregard = true
+		// when tag event add tag information into ruledata
+		if strings.EqualFold(b.GetEvent(), constants.EventTag) {
+			ruledata.Tag = strings.TrimPrefix(c.build.GetRef(), "refs/tags/")
+		}
+
+		// when deployment event add deployment information into ruledata
+		if strings.EqualFold(b.GetEvent(), constants.EventDeploy) {
+			ruledata.Target = b.GetDeploy()
 		}
 
 		// check if you need to excute this step
-		if disregard {
+		if !step.Execute(ruledata) {
 			continue
 		}
 

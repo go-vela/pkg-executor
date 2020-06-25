@@ -325,6 +325,11 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	return nil
 }
 
+// AssembleBuild prepares the containers within a build for execution.
+func (c *client) AssembleBuild(ctx context.Context) error {
+	return nil
+}
+
 // ExecBuild runs a pipeline for a build.
 func (c *client) ExecBuild(ctx context.Context) error {
 	b := c.build

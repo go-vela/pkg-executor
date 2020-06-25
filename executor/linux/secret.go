@@ -72,6 +72,31 @@ func (c *client) PullSecret(ctx context.Context) error {
 	return nil
 }
 
+// CreateSecret configures the secret plugin for execution.
+func (c *client) CreateSecret(ctx context.Context, ctn *pipeline.Container) error {
+	return nil
+}
+
+// PlanSecret prepares the secret plugin for execution.
+func (c *client) PlanSecret(ctx context.Context, ctn *pipeline.Container) error {
+	return nil
+}
+
+// ExecSecret runs a secret plugin.
+func (c *client) ExecSecret(ctx context.Context, ctn *pipeline.Container) error {
+	return nil
+}
+
+// StreamSecret tails the output for a secret plugin.
+func (c *client) StreamSecret(ctx context.Context, ctn *pipeline.Container) error {
+	return nil
+}
+
+// DestroySecret cleans up secret plugin after execution.
+func (c *client) DestroySecret(ctx context.Context, ctn *pipeline.Container) error {
+	return nil
+}
+
 // getOrg is a helper function to parse and capture
 // the org secret from the provided secret engine.
 func (c *client) getOrg(s *pipeline.Secret) (*library.Secret, error) {

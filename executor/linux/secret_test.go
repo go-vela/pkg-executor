@@ -66,7 +66,7 @@ func TestLinux_PullSecret(t *testing.T) {
 				Steps: pipeline.ContainerSlice{
 					{
 						ID:          "step_github_octocat_1_clone",
-						Directory:   "/home/github/octocat",
+						Directory:   "/vela/src/foo/",
 						Environment: map[string]string{"FOO": "bar"},
 						Image:       "target/vela-git:v0.3.0",
 						Name:        "clone",
@@ -92,7 +92,7 @@ func TestLinux_PullSecret(t *testing.T) {
 				Steps: pipeline.ContainerSlice{
 					{
 						ID:          "step_github_octocat_1_clone",
-						Directory:   "/home/github/octocat",
+						Directory:   "/vela/src/foo/",
 						Environment: map[string]string{"FOO": "bar"},
 						Image:       "target/vela-git:v0.3.0",
 						Name:        "clone",
@@ -118,7 +118,7 @@ func TestLinux_PullSecret(t *testing.T) {
 				Steps: pipeline.ContainerSlice{
 					{
 						ID:          "step_github_octocat_1_clone",
-						Directory:   "/home/github/octocat",
+						Directory:   "/vela/src/foo/",
 						Environment: map[string]string{"FOO": "bar"},
 						Image:       "target/vela-git:v0.3.0",
 						Name:        "clone",
@@ -144,7 +144,7 @@ func TestLinux_PullSecret(t *testing.T) {
 				Steps: pipeline.ContainerSlice{
 					{
 						ID:          "step_github_octocat_1_clone",
-						Directory:   "/home/github/octocat",
+						Directory:   "/vela/src/foo/",
 						Environment: map[string]string{"FOO": "bar"},
 						Image:       "target/vela-git:v0.3.0",
 						Name:        "clone",
@@ -170,7 +170,7 @@ func TestLinux_PullSecret(t *testing.T) {
 				Steps: pipeline.ContainerSlice{
 					{
 						ID:          "step_github_octocat_1_clone",
-						Directory:   "/home/github/octocat",
+						Directory:   "/vela/src/foo/",
 						Environment: map[string]string{"FOO": "bar"},
 						Image:       "target/vela-git:v0.3.0",
 						Name:        "clone",
@@ -427,6 +427,100 @@ func TestLinux_Secret_injectSecret(t *testing.T) {
 		// https://github.com/google/go-cmp
 		if diff := cmp.Diff(test.want.Environment, got.Environment); diff != "" {
 			t.Errorf("injectSecrets mismatch (-want +got):\n%s", diff)
+		}
+	}
+}
+
+func TestLinux_CreateSecret(t *testing.T) {
+	// setup types
+	_build := testBuild()
+	_repo := testRepo()
+	_user := testUser()
+	_steps := testSteps()
+
+	gin.SetMode(gin.TestMode)
+
+	s := httptest.NewServer(server.FakeHandler())
+
+	_client, err := vela.NewClient(s.URL, nil)
+	if err != nil {
+		t.Errorf("unable to create Vela API client: %v", err)
+	}
+
+	_runtime, err := docker.NewMock()
+	if err != nil {
+		t.Errorf("unable to create runtime engine: %v", err)
+	}
+
+	// setup tests
+	tests := []struct {
+		failure   bool
+		container *pipeline.Container
+	}{
+		{
+			failure: false,
+			container: &pipeline.Container{
+				ID:          "secret_github_octocat_1_vault",
+				Directory:   "/vela/src/vcs.company.com/github/octocat",
+				Environment: map[string]string{"FOO": "bar"},
+				Image:       "target/secret-vault:latest",
+				Name:        "vault",
+				Number:      1,
+			},
+		},
+		{
+			failure: true,
+			container: &pipeline.Container{
+				ID:          "secret_github_octocat_1_vault",
+				Directory:   "/vela/src/vcs.company.com/github/octocat",
+				Environment: map[string]string{"FOO": "bar"},
+				Image:       "target/secret-vault:notfound",
+				Name:        "vault",
+				Number:      1,
+			},
+		},
+		{
+			failure: true,
+			container: &pipeline.Container{
+				ID:        "secret_github_octocat_1_vault",
+				Directory: "/vela/src/vcs.company.com/github/octocat",
+				Environment: map[string]string{
+					"BAR": "1\n2\n",
+					"FOO": "!@#$%^&*()\\",
+				},
+				Image:  "target/secret-vault:latest",
+				Name:   "vault",
+				Number: 1,
+			},
+		},
+	}
+
+	// run tests
+	for _, test := range tests {
+		_engine, err := New(
+			WithBuild(_build),
+			WithPipeline(_steps),
+			WithRepo(_repo),
+			WithRuntime(_runtime),
+			WithUser(_user),
+			WithVelaClient(_client),
+		)
+		if err != nil {
+			t.Errorf("unable to create executor engine: %v", err)
+		}
+
+		err = _engine.CreateSecret(context.Background(), test.container)
+
+		if test.failure {
+			if err == nil {
+				t.Errorf("CreateSecret should have returned err")
+			}
+
+			continue
+		}
+
+		if err != nil {
+			t.Errorf("CreateSecret returned err: %v", err)
 		}
 	}
 }

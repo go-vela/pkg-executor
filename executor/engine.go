@@ -63,13 +63,13 @@ type Engine interface {
 	PlanSecret(context.Context, *pipeline.Container) error
 	// ExecSecret defines a function that
 	// runs a secret plugin.
-	ExecSecret(context.Context, *pipeline.Container) error
+	ExecSecret(context.Context, *pipeline.Container, *pipeline.Container) error
 	// StreamSecret defines a function that
 	// tails the output for a secret plugin.
-	StreamSecret(context.Context, *pipeline.Container) error
+	StreamSecret(context.Context, *pipeline.Container, *pipeline.Container) error
 	// DestroySecret defines a function that
 	// cleans up the secret plugin after execution.
-	DestroySecret(context.Context, *pipeline.Container) error
+	DestroySecret(context.Context, *pipeline.Container, *pipeline.Container) error
 
 	// Service Engine Interface Functions
 

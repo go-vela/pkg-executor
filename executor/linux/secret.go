@@ -5,10 +5,15 @@
 package linux
 
 import (
+	"bufio"
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/drone/envsubst"
 	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/library"
 	"github.com/go-vela/types/pipeline"
@@ -74,26 +79,239 @@ func (c *client) PullSecret(ctx context.Context) error {
 
 // CreateSecret configures the secret plugin for execution.
 func (c *client) CreateSecret(ctx context.Context, ctn *pipeline.Container) error {
+	// update engine logger with secret metadata
+	//
+	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
+	logger := c.logger.WithField("secret", ctn.Name)
+
+	ctn.Environment["BUILD_HOST"] = c.Hostname
+	ctn.Environment["VELA_HOST"] = c.Hostname
+	ctn.Environment["VELA_VERSION"] = "v0.4.0"
+	// TODO: remove hardcoded reference
+	ctn.Environment["VELA_RUNTIME"] = "docker"
+	ctn.Environment["VELA_DISTRIBUTION"] = "linux"
+
+	logger.Debug("setting up container")
+	// setup the runtime container
+	err := c.Runtime.SetupContainer(ctx, ctn)
+	if err != nil {
+		return err
+	}
+
+	logger.Debug("injecting secrets")
+	// inject secrets for container
+	err = injectSecrets(ctn, c.Secrets)
+	if err != nil {
+		return err
+	}
+
+	logger.Debug("marshaling configuration")
+	// marshal container configuration
+	body, err := json.Marshal(ctn)
+	if err != nil {
+		return fmt.Errorf("unable to marshal configuration: %v", err)
+	}
+
+	// create substitute function
+	subFunc := func(name string) string {
+		env := ctn.Environment[name]
+		if strings.Contains(env, "\n") {
+			env = fmt.Sprintf("%q", env)
+		}
+
+		return env
+	}
+
+	logger.Debug("substituting environment")
+	// substitute the environment variables
+	//
+	// https://pkg.go.dev/github.com/drone/envsubst?tab=doc#Eval
+	subStep, err := envsubst.Eval(string(body), subFunc)
+	if err != nil {
+		return fmt.Errorf("unable to substitute environment variables: %v", err)
+	}
+
+	logger.Debug("unmarshaling configuration")
+	// unmarshal container configuration
+	err = json.Unmarshal([]byte(subStep), ctn)
+	if err != nil {
+		return fmt.Errorf("unable to unmarshal configuration: %v", err)
+	}
+
 	return nil
 }
 
 // PlanSecret prepares the secret plugin for execution.
+//
+// this function is a no-op
 func (c *client) PlanSecret(ctx context.Context, ctn *pipeline.Container) error {
 	return nil
 }
 
 // ExecSecret runs a secret plugin.
-func (c *client) ExecSecret(ctx context.Context, ctn *pipeline.Container) error {
+func (c *client) ExecSecret(ctx context.Context, init *pipeline.Container, ctn *pipeline.Container) error {
+	// update engine logger with secret metadata
+	//
+	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
+	logger := c.logger.WithField("secret", ctn.Name)
+
+	logger.Debug("running container")
+	// run the runtime container
+	err := c.Runtime.RunContainer(ctx, ctn, c.pipeline)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		logger.Debug("stream logs for container")
+		// stream logs from container
+		err := c.StreamSecret(ctx, init, ctn)
+		if err != nil {
+			logger.Error(err)
+		}
+	}()
+
 	return nil
 }
 
 // StreamSecret tails the output for a secret plugin.
-func (c *client) StreamSecret(ctx context.Context, ctn *pipeline.Container) error {
+func (c *client) StreamSecret(ctx context.Context, init *pipeline.Container, ctn *pipeline.Container) error {
+	b := c.build
+	r := c.repo
+
+	// update engine logger with secret metadata
+	//
+	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
+	logger := c.logger.WithField("secret", ctn.Name)
+
+	// load the logs for the service from the client
+	l, err := c.loadStepLogs(init.ID)
+	if err != nil {
+		return err
+	}
+
+	// create new buffer for uploading logs
+	logs := new(bytes.Buffer)
+
+	logger.Debug("tailing container")
+	// tail the runtime container
+	rc, err := c.Runtime.TailContainer(ctx, ctn)
+	if err != nil {
+		return err
+	}
+	defer rc.Close()
+
+	// create new scanner from the container output
+	scanner := bufio.NewScanner(rc)
+
+	// scan entire container output
+	for scanner.Scan() {
+		// write all the logs from the scanner
+		logs.Write(append(scanner.Bytes(), []byte("\n")...))
+
+		// if we have at least 1000 bytes in our buffer
+		if logs.Len() > 1000 {
+			logger.Trace(logs.String())
+
+			// update the existing log with the new bytes
+			//
+			// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+			l.AppendData(logs.Bytes())
+
+			logger.Debug("appending logs")
+			// send API call to append the logs for the init step
+			//
+			// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateStep
+			l, _, err = c.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), init.Number, l)
+			if err != nil {
+				return err
+			}
+
+			// flush the buffer of logs
+			logs.Reset()
+		}
+	}
+	logger.Trace(logs.String())
+
+	// update the existing log with the last bytes
+	//
+	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+	l.AppendData(logs.Bytes())
+
+	logger.Debug("uploading logs")
+	// send API call to update the logs for the service
+	//
+	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateService
+	_, _, err = c.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), ctn.Number, l)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // DestroySecret cleans up secret plugin after execution.
-func (c *client) DestroySecret(ctx context.Context, ctn *pipeline.Container) error {
+func (c *client) DestroySecret(ctx context.Context, init *pipeline.Container, ctn *pipeline.Container) error {
+	// update engine logger with secret metadata
+	//
+	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
+	logger := c.logger.WithField("secret", ctn.Name)
+
+	// load the secret from the client
+	step, err := c.loadStep(init.ID)
+	if err != nil {
+		// create the secret from the container
+		step = new(library.Step)
+		step.SetName(ctn.Name)
+		step.SetNumber(ctn.Number)
+		step.SetStatus(constants.StatusPending)
+		step.SetHost(ctn.Environment["VELA_HOST"])
+		step.SetRuntime(ctn.Environment["VELA_RUNTIME"])
+		step.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
+	}
+
+	// check if the secret is in a pending state
+	if step.GetStatus() == constants.StatusPending {
+		// update the secret fields
+		step.SetExitCode(137)
+		step.SetFinished(time.Now().UTC().Unix())
+		step.SetStatus(constants.StatusKilled)
+
+		// check if the secret was not started
+		if step.GetStarted() == 0 {
+			// set the started time to the finished time
+			step.SetStarted(step.GetFinished())
+		}
+	}
+
+	logger.Debug("inspecting container")
+	// inspect the runtime container
+	err = c.Runtime.InspectContainer(ctx, ctn)
+	if err != nil {
+		return err
+	}
+
+	// check if the secret finished
+	if step.GetFinished() == 0 {
+		// update the secret fields
+		step.SetFinished(time.Now().UTC().Unix())
+		step.SetStatus(constants.StatusSuccess)
+
+		// check the container for an unsuccessful exit code
+		if ctn.ExitCode > 0 {
+			// update the secret fields
+			step.SetExitCode(ctn.ExitCode)
+			step.SetStatus(constants.StatusFailure)
+		}
+	}
+
+	logger.Debug("removing container")
+	// remove the runtime container
+	err = c.Runtime.RemoveContainer(ctx, ctn)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -258,4 +476,22 @@ func injectSecrets(ctn *pipeline.Container, m map[string]*library.Secret) error 
 	}
 
 	return nil
+}
+
+// loadService is a helper function to capture
+// a service from the client.
+func (c *client) loadSecret(name string) (*library.Secret, error) {
+	// load the service key from the client
+	result, ok := c.secrets.Load(name)
+	if !ok {
+		return nil, fmt.Errorf("unable to load secret %s", name)
+	}
+
+	// cast the service key to the expected type
+	s, ok := result.(*library.Secret)
+	if !ok {
+		return nil, fmt.Errorf("secret %s had unexpected value", name)
+	}
+
+	return s, nil
 }

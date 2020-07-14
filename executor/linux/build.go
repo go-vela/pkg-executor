@@ -129,14 +129,10 @@ func (c *client) PlanBuild(ctx context.Context) error {
 		}
 	}()
 
-	// TODO: make this better
-	init := new(pipeline.Container)
-	if len(p.Steps) > 0 {
-		init = p.Steps[0]
-	}
-	// TODO: make this better
-	if len(p.Stages) > 0 {
-		init = p.Stages[0].Steps[0]
+	// load init container from the pipeline
+	init, err := c.loadInitContainer(p)
+	if err != nil {
+		return err
 	}
 
 	// load the init step from the client
@@ -222,6 +218,48 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
 	l.AppendData(volume)
 
+	return nil
+}
+
+// AssembleBuild prepares the containers within a build for execution.
+func (c *client) AssembleBuild(ctx context.Context) error {
+	b := c.build
+	p := c.pipeline
+	r := c.repo
+	e := c.err
+
+	defer func() {
+		// NOTE: When an error occurs during a build that does not have to do
+		// with a pipeline we should set build status to "error" not "failed"
+		// because it is worker related and not build.
+		if e != nil {
+			b.SetError(e.Error())
+			b.SetStatus(constants.StatusError)
+			b.SetFinished(time.Now().UTC().Unix())
+		}
+
+		c.logger.Info("uploading build snapshot")
+		// send API call to update the build
+		//
+		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#BuildService.Update
+		_, _, err := c.Vela.Build.Update(r.GetOrg(), r.GetName(), b)
+		if err != nil {
+			c.logger.Errorf("unable to upload build snapshot: %v", err)
+		}
+	}()
+
+	// load init container from the pipeline
+	init, err := c.loadInitContainer(p)
+	if err != nil {
+		return err
+	}
+
+	// load the logs for the init step from the client
+	l, err := c.loadStepLogs(init.ID)
+	if err != nil {
+		return err
+	}
+
 	// update the init log with progress
 	//
 	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
@@ -241,7 +279,7 @@ func (c *client) PlanBuild(ctx context.Context) error {
 
 		c.logger.Infof("creating %s service", s.Name)
 		// create the service
-		err = c.CreateService(ctx, s)
+		err := c.CreateService(ctx, s)
 		if err != nil {
 			e = err
 			return fmt.Errorf("unable to create %s service: %w", s.Name, err)
@@ -275,7 +313,7 @@ func (c *client) PlanBuild(ctx context.Context) error {
 
 		c.logger.Infof("creating %s stage", s.Name)
 		// create the stage
-		err = c.CreateStage(ctx, s)
+		err := c.CreateStage(ctx, s)
 		if err != nil {
 			e = err
 			return fmt.Errorf("unable to create %s stage: %w", s.Name, err)
@@ -302,7 +340,7 @@ func (c *client) PlanBuild(ctx context.Context) error {
 
 		c.logger.Infof("creating %s step", s.Name)
 		// create the step
-		err = c.CreateStep(ctx, s)
+		err := c.CreateStep(ctx, s)
 		if err != nil {
 			e = err
 			return fmt.Errorf("unable to create %s step: %w", s.Name, err)
@@ -322,11 +360,46 @@ func (c *client) PlanBuild(ctx context.Context) error {
 		l.AppendData(image)
 	}
 
-	return nil
-}
+	// update the init log with progress
+	//
+	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+	l.AppendData([]byte("$ Pulling secret images...\n"))
 
-// AssembleBuild prepares the containers within a build for execution.
-func (c *client) AssembleBuild(ctx context.Context) error {
+	// create the secrets for the pipeline
+	for _, s := range p.Secrets {
+		// check if the secret is a plugin
+		if s.Origin == nil {
+			continue
+		}
+
+		// TODO: remove hardcoded reference
+		// update the init log with progress
+		//
+		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+		l.AppendData([]byte(fmt.Sprintf("  $ docker image inspect %s\n", s.Origin.Name)))
+
+		c.logger.Infof("creating %s secret", s.Name)
+		// create the service
+		err := c.CreateSecret(ctx, s.Origin)
+		if err != nil {
+			e = err
+			return fmt.Errorf("unable to create %s secret: %w", s.Name, err)
+		}
+
+		c.logger.Infof("inspecting %s secret", s.Name)
+		// inspect the service image
+		image, err := c.Runtime.InspectImage(ctx, s.Origin)
+		if err != nil {
+			e = err
+			return fmt.Errorf("unable to inspect %s secret: %w", s.Name, err)
+		}
+
+		// update the init log with secret image info
+		//
+		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+		l.AppendData(image)
+	}
+
 	return nil
 }
 
@@ -361,6 +434,28 @@ func (c *client) ExecBuild(ctx context.Context) error {
 			c.logger.Errorf("unable to upload errorred state: %v", err)
 		}
 	}()
+
+	// load init container from the pipeline
+	init, err := c.loadInitContainer(p)
+	if err != nil {
+		return err
+	}
+
+	// execute the services for the pipeline
+	for _, s := range p.Secrets {
+		// check if the secret is a plugin
+		if s.Origin == nil {
+			continue
+		}
+
+		c.logger.Infof("executing %s service", s.Name)
+		// execute the service
+		err := c.ExecSecret(ctx, init, s.Origin)
+		if err != nil {
+			e = err
+			return fmt.Errorf("unable to execute service: %w", err)
+		}
+	}
 
 	// execute the services for the pipeline
 	for _, s := range p.Services {
@@ -506,7 +601,7 @@ func (c *client) ExecBuild(ctx context.Context) error {
 	// wait for the stages to complete or return an error
 	//
 	// https://pkg.go.dev/golang.org/x/sync/errgroup?tab=doc#Group.Wait
-	err := stages.Wait()
+	err = stages.Wait()
 	if err != nil {
 		e = err
 		return fmt.Errorf("unable to wait for stages: %v", err)
@@ -518,6 +613,8 @@ func (c *client) ExecBuild(ctx context.Context) error {
 // DestroyBuild cleans up the build after execution.
 func (c *client) DestroyBuild(ctx context.Context) error {
 	var err error
+
+	p := c.pipeline
 
 	// destroy the steps for the pipeline
 	for _, s := range c.pipeline.Steps {
@@ -554,6 +651,22 @@ func (c *client) DestroyBuild(ctx context.Context) error {
 		c.logger.Infof("destroying %s service", s.Name)
 		// destroy the service
 		err = c.DestroyService(ctx, s)
+		if err != nil {
+			c.logger.Errorf("unable to destroy service: %v", err)
+		}
+	}
+
+	// load init container from the pipeline
+	init, err := c.loadInitContainer(p)
+	if err != nil {
+		return err
+	}
+
+	// destroy the secrets for the pipeline
+	for _, s := range c.pipeline.Secrets {
+		c.logger.Infof("destroying %s service", s.Name)
+		// destroy the service
+		err = c.DestroySecret(ctx, init, s.Origin)
 		if err != nil {
 			c.logger.Errorf("unable to destroy service: %v", err)
 		}

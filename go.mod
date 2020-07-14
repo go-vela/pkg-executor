@@ -9,8 +9,8 @@ require (
 	github.com/go-vela/mock v0.4.3
 	github.com/go-vela/pkg-runtime v0.4.3
 	github.com/go-vela/sdk-go v0.4.3
-	github.com/go-vela/types v0.4.3
-	github.com/google/go-cmp v0.3.1
+	github.com/go-vela/types v0.4.4-0.20200706190815-f16abd970eea
+	github.com/google/go-cmp v0.5.0
 	github.com/joho/godotenv v1.3.0
 	github.com/mattn/go-isatty v0.0.11 // indirect
 	github.com/onsi/ginkgo v1.10.3 // indirect

@@ -28,6 +28,7 @@ type client struct {
 	build       *library.Build
 	pipeline    *pipeline.Build
 	repo        *library.Repo
+	secrets     sync.Map
 	services    sync.Map
 	serviceLogs sync.Map
 	steps       sync.Map

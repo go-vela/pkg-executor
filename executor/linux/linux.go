@@ -17,25 +17,36 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type client struct {
-	Vela     *vela.Client
-	Runtime  runtime.Engine
-	Secrets  map[string]*library.Secret
-	Hostname string
+type (
+	// client manages communication with the build resources
+	client struct {
+		Vela     *vela.Client
+		Runtime  runtime.Engine
+		Secrets  map[string]*library.Secret
+		Hostname string
 
-	// private fields
-	logger      *logrus.Entry
-	build       *library.Build
-	pipeline    *pipeline.Build
-	repo        *library.Repo
-	secrets     sync.Map
-	services    sync.Map
-	serviceLogs sync.Map
-	steps       sync.Map
-	stepLogs    sync.Map
-	user        *library.User
-	err         error
-}
+		// clients for build actions
+		secret *secretSvc
+
+		// private fields
+		init        *pipeline.Container
+		logger      *logrus.Entry
+		build       *library.Build
+		pipeline    *pipeline.Build
+		repo        *library.Repo
+		secrets     sync.Map
+		services    sync.Map
+		serviceLogs sync.Map
+		steps       sync.Map
+		stepLogs    sync.Map
+		user        *library.User
+		err         error
+	}
+
+	svc struct {
+		client *client
+	}
+)
 
 // New returns an Executor implementation that integrates with a Linux instance.
 func New(opts ...Opt) (*client, error) {

@@ -50,27 +50,6 @@ type Engine interface {
 	// cleans up the build after execution.
 	DestroyBuild(context.Context) error
 
-	// Secrets Engine Interface Functions
-
-	// PullSecret defines a function that pulls
-	// the secrets for a given pipeline.
-	PullSecret(context.Context) error
-	// CreateSecret defines a function that
-	// configures the secret plugin for execution.
-	CreateSecret(context.Context, *pipeline.Container) error
-	// PlanSecret defines a function that
-	// prepares the secret plugin for execution.
-	PlanSecret(context.Context, *pipeline.Container) error
-	// ExecSecret defines a function that
-	// runs a secret plugin.
-	ExecSecret(context.Context, *pipeline.Container, *pipeline.Container) error
-	// StreamSecret defines a function that
-	// tails the output for a secret plugin.
-	StreamSecret(context.Context, *pipeline.Container, *pipeline.Container) error
-	// DestroySecret defines a function that
-	// cleans up the secret plugin after execution.
-	DestroySecret(context.Context, *pipeline.Container, *pipeline.Container) error
-
 	// Service Engine Interface Functions
 
 	// CreateService defines a function that

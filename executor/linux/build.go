@@ -63,15 +63,6 @@ func (c *client) CreateBuild(ctx context.Context) error {
 
 	c.build = b
 
-	// TODO: Pull this out into a the plan function for steps.
-	c.logger.Info("pulling secrets")
-	// pull secrets for the build
-	err = c.PullSecret(ctx)
-	if err != nil {
-		e = err
-		return fmt.Errorf("unable to pull secrets: %v", err)
-	}
-
 	// TODO: make this better
 	init := new(pipeline.Container)
 	if len(p.Steps) > 0 {
@@ -98,6 +89,9 @@ func (c *client) CreateBuild(ctx context.Context) error {
 		e = err
 		return fmt.Errorf("unable to plan %s step: %w", init.Name, err)
 	}
+
+	// add the init container to secrets client
+	c.init = init
 
 	return nil
 }
@@ -213,10 +207,32 @@ func (c *client) PlanBuild(ctx context.Context) error {
 		return fmt.Errorf("unable to inspect volume: %w", err)
 	}
 
-	// update the init log with volume info
+	// update the init log with network info
 	//
 	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
 	l.AppendData(volume)
+
+	// update the init log with progress
+	//
+	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+	l.AppendData([]byte("$ Pulling secrets...\n"))
+
+	// TODO: Pull this out into a the plan function for steps.
+	c.logger.Info("pulling secrets")
+	// pull secrets for the build
+	logs, secrets, err := c.secret.pull()
+	if err != nil {
+		e = err
+		return fmt.Errorf("unable to pull secrets: %v", err)
+	}
+
+	// add the server secrets to map
+	c.Secrets = secrets
+
+	// update the init log with network info
+	//
+	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+	l.AppendData(logs.Bytes())
 
 	return nil
 }
@@ -380,7 +396,7 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 
 		c.logger.Infof("creating %s secret", s.Name)
 		// create the service
-		err := c.CreateSecret(ctx, s.Origin)
+		err := c.secret.create(ctx, c.Secrets, s.Origin)
 		if err != nil {
 			e = err
 			return fmt.Errorf("unable to create %s secret: %w", s.Name, err)
@@ -435,8 +451,8 @@ func (c *client) ExecBuild(ctx context.Context) error {
 		}
 	}()
 
-	// load init container from the pipeline
-	init, err := c.loadInitContainer(p)
+	// stream all the logs to the init step
+	l, err := c.loadStepLogs(c.init.Name)
 	if err != nil {
 		return err
 	}
@@ -450,7 +466,7 @@ func (c *client) ExecBuild(ctx context.Context) error {
 
 		c.logger.Infof("executing %s service", s.Name)
 		// execute the service
-		err := c.ExecSecret(ctx, init, s.Origin)
+		err := c.secret.exec(ctx, l, s.Origin)
 		if err != nil {
 			e = err
 			return fmt.Errorf("unable to execute service: %w", err)
@@ -614,8 +630,6 @@ func (c *client) ExecBuild(ctx context.Context) error {
 func (c *client) DestroyBuild(ctx context.Context) error {
 	var err error
 
-	p := c.pipeline
-
 	// destroy the steps for the pipeline
 	for _, s := range c.pipeline.Steps {
 		// TODO: remove hardcoded reference
@@ -656,17 +670,11 @@ func (c *client) DestroyBuild(ctx context.Context) error {
 		}
 	}
 
-	// load init container from the pipeline
-	init, err := c.loadInitContainer(p)
-	if err != nil {
-		return err
-	}
-
 	// destroy the secrets for the pipeline
 	for _, s := range c.pipeline.Secrets {
 		c.logger.Infof("destroying %s service", s.Name)
 		// destroy the service
-		err = c.DestroySecret(ctx, init, s.Origin)
+		err = c.secret.destroy(ctx, s.Origin)
 		if err != nil {
 			c.logger.Errorf("unable to destroy service: %v", err)
 		}

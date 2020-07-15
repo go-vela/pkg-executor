@@ -33,9 +33,9 @@ func TestLinux_PullSecret(t *testing.T) {
 
 	gin.SetMode(gin.TestMode)
 
-	s := httptest.NewServer(server.FakeHandler())
+	server := httptest.NewServer(server.FakeHandler())
 
-	_client, err := vela.NewClient(s.URL, nil)
+	_client, err := vela.NewClient(server.URL, nil)
 	if err != nil {
 		t.Errorf("unable to create Vela API client: %v", err)
 	}
@@ -204,18 +204,18 @@ func TestLinux_PullSecret(t *testing.T) {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
 
-		err = _engine.PullSecret(context.Background())
+		_, _, err = _engine.secret.pull()
 
 		if test.failure {
 			if err == nil {
-				t.Errorf("PullSecret should have returned err")
+				t.Errorf("pull should have returned err")
 			}
 
 			continue
 		}
 
 		if err != nil {
-			t.Errorf("PullSecret returned err: %v", err)
+			t.Errorf("pull returned err: %v", err)
 		}
 	}
 }
@@ -509,7 +509,7 @@ func TestLinux_CreateSecret(t *testing.T) {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
 
-		err = _engine.CreateSecret(context.Background(), test.container)
+		err = _engine.secret.create(context.Background(), _engine.Secrets, test.container)
 
 		if test.failure {
 			if err == nil {

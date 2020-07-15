@@ -9,9 +9,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/drone/envsubst"
 	"github.com/go-vela/types/constants"
@@ -21,86 +21,52 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// PullSecret defines a function that pulls the secrets for a given pipeline.
-func (c *client) PullSecret(ctx context.Context) error {
-	var err error
+// secretSvc handles communication with secret processes during a build.
+type secretSvc svc
 
-	p := c.pipeline
+var (
+	// ErrUnrecognizedSecretType defines the error type when the
+	// SecretType provided to the client is unsupported.
+	ErrUnrecognizedSecretType = errors.New("invalid secret type provided")
 
-	secrets := make(map[string]*library.Secret)
-	sec := new(library.Secret)
+	// ErrUnrecognizedSecretEngine defines the error type when the
+	// SecretEngine provided to the client is unsupported.
+	ErrUnrecognizedSecretEngine = errors.New("invalid secret engine provided")
 
-	// iterate through each secret provided in the pipeline
-	for _, s := range p.Secrets {
-		// if the secret isn't a native or vault type
-		if !strings.EqualFold(s.Engine, constants.DriverNative) &&
-			!strings.EqualFold(s.Engine, constants.DriverVault) {
-			return fmt.Errorf("unrecognized secret engine: %s", s.Engine)
-		}
+	// ErrInvalidPath defines the error type when the
+	// path provided for a type (org, repo, shared) is invalid.
+	ErrInvalidPath = "invalid path %s for %s secret %s"
 
-		switch s.Type {
-		// handle org secrets
-		case constants.SecretOrg:
-			c.logger.Debug("pulling org secret")
-			// get org secret
-			sec, err = c.getOrg(s)
-			if err != nil {
-				return err
-			}
-		// handle repo secrets
-		case constants.SecretRepo:
-			c.logger.Debug("pulling repo secret")
-			// get repo secret
-			sec, err = c.getRepo(s)
-			if err != nil {
-				return err
-			}
-		// handle shared secrets
-		case constants.SecretShared:
-			c.logger.Debug("pulling shared secret")
-			// get shared secret
-			sec, err = c.getShared(s)
-			if err != nil {
-				return err
-			}
-		default:
-			return fmt.Errorf("unrecognized secret type: %s", s.Type)
-		}
+	// ErrUnableToRetrieve defines the error type when the
+	// secret is not able to be retrieved from the server.
+	ErrUnableToRetrieve = "unable to retrieve %s secret %s: %w"
+)
 
-		// add secret to the map
-		secrets[s.Name] = sec
-	}
-
-	// overwrite the engine secret map
-	c.Secrets = secrets
-
-	return nil
-}
-
-// CreateSecret configures the secret plugin for execution.
-func (c *client) CreateSecret(ctx context.Context, ctn *pipeline.Container) error {
+// create configures the secret plugin for execution.
+func (s *secretSvc) create(ctx context.Context, smap map[string]*library.Secret, ctn *pipeline.Container) error {
 	// update engine logger with secret metadata
 	//
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
-	logger := c.logger.WithField("secret", ctn.Name)
+	logger := s.client.logger.WithField("secret", ctn.Name)
 
-	ctn.Environment["BUILD_HOST"] = c.Hostname
-	ctn.Environment["VELA_HOST"] = c.Hostname
-	ctn.Environment["VELA_VERSION"] = "v0.4.0"
+	ctn.Environment["BUILD_HOST"] = s.client.Hostname
+	ctn.Environment["VELA_HOST"] = s.client.Hostname
+
 	// TODO: remove hardcoded reference
+	ctn.Environment["VELA_VERSION"] = "v0.4.0"
 	ctn.Environment["VELA_RUNTIME"] = "docker"
 	ctn.Environment["VELA_DISTRIBUTION"] = "linux"
 
 	logger.Debug("setting up container")
 	// setup the runtime container
-	err := c.Runtime.SetupContainer(ctx, ctn)
+	err := s.client.Runtime.SetupContainer(ctx, ctn)
 	if err != nil {
 		return err
 	}
 
 	logger.Debug("injecting secrets")
 	// inject secrets for container
-	err = injectSecrets(ctn, c.Secrets)
+	err = injectSecrets(ctn, smap)
 	if err != nil {
 		return err
 	}
@@ -141,23 +107,40 @@ func (c *client) CreateSecret(ctx context.Context, ctn *pipeline.Container) erro
 	return nil
 }
 
-// PlanSecret prepares the secret plugin for execution.
-//
-// this function is a no-op
-func (c *client) PlanSecret(ctx context.Context, ctn *pipeline.Container) error {
-	return nil
-}
-
-// ExecSecret runs a secret plugin.
-func (c *client) ExecSecret(ctx context.Context, init *pipeline.Container, ctn *pipeline.Container) error {
+// destroy cleans up secret plugin after execution.
+func (s *secretSvc) destroy(ctx context.Context, ctn *pipeline.Container) error {
 	// update engine logger with secret metadata
 	//
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
-	logger := c.logger.WithField("secret", ctn.Name)
+	logger := s.client.logger.WithField("secret", ctn.Name)
+
+	logger.Debug("inspecting container")
+	// inspect the runtime container
+	err := s.client.Runtime.InspectContainer(ctx, ctn)
+	if err != nil {
+		return err
+	}
+
+	logger.Debug("removing container")
+	// remove the runtime container
+	err = s.client.Runtime.RemoveContainer(ctx, ctn)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// exec runs a secret plugin.
+func (s *secretSvc) exec(ctx context.Context, l *library.Log, ctn *pipeline.Container) error {
+	// update engine logger with secret metadata
+	//
+	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
+	logger := s.client.logger.WithField("secret", ctn.Name)
 
 	logger.Debug("running container")
 	// run the runtime container
-	err := c.Runtime.RunContainer(ctx, ctn, c.pipeline)
+	err := s.client.Runtime.RunContainer(ctx, ctn, s.client.pipeline)
 	if err != nil {
 		return err
 	}
@@ -165,7 +148,7 @@ func (c *client) ExecSecret(ctx context.Context, init *pipeline.Container, ctn *
 	go func() {
 		logger.Debug("stream logs for container")
 		// stream logs from container
-		err := c.StreamSecret(ctx, init, ctn)
+		err := s.client.secret.stream(ctx, l, ctn)
 		if err != nil {
 			logger.Error(err)
 		}
@@ -174,28 +157,22 @@ func (c *client) ExecSecret(ctx context.Context, init *pipeline.Container, ctn *
 	return nil
 }
 
-// StreamSecret tails the output for a secret plugin.
-func (c *client) StreamSecret(ctx context.Context, init *pipeline.Container, ctn *pipeline.Container) error {
-	b := c.build
-	r := c.repo
+// stream tails the output for a secret plugin.
+func (s *secretSvc) stream(ctx context.Context, l *library.Log, ctn *pipeline.Container) error {
+	b := s.client.build
+	r := s.client.repo
 
 	// update engine logger with secret metadata
 	//
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
-	logger := c.logger.WithField("secret", ctn.Name)
-
-	// load the logs for the service from the client
-	l, err := c.loadStepLogs(init.ID)
-	if err != nil {
-		return err
-	}
+	logger := s.client.logger.WithField("secret", ctn.Name)
 
 	// create new buffer for uploading logs
 	logs := new(bytes.Buffer)
 
 	logger.Debug("tailing container")
 	// tail the runtime container
-	rc, err := c.Runtime.TailContainer(ctx, ctn)
+	rc, err := s.client.Runtime.TailContainer(ctx, ctn)
 	if err != nil {
 		return err
 	}
@@ -222,7 +199,7 @@ func (c *client) StreamSecret(ctx context.Context, init *pipeline.Container, ctn
 			// send API call to append the logs for the init step
 			//
 			// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateStep
-			l, _, err = c.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), init.Number, l)
+			l, _, err = s.client.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), s.client.init.Number, l)
 			if err != nil {
 				return err
 			}
@@ -242,7 +219,7 @@ func (c *client) StreamSecret(ctx context.Context, init *pipeline.Container, ctn
 	// send API call to update the logs for the service
 	//
 	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateService
-	_, _, err = c.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), ctn.Number, l)
+	_, _, err = s.client.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), ctn.Number, l)
 	if err != nil {
 		return err
 	}
@@ -250,210 +227,94 @@ func (c *client) StreamSecret(ctx context.Context, init *pipeline.Container, ctn
 	return nil
 }
 
-// DestroySecret cleans up secret plugin after execution.
-func (c *client) DestroySecret(ctx context.Context, init *pipeline.Container, ctn *pipeline.Container) error {
-	// update engine logger with secret metadata
-	//
-	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
-	logger := c.logger.WithField("secret", ctn.Name)
+// pull defines a function that pulls the secrets from the server for a given pipeline.
+func (s *secretSvc) pull() (*bytes.Buffer, map[string]*library.Secret, error) {
+	secrets := make(map[string]*library.Secret)
+	sec := new(library.Secret)
 
-	// load the secret from the client
-	step, err := c.loadStep(init.ID)
-	if err != nil {
-		// create the secret from the container
-		step = new(library.Step)
-		step.SetName(ctn.Name)
-		step.SetNumber(ctn.Number)
-		step.SetStatus(constants.StatusPending)
-		step.SetHost(ctn.Environment["VELA_HOST"])
-		step.SetRuntime(ctn.Environment["VELA_RUNTIME"])
-		step.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
-	}
+	// create new buffer for appending to init logs
+	logs := new(bytes.Buffer)
 
-	// check if the secret is in a pending state
-	if step.GetStatus() == constants.StatusPending {
-		// update the secret fields
-		step.SetExitCode(137)
-		step.SetFinished(time.Now().UTC().Unix())
-		step.SetStatus(constants.StatusKilled)
+	// iterate through each secret provided in the pipeline
+	for _, secret := range s.client.pipeline.Secrets {
+		s.client.logger.Tracef("pulling %s %s secret %s", secret.Engine, secret.Type, secret.Name)
 
-		// check if the secret was not started
-		if step.GetStarted() == 0 {
-			// set the started time to the finished time
-			step.SetStarted(step.GetFinished())
-		}
-	}
+		logs.Write([]byte(fmt.Sprintf("  $ get %s %s secret %s \n", secret.Engine, secret.Type, secret.Name)))
 
-	logger.Debug("inspecting container")
-	// inspect the runtime container
-	err = c.Runtime.InspectContainer(ctx, ctn)
-	if err != nil {
-		return err
-	}
-
-	// check if the secret finished
-	if step.GetFinished() == 0 {
-		// update the secret fields
-		step.SetFinished(time.Now().UTC().Unix())
-		step.SetStatus(constants.StatusSuccess)
-
-		// check the container for an unsuccessful exit code
-		if ctn.ExitCode > 0 {
-			// update the secret fields
-			step.SetExitCode(ctn.ExitCode)
-			step.SetStatus(constants.StatusFailure)
-		}
-	}
-
-	logger.Debug("removing container")
-	// remove the runtime container
-	err = c.Runtime.RemoveContainer(ctx, ctn)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// getOrg is a helper function to parse and capture
-// the org secret from the provided secret engine.
-func (c *client) getOrg(s *pipeline.Secret) (*library.Secret, error) {
-	c.logger.Tracef("pulling %s %s secret %s", s.Engine, s.Type, s.Name)
-
-	// variables necessary for secret
-	org := c.repo.GetOrg()
-	repo := "*"
-	path := s.Key
-
-	// check if the full path was provided
-	if strings.Contains(path, "/") {
-		// split the full path into parts
-		parts := strings.SplitN(path, "/", 2)
-
-		// secret is invalid
-		if len(parts) != 2 {
-			return nil, fmt.Errorf("path %s for %s secret %s is invalid", s.Key, s.Type, s.Name)
+		// ignore pulling secrets coming from plugins
+		if secret.Origin != nil {
+			continue
 		}
 
-		// check if the org provided matches what we expect
-		if strings.EqualFold(parts[0], org) {
-			// update the variables
-			org = parts[0]
-			path = parts[1]
-		}
-	}
-
-	// send API call to capture the org secret
-	//
-	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SecretService.Get
-	secret, _, err := c.Vela.Secret.Get(s.Engine, s.Type, org, repo, path)
-	if err != nil {
-		return nil, fmt.Errorf("unable to retrieve %s secret %s: %w", s.Type, s.Key, err)
-	}
-
-	// overwrite the secret value
-	s.Value = secret.GetValue()
-
-	return secret, nil
-}
-
-// getRepo is a helper function to parse and capture
-// the repo secret from the provided secret engine.
-func (c *client) getRepo(s *pipeline.Secret) (*library.Secret, error) {
-	c.logger.Tracef("pulling %s %s secret %s", s.Engine, s.Type, s.Name)
-
-	// variables necessary for secret
-	org := c.repo.GetOrg()
-	repo := c.repo.GetName()
-	path := s.Key
-
-	// check if the full path was provided
-	if strings.Contains(path, "/") {
-		// split the full path into parts
-		parts := strings.SplitN(path, "/", 3)
-
-		// secret is invalid
-		if len(parts) != 3 {
-			return nil, fmt.Errorf("path %s for %s secret %s is invalid", s.Key, s.Type, s.Name)
+		// if the secret isn't a native or vault type
+		if !strings.EqualFold(secret.Engine, constants.DriverNative) &&
+			!strings.EqualFold(secret.Engine, constants.DriverVault) {
+			return nil, nil, fmt.Errorf("%s: %s", ErrUnrecognizedSecretEngine, secret.Engine)
 		}
 
-		// check if the org provided matches what we expect
-		if strings.EqualFold(parts[0], org) {
-			// update the org variable
-			org = parts[0]
-
-			// check if the repo provided matches what we expect
-			if strings.EqualFold(parts[1], repo) {
-				// update the variables
-				repo = parts[1]
-				path = parts[2]
+		switch secret.Type {
+		// handle repo secrets
+		case constants.SecretOrg:
+			err := secret.ValidOrg(s.client.repo.GetOrg())
+			if err != nil {
+				return nil, nil, err
 			}
-		}
-	}
 
-	// send API call to capture the repo secret
-	//
-	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SecretService.Get
-	secret, _, err := c.Vela.Secret.Get(s.Engine, s.Type, org, repo, path)
-	if err != nil {
-		return nil, fmt.Errorf("unable to retrieve %s secret %s: %w", s.Type, s.Key, err)
-	}
-
-	// overwrite the secret value
-	s.Value = secret.GetValue()
-
-	return secret, nil
-}
-
-// getShared is a helper function to parse and capture
-// the shared secret from the provided secret engine.
-func (c *client) getShared(s *pipeline.Secret) (*library.Secret, error) {
-	c.logger.Tracef("pulling %s %s secret %s", s.Engine, s.Type, s.Name)
-
-	// variables necessary for secret
-	var (
-		team string
-		org  string
-	)
-
-	path := s.Key
-
-	// check if the full path was provided
-	if strings.Contains(path, "/") {
-		// split the full path into parts
-		parts := strings.SplitN(path, "/", 3)
-
-		// secret is invalid
-		if len(parts) != 3 {
-			return nil, fmt.Errorf("path %s for %s secret %s is invalid", s.Key, s.Type, s.Name)
-		}
-
-		// check if the org provided is not empty
-		if len(parts[0]) > 0 {
-			// update the org variable
-			org = parts[0]
-
-			// check if the team provided is not empty
-			if len(parts[1]) > 0 {
-				// update the variables
-				team = parts[1]
-				path = parts[2]
+			// send API call to capture the org secret
+			//
+			// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SecretService.Get
+			sec, _, err := s.client.Vela.Secret.Get(secret.Engine, secret.Type, s.client.repo.GetOrg(), "*", secret.Key)
+			if err != nil {
+				return nil, nil, fmt.Errorf(ErrUnableToRetrieve, secret.Type, secret.Key, err)
 			}
+
+			secret.Value = sec.GetValue()
+
+		// handle repo secrets
+		case constants.SecretRepo:
+			err := secret.ValidRepo(s.client.repo.GetOrg(), s.client.repo.GetName())
+			if err != nil {
+				return nil, nil, err
+			}
+
+			// send API call to capture the repo secret
+			//
+			// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SecretService.Get
+			sec, _, err := s.client.Vela.Secret.Get(secret.Engine, secret.Type, s.client.repo.GetOrg(), s.client.repo.GetName(), secret.Key)
+			if err != nil {
+				return nil, nil, fmt.Errorf(ErrUnableToRetrieve, secret.Type, secret.Key, err)
+			}
+
+			secret.Value = sec.GetValue()
+
+		// handle shared secrets
+		case constants.SecretShared:
+			err := secret.ValidShared(s.client.repo.GetOrg())
+			if err != nil {
+				return nil, nil, err
+			}
+
+			team := strings.SplitN(secret.Key, "/", 3)[2]
+
+			// send API call to capture the repo secret
+			//
+			// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SecretService.Get
+			sec, _, err := s.client.Vela.Secret.Get(secret.Engine, secret.Type, s.client.repo.GetOrg(), team, secret.Key)
+			if err != nil {
+				return nil, nil, fmt.Errorf(ErrUnableToRetrieve, secret.Type, secret.Key, err)
+			}
+
+			secret.Value = sec.GetValue()
+
+		default:
+			return nil, nil, fmt.Errorf("%s: %s", ErrUnrecognizedSecretType, secret.Type)
 		}
+
+		// add secret to the map
+		secrets[secret.Name] = sec
 	}
 
-	// send API call to capture the shared secret
-	//
-	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SecretService.Get
-	secret, _, err := c.Vela.Secret.Get(s.Engine, s.Type, org, team, path)
-	if err != nil {
-		return nil, fmt.Errorf("unable to retrieve %s secret %s: %w", s.Type, s.Key, err)
-	}
-
-	// overwrite the secret value
-	s.Value = secret.GetValue()
-
-	return secret, nil
+	return logs, secrets, nil
 }
 
 // helper function to check secret whitelist before setting value
@@ -476,22 +337,4 @@ func injectSecrets(ctn *pipeline.Container, m map[string]*library.Secret) error 
 	}
 
 	return nil
-}
-
-// loadService is a helper function to capture
-// a service from the client.
-func (c *client) loadSecret(name string) (*library.Secret, error) {
-	// load the service key from the client
-	result, ok := c.secrets.Load(name)
-	if !ok {
-		return nil, fmt.Errorf("unable to load secret %s", name)
-	}
-
-	// cast the service key to the expected type
-	s, ok := result.(*library.Secret)
-	if !ok {
-		return nil, fmt.Errorf("secret %s had unexpected value", name)
-	}
-
-	return s, nil
 }

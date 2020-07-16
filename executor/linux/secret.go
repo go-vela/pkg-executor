@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/drone/envsubst"
 	"github.com/go-vela/types/constants"
@@ -114,11 +115,63 @@ func (s *secretSvc) destroy(ctx context.Context, ctn *pipeline.Container) error 
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
 	logger := s.client.logger.WithField("secret", ctn.Name)
 
+	// load the step from the client
+	step, err := s.client.loadStep(s.client.init.ID)
+	if err != nil {
+		// create the step from the container
+		step = new(library.Step)
+		step.SetName(ctn.Name)
+		step.SetNumber(ctn.Number)
+		step.SetStatus(constants.StatusPending)
+		step.SetHost(ctn.Environment["VELA_HOST"])
+		step.SetRuntime(ctn.Environment["VELA_RUNTIME"])
+		step.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
+	}
+
+	defer func() {
+		logger.Info("uploading step snapshot")
+		// send API call to update the step
+		//
+		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
+		_, _, err := s.client.Vela.Step.Update(s.client.repo.GetOrg(), s.client.repo.GetName(), s.client.build.GetNumber(), step)
+		if err != nil {
+			logger.Errorf("unable to upload step snapshot: %v", err)
+		}
+	}()
+
+	// check if the step is in a pending state
+	if step.GetStatus() == constants.StatusPending {
+		// update the step fields
+		step.SetExitCode(137)
+		step.SetFinished(time.Now().UTC().Unix())
+		step.SetStatus(constants.StatusKilled)
+
+		// check if the step was not started
+		if step.GetStarted() == 0 {
+			// set the started time to the finished time
+			step.SetStarted(step.GetFinished())
+		}
+	}
+
 	logger.Debug("inspecting container")
 	// inspect the runtime container
-	err := s.client.Runtime.InspectContainer(ctx, ctn)
+	err = s.client.Runtime.InspectContainer(ctx, ctn)
 	if err != nil {
 		return err
+	}
+
+	// check if the step finished
+	if step.GetFinished() == 0 {
+		// update the step fields
+		step.SetFinished(time.Now().UTC().Unix())
+		step.SetStatus(constants.StatusSuccess)
+
+		// check the container for an unsuccessful exit code
+		if ctn.ExitCode > 0 {
+			// update the step fields
+			step.SetExitCode(ctn.ExitCode)
+			step.SetStatus(constants.StatusFailure)
+		}
 	}
 
 	logger.Debug("removing container")
@@ -132,7 +185,7 @@ func (s *secretSvc) destroy(ctx context.Context, ctn *pipeline.Container) error 
 }
 
 // exec runs a secret plugin.
-func (s *secretSvc) exec(ctx context.Context, l *library.Log, ctn *pipeline.Container) error {
+func (s *secretSvc) exec(ctx context.Context, ctn *pipeline.Container) error {
 	// update engine logger with secret metadata
 	//
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
@@ -148,81 +201,11 @@ func (s *secretSvc) exec(ctx context.Context, l *library.Log, ctn *pipeline.Cont
 	go func() {
 		logger.Debug("stream logs for container")
 		// stream logs from container
-		err := s.client.secret.stream(ctx, l, ctn)
+		err := s.client.secret.stream(ctx, ctn)
 		if err != nil {
 			logger.Error(err)
 		}
 	}()
-
-	return nil
-}
-
-// stream tails the output for a secret plugin.
-func (s *secretSvc) stream(ctx context.Context, l *library.Log, ctn *pipeline.Container) error {
-	b := s.client.build
-	r := s.client.repo
-
-	// update engine logger with secret metadata
-	//
-	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
-	logger := s.client.logger.WithField("secret", ctn.Name)
-
-	// create new buffer for uploading logs
-	logs := new(bytes.Buffer)
-
-	logger.Debug("tailing container")
-	// tail the runtime container
-	rc, err := s.client.Runtime.TailContainer(ctx, ctn)
-	if err != nil {
-		return err
-	}
-	defer rc.Close()
-
-	// create new scanner from the container output
-	scanner := bufio.NewScanner(rc)
-
-	// scan entire container output
-	for scanner.Scan() {
-		// write all the logs from the scanner
-		logs.Write(append(scanner.Bytes(), []byte("\n")...))
-
-		// if we have at least 1000 bytes in our buffer
-		if logs.Len() > 1000 {
-			logger.Trace(logs.String())
-
-			// update the existing log with the new bytes
-			//
-			// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-			l.AppendData(logs.Bytes())
-
-			logger.Debug("appending logs")
-			// send API call to append the logs for the init step
-			//
-			// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateStep
-			l, _, err = s.client.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), s.client.init.Number, l)
-			if err != nil {
-				return err
-			}
-
-			// flush the buffer of logs
-			logs.Reset()
-		}
-	}
-	logger.Trace(logs.String())
-
-	// update the existing log with the last bytes
-	//
-	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData(logs.Bytes())
-
-	logger.Debug("uploading logs")
-	// send API call to update the logs for the service
-	//
-	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateService
-	_, _, err = s.client.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), ctn.Number, l)
-	if err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -315,6 +298,82 @@ func (s *secretSvc) pull() (*bytes.Buffer, map[string]*library.Secret, error) {
 	}
 
 	return logs, secrets, nil
+}
+
+// stream tails the output for a secret plugin.
+func (s *secretSvc) stream(ctx context.Context, ctn *pipeline.Container) error {
+	b := s.client.build
+	r := s.client.repo
+
+	// stream all the logs to the init step
+	l, err := s.client.loadStepLogs(s.client.init.Name)
+	if err != nil {
+		return err
+	}
+
+	// update engine logger with secret metadata
+	//
+	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
+	logger := s.client.logger.WithField("secret", ctn.Name)
+
+	// create new buffer for uploading logs
+	logs := new(bytes.Buffer)
+
+	logger.Debug("tailing container")
+	// tail the runtime container
+	rc, err := s.client.Runtime.TailContainer(ctx, ctn)
+	if err != nil {
+		return err
+	}
+	defer rc.Close()
+
+	// create new scanner from the container output
+	scanner := bufio.NewScanner(rc)
+
+	// scan entire container output
+	for scanner.Scan() {
+		// write all the logs from the scanner
+		logs.Write(append(scanner.Bytes(), []byte("\n")...))
+
+		// if we have at least 1000 bytes in our buffer
+		if logs.Len() > 1000 {
+			logger.Trace(logs.String())
+
+			// update the existing log with the new bytes
+			//
+			// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+			l.AppendData(logs.Bytes())
+
+			logger.Debug("appending logs")
+			// send API call to append the logs for the init step
+			//
+			// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateStep
+			l, _, err = s.client.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), s.client.init.Number, l)
+			if err != nil {
+				return err
+			}
+
+			// flush the buffer of logs
+			logs.Reset()
+		}
+	}
+	logger.Trace(logs.String())
+
+	// update the existing log with the last bytes
+	//
+	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+	l.AppendData(logs.Bytes())
+
+	logger.Debug("uploading logs")
+	// send API call to update the logs for the service
+	//
+	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateService
+	_, _, err = s.client.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), ctn.Number, l)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // helper function to check secret whitelist before setting value

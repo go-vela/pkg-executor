@@ -451,12 +451,6 @@ func (c *client) ExecBuild(ctx context.Context) error {
 		}
 	}()
 
-	// stream all the logs to the init step
-	l, err := c.loadStepLogs(c.init.Name)
-	if err != nil {
-		return err
-	}
-
 	// execute the services for the pipeline
 	for _, s := range p.Secrets {
 		// check if the secret is a plugin
@@ -466,7 +460,7 @@ func (c *client) ExecBuild(ctx context.Context) error {
 
 		c.logger.Infof("executing %s service", s.Name)
 		// execute the service
-		err := c.secret.exec(ctx, l, s.Origin)
+		err := c.secret.exec(ctx, s.Origin)
 		if err != nil {
 			e = err
 			return fmt.Errorf("unable to execute service: %w", err)
@@ -617,7 +611,7 @@ func (c *client) ExecBuild(ctx context.Context) error {
 	// wait for the stages to complete or return an error
 	//
 	// https://pkg.go.dev/golang.org/x/sync/errgroup?tab=doc#Group.Wait
-	err = stages.Wait()
+	err := stages.Wait()
 	if err != nil {
 		e = err
 		return fmt.Errorf("unable to wait for stages: %v", err)

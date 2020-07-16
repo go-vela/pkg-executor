@@ -71,5 +71,8 @@ func New(opts ...Opt) (*client, error) {
 		}
 	}
 
+	// instantiate all client services
+	c.secret = &secretSvc{client: c}
+
 	return c, nil
 }

@@ -352,8 +352,6 @@ func TestLinux_Secret_pull(t *testing.T) {
 	_build := testBuild()
 	_repo := testRepo()
 	_user := testUser()
-	_stages := testStages()
-	_steps := testSteps()
 
 	gin.SetMode(gin.TestMode)
 
@@ -371,150 +369,117 @@ func TestLinux_Secret_pull(t *testing.T) {
 
 	// setup tests
 	tests := []struct {
-		failure  bool
-		pipeline *pipeline.Build
+		failure bool
+		secret  *pipeline.Secret
 	}{
-		{
-			failure:  false,
-			pipeline: _stages,
-		},
-		{
-			failure:  false,
-			pipeline: _steps,
-		},
-		{
-			failure: true,
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "github_octocat_1",
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "secret_github_octocat_1_vault",
-						Directory:   "/vela/src/vcs.company.com/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/secret-vault:latest",
-						Name:        "vault",
-						Number:      2,
-						Pull:        true,
-					},
-				},
-				Secrets: pipeline.SecretSlice{
-					{
-						Name:   "foo",
-						Key:    "github/octocat/foo",
-						Engine: "invalid",
-						Type:   "repo",
-						Origin: &pipeline.Container{},
-					},
-				},
+		{ // success with org secret
+			failure: false,
+			secret: &pipeline.Secret{
+				Name:   "foo",
+				Value:  "bar",
+				Key:    "github/foo",
+				Engine: "native",
+				Type:   "org",
+				Origin: &pipeline.Container{},
 			},
 		},
-		{
+		{ // failure with invalid org secret
 			failure: true,
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "github_octocat_1",
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "secret_github_octocat_1_vault",
-						Directory:   "/vela/src/vcs.company.com/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/secret-vault:latest",
-						Name:        "vault",
-						Number:      2,
-						Pull:        true,
-					},
-				},
-				Secrets: pipeline.SecretSlice{
-					{
-						Name:   "foo",
-						Key:    "github/octocat/foo",
-						Engine: "native",
-						Type:   "invalid",
-						Origin: &pipeline.Container{},
-					},
-				},
+			secret: &pipeline.Secret{
+				Name:   "foo",
+				Value:  "bar",
+				Key:    "foo/foo/foo",
+				Engine: "native",
+				Type:   "org",
+				Origin: &pipeline.Container{},
 			},
 		},
-		{
+		{ // failure with org secret key not found
 			failure: true,
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "github_octocat_1",
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "secret_github_octocat_1_vault",
-						Directory:   "/vela/src/vcs.company.com/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/secret-vault:latest",
-						Name:        "vault",
-						Number:      2,
-						Pull:        true,
-					},
-				},
-				Secrets: pipeline.SecretSlice{
-					{
-						Name:   "foo",
-						Key:    "/",
-						Engine: "native",
-						Type:   "repo",
-						Origin: &pipeline.Container{},
-					},
-				},
+			secret: &pipeline.Secret{
+				Name:   "foo",
+				Value:  "bar",
+				Key:    "not-found",
+				Engine: "native",
+				Type:   "org",
+				Origin: &pipeline.Container{},
 			},
 		},
-		{
-			failure: true,
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "github_octocat_1",
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "secret_github_octocat_1_vault",
-						Directory:   "/vela/src/vcs.company.com/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/secret-vault:latest",
-						Name:        "vault",
-						Number:      2,
-						Pull:        true,
-					},
-				},
-				Secrets: pipeline.SecretSlice{
-					{
-						Name:   "foo",
-						Key:    "/",
-						Engine: "native",
-						Type:   "shared",
-						Origin: &pipeline.Container{},
-					},
-				},
+		{ // success with repo secret
+			failure: false,
+			secret: &pipeline.Secret{
+				Name:   "foo",
+				Value:  "bar",
+				Key:    "github/octocat/foo",
+				Engine: "native",
+				Type:   "repo",
+				Origin: &pipeline.Container{},
 			},
 		},
-		{
+		{ // failure with invalid repo secret
 			failure: true,
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "github_octocat_1",
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "secret_github_octocat_1_vault",
-						Directory:   "/vela/src/vcs.company.com/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/secret-vault:latest",
-						Name:        "vault",
-						Number:      2,
-						Pull:        true,
-					},
-				},
-				Secrets: pipeline.SecretSlice{
-					{
-						Name:   "foo",
-						Key:    "github/not-found/foo",
-						Engine: "native",
-						Type:   "shared",
-						Origin: &pipeline.Container{},
-					},
-				},
+			secret: &pipeline.Secret{
+				Name:   "foo",
+				Value:  "bar",
+				Key:    "foo/foo/foo/foo",
+				Engine: "native",
+				Type:   "repo",
+				Origin: &pipeline.Container{},
+			},
+		},
+		{ // failure with repo secret key not found
+			failure: true,
+			secret: &pipeline.Secret{
+				Name:   "foo",
+				Value:  "bar",
+				Key:    "not-found",
+				Engine: "native",
+				Type:   "repo",
+				Origin: &pipeline.Container{},
+			},
+		},
+		{ // success with shared secret
+			failure: false,
+			secret: &pipeline.Secret{
+				Name:   "foo",
+				Value:  "bar",
+				Key:    "github/octokitties/foo",
+				Engine: "native",
+				Type:   "shared",
+				Origin: &pipeline.Container{},
+			},
+		},
+		{ // failure with invalid shared secret
+			failure: true,
+			secret: &pipeline.Secret{
+				Name:   "foo",
+				Value:  "bar",
+				Key:    "foo/foo/foo/foo",
+				Engine: "native",
+				Type:   "shared",
+				Origin: &pipeline.Container{},
+			},
+		},
+		{ // failure with shared secret key not found
+			failure: true,
+			secret: &pipeline.Secret{
+				Name:   "foo",
+				Value:  "bar",
+				Key:    "not-found",
+				Engine: "native",
+				Type:   "shared",
+				Origin: &pipeline.Container{},
+			},
+		},
+		{ // failure with invalid type
+			failure: true,
+			secret: &pipeline.Secret{
+				Name:   "foo",
+				Value:  "bar",
+				Key:    "github/octokitties/foo",
+				Engine: "native",
+				Type:   "invalid",
+				Origin: &pipeline.Container{},
 			},
 		},
 	}
@@ -523,7 +488,7 @@ func TestLinux_Secret_pull(t *testing.T) {
 	for _, test := range tests {
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(test.pipeline),
+			WithPipeline(testSteps()),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
@@ -533,7 +498,7 @@ func TestLinux_Secret_pull(t *testing.T) {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
 
-		_, _, err = _engine.secret.pull()
+		_, err = _engine.secret.pull(test.secret)
 
 		if test.failure {
 			if err == nil {

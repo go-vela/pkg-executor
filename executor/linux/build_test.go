@@ -222,9 +222,25 @@ func TestLinux_AssembleBuild(t *testing.T) {
 			failure:  false,
 			pipeline: "testdata/build/steps/basic.yml",
 		},
+		{ // pipeline with steps image tag not found
+			failure:  true,
+			pipeline: "testdata/build/steps/img_notfound.yml",
+		},
+		{ // pipeline with steps image tag ignoring not found
+			failure:  true,
+			pipeline: "testdata/build/steps/img_ignorenotfound.yml",
+		},
 		{ // basic stages pipeline
 			failure:  false,
 			pipeline: "testdata/build/stages/basic.yml",
+		},
+		{ // pipeline with stages image tag not found
+			failure:  true,
+			pipeline: "testdata/build/stages/img_notfound.yml",
+		},
+		{ // pipeline with stages image tag ignoring not found
+			failure:  true,
+			pipeline: "testdata/build/stages/img_ignorenotfound.yml",
 		},
 		// { // pipeline empty
 		// 	failure:  true,
@@ -237,22 +253,6 @@ func TestLinux_AssembleBuild(t *testing.T) {
 		{ // pipeline with service image tag ignoring not found
 			failure:  true,
 			pipeline: "testdata/build/services/img_ignorenotfound.yml",
-		},
-		{ // pipeline with steps image tag not found
-			failure:  true,
-			pipeline: "testdata/build/steps/img_notfound.yml",
-		},
-		{ // pipeline with steps image tag ignoring not found
-			failure:  true,
-			pipeline: "testdata/build/steps/img_ignorenotfound.yml",
-		},
-		{ // pipeline with stages image tag not found
-			failure:  true,
-			pipeline: "testdata/build/stages/img_notfound.yml",
-		},
-		{ // pipeline with stages image tag ignoring not found
-			failure:  true,
-			pipeline: "testdata/build/stages/img_ignorenotfound.yml",
 		},
 		{ // pipeline with stages image tag not found
 			failure:  true,
@@ -373,7 +373,7 @@ func TestLinux_ExecBuild(t *testing.T) {
 			failure:  true,
 			pipeline: "testdata/build/services/name_notfound.yml",
 		},
-		{ // basic stages pipeline
+		{ // basic secrets pipeline
 			failure:  false,
 			pipeline: "testdata/build/secrets/basic.yml",
 		},

@@ -28,19 +28,11 @@ type secretSvc svc
 var (
 	// ErrUnrecognizedSecretType defines the error type when the
 	// SecretType provided to the client is unsupported.
-	ErrUnrecognizedSecretType = errors.New("invalid secret type provided")
-
-	// ErrUnrecognizedSecretEngine defines the error type when the
-	// SecretEngine provided to the client is unsupported.
-	ErrUnrecognizedSecretEngine = errors.New("invalid secret engine provided")
-
-	// ErrInvalidPath defines the error type when the
-	// path provided for a type (org, repo, shared) is invalid.
-	ErrInvalidPath = "invalid path %s for %s secret %s"
+	ErrUnrecognizedSecretType = errors.New("invalid secret type")
 
 	// ErrUnableToRetrieve defines the error type when the
 	// secret is not able to be retrieved from the server.
-	ErrUnableToRetrieve = "unable to retrieve %s secret %s: %w"
+	ErrUnableToRetrieve = errors.New("unable to retrieve secret")
 )
 
 // create configures the secret plugin for execution.
@@ -211,93 +203,68 @@ func (s *secretSvc) exec(ctx context.Context, ctn *pipeline.Container) error {
 }
 
 // pull defines a function that pulls the secrets from the server for a given pipeline.
-func (s *secretSvc) pull() (*bytes.Buffer, map[string]*library.Secret, error) {
-	secrets := make(map[string]*library.Secret)
+func (s *secretSvc) pull(secret *pipeline.Secret) (*library.Secret, error) {
 	sec := new(library.Secret)
 
-	// create new buffer for appending to init logs
-	logs := new(bytes.Buffer)
-
-	// iterate through each secret provided in the pipeline
-	for _, secret := range s.client.pipeline.Secrets {
-		s.client.logger.Tracef("pulling %s %s secret %s", secret.Engine, secret.Type, secret.Name)
-
-		logs.Write([]byte(fmt.Sprintf("  $ get %s %s secret %s \n", secret.Engine, secret.Type, secret.Name)))
-
-		// ignore pulling secrets coming from plugins
-		if !secret.Origin.Empty() {
-			continue
+	switch secret.Type {
+	// handle repo secrets
+	case constants.SecretOrg:
+		err := secret.ValidOrg(s.client.repo.GetOrg())
+		if err != nil {
+			return nil, err
 		}
 
-		// if the secret isn't a native or vault type
-		if !strings.EqualFold(secret.Engine, constants.DriverNative) &&
-			!strings.EqualFold(secret.Engine, constants.DriverVault) {
-			return nil, nil, fmt.Errorf("%s: %s", ErrUnrecognizedSecretEngine, secret.Engine)
+		// send API call to capture the org secret
+		//
+		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SecretService.Get
+		sec, _, err := s.client.Vela.Secret.Get(secret.Engine, secret.Type, s.client.repo.GetOrg(), "*", secret.Key)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", ErrUnableToRetrieve, err)
 		}
 
-		switch secret.Type {
-		// handle repo secrets
-		case constants.SecretOrg:
-			err := secret.ValidOrg(s.client.repo.GetOrg())
-			if err != nil {
-				return nil, nil, err
-			}
+		secret.Value = sec.GetValue()
 
-			// send API call to capture the org secret
-			//
-			// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SecretService.Get
-			sec, _, err := s.client.Vela.Secret.Get(secret.Engine, secret.Type, s.client.repo.GetOrg(), "*", secret.Key)
-			if err != nil {
-				return nil, nil, fmt.Errorf(ErrUnableToRetrieve, secret.Type, secret.Key, err)
-			}
-
-			secret.Value = sec.GetValue()
-
-		// handle repo secrets
-		case constants.SecretRepo:
-			err := secret.ValidRepo(s.client.repo.GetOrg(), s.client.repo.GetName())
-			if err != nil {
-				return nil, nil, err
-			}
-
-			// send API call to capture the repo secret
-			//
-			// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SecretService.Get
-			sec, _, err := s.client.Vela.Secret.Get(secret.Engine, secret.Type, s.client.repo.GetOrg(), s.client.repo.GetName(), secret.Key)
-			if err != nil {
-				return nil, nil, fmt.Errorf(ErrUnableToRetrieve, secret.Type, secret.Key, err)
-			}
-
-			secret.Value = sec.GetValue()
-
-		// handle shared secrets
-		case constants.SecretShared:
-			err := secret.ValidShared(s.client.repo.GetOrg())
-			if err != nil {
-				return nil, nil, err
-			}
-
-			team := strings.SplitN(secret.Key, "/", 3)[2]
-
-			// send API call to capture the repo secret
-			//
-			// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SecretService.Get
-			sec, _, err := s.client.Vela.Secret.Get(secret.Engine, secret.Type, s.client.repo.GetOrg(), team, secret.Key)
-			if err != nil {
-				return nil, nil, fmt.Errorf(ErrUnableToRetrieve, secret.Type, secret.Key, err)
-			}
-
-			secret.Value = sec.GetValue()
-
-		default:
-			return nil, nil, fmt.Errorf("%s: %s", ErrUnrecognizedSecretType, secret.Type)
+	// handle repo secrets
+	case constants.SecretRepo:
+		err := secret.ValidRepo(s.client.repo.GetOrg(), s.client.repo.GetName())
+		if err != nil {
+			return nil, err
 		}
 
-		// add secret to the map
-		secrets[secret.Name] = sec
+		// send API call to capture the repo secret
+		//
+		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SecretService.Get
+		sec, _, err := s.client.Vela.Secret.Get(secret.Engine, secret.Type, s.client.repo.GetOrg(), s.client.repo.GetName(), secret.Key)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", ErrUnableToRetrieve, err)
+		}
+
+		secret.Value = sec.GetValue()
+
+	// handle shared secrets
+	case constants.SecretShared:
+		err := secret.ValidShared(s.client.repo.GetOrg())
+		if err != nil {
+			return nil, err
+		}
+
+		team := strings.SplitN(secret.Key, "/", 3)[2]
+
+		// send API call to capture the repo secret
+		//
+		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SecretService.Get
+		sec, _, err := s.client.Vela.Secret.Get(secret.Engine, secret.Type, s.client.repo.GetOrg(), team, secret.Key)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", ErrUnableToRetrieve, err)
+		}
+
+		secret.Value = sec.GetValue()
+
+	default:
+		return nil, fmt.Errorf("%s: %s", ErrUnrecognizedSecretType, secret.Type)
 	}
 
-	return logs, secrets, nil
+	return sec, nil
 }
 
 // stream tails the output for a secret plugin.

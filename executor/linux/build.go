@@ -127,7 +127,6 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	}()
 
 	// load the init step from the client
-	fmt.Println("init: ", init)
 	s, err := c.loadStep(init.ID)
 	if err != nil {
 		return err
@@ -215,22 +214,26 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
 	l.AppendData([]byte("$ Pulling secrets...\n"))
 
-	// TODO: Pull this out into a the plan function for steps.
-	c.logger.Info("pulling secrets")
-	// pull secrets for the build
-	logs, secrets, err := c.secret.pull()
-	if err != nil {
-		e = err
-		return fmt.Errorf("unable to pull secrets: %v", err)
+	// iterate through each secret provided in the pipeline
+	for _, secret := range p.Secrets {
+		c.logger.Infof("pulling %s %s secret %s", secret.Engine, secret.Type, secret.Name)
+
+		l.AppendData([]byte(fmt.Sprintf("  $ get %s %s secret %s \n", secret.Engine, secret.Type, secret.Name)))
+
+		// ignore pulling secrets coming from plugins
+		if !secret.Origin.Empty() {
+			continue
+		}
+
+		s, err := c.secret.pull(secret)
+		if err != nil {
+			e = err
+			return fmt.Errorf("unable to inspect volume: %w", err)
+		}
+
+		// add secret to the map
+		c.Secrets[secret.Name] = s
 	}
-
-	// add the server secrets to map
-	c.Secrets = secrets
-
-	// update the init log with network info
-	//
-	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData(logs.Bytes())
 
 	return nil
 }
@@ -382,7 +385,7 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	// create the secrets for the pipeline
 	for _, s := range p.Secrets {
 		// check if the secret is a plugin
-		if s.Origin == nil {
+		if s.Origin.Empty() {
 			continue
 		}
 
@@ -451,9 +454,8 @@ func (c *client) ExecBuild(ctx context.Context) error {
 
 	// execute the secrets for the pipeline
 	for _, s := range p.Secrets {
-		fmt.Println("secret: ", s.Origin)
 		// check if the secret is a plugin
-		if s.Origin == nil {
+		if s.Origin.Empty() {
 			continue
 		}
 

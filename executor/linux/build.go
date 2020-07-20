@@ -63,14 +63,16 @@ func (c *client) CreateBuild(ctx context.Context) error {
 
 	c.build = b
 
-	// TODO: make this better
+	// create init container
 	init := new(pipeline.Container)
+
 	if len(p.Steps) > 0 {
+		// add init container to pipeline
 		init = p.Steps[0]
 	}
 
-	// TODO: make this better
 	if len(p.Stages) > 0 {
+		// add init container to pipeline
 		init = p.Stages[0].Steps[0]
 	}
 
@@ -102,6 +104,7 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	p := c.pipeline
 	r := c.repo
 	e := c.err
+	init := c.init
 
 	defer func() {
 		// NOTE: When an error occurs during a build that does not have to do
@@ -123,13 +126,8 @@ func (c *client) PlanBuild(ctx context.Context) error {
 		}
 	}()
 
-	// load init container from the pipeline
-	init, err := c.loadInitContainer(p)
-	if err != nil {
-		return err
-	}
-
 	// load the init step from the client
+	fmt.Println("init: ", init)
 	s, err := c.loadStep(init.ID)
 	if err != nil {
 		return err
@@ -451,19 +449,20 @@ func (c *client) ExecBuild(ctx context.Context) error {
 		}
 	}()
 
-	// execute the services for the pipeline
+	// execute the secrets for the pipeline
 	for _, s := range p.Secrets {
+		fmt.Println("secret: ", s.Origin)
 		// check if the secret is a plugin
 		if s.Origin == nil {
 			continue
 		}
 
-		c.logger.Infof("executing %s service", s.Name)
-		// execute the service
+		c.logger.Infof("executing %s secret", s.Name)
+		// execute the secret
 		err := c.secret.exec(ctx, s.Origin)
 		if err != nil {
 			e = err
-			return fmt.Errorf("unable to execute service: %w", err)
+			return fmt.Errorf("unable to execute secret: %w", err)
 		}
 	}
 

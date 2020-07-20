@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/go-vela/mock/server"
+	"github.com/go-vela/types"
 
 	"github.com/go-vela/pkg-runtime/runtime/docker"
 
@@ -145,6 +146,30 @@ func testUser() *library.User {
 	}
 }
 
+// testUser is a test helper function to create a metadata
+// type with all fields set to a fake value.
+func testMetadata() *types.Metadata {
+	return &types.Metadata{
+		Database: &types.Database{
+			Driver: "foo",
+			Host:   "foo",
+		},
+		Queue: &types.Queue{
+			Channel: "foo",
+			Driver:  "foo",
+			Host:    "foo",
+		},
+		Source: &types.Source{
+			Driver: "foo",
+			Host:   "foo",
+		},
+		Vela: &types.Vela{
+			Address:    "foo",
+			WebAddress: "foo",
+		},
+	}
+}
+
 // testStages is a test helper function to create a stages
 // pipeline with fake steps.
 func testStages() *pipeline.Build {
@@ -215,18 +240,21 @@ func testStages() *pipeline.Build {
 				Key:    "github/octocat/foo",
 				Engine: "native",
 				Type:   "repo",
+				Origin: &pipeline.Container{},
 			},
 			{
 				Name:   "foo",
 				Key:    "github/foo",
 				Engine: "native",
 				Type:   "org",
+				Origin: &pipeline.Container{},
 			},
 			{
 				Name:   "foo",
 				Key:    "github/octokitties/foo",
 				Engine: "native",
 				Type:   "shared",
+				Origin: &pipeline.Container{},
 			},
 		},
 	}
@@ -285,18 +313,21 @@ func testSteps() *pipeline.Build {
 				Key:    "github/octocat/foo",
 				Engine: "native",
 				Type:   "repo",
+				Origin: &pipeline.Container{},
 			},
 			{
 				Name:   "foo",
 				Key:    "github/foo",
 				Engine: "native",
 				Type:   "org",
+				Origin: &pipeline.Container{},
 			},
 			{
 				Name:   "foo",
 				Key:    "github/octokitties/foo",
 				Engine: "native",
 				Type:   "shared",
+				Origin: &pipeline.Container{},
 			},
 		},
 	}

@@ -225,7 +225,7 @@ func (s *secretSvc) pull() (*bytes.Buffer, map[string]*library.Secret, error) {
 		logs.Write([]byte(fmt.Sprintf("  $ get %s %s secret %s \n", secret.Engine, secret.Type, secret.Name)))
 
 		// ignore pulling secrets coming from plugins
-		if secret.Origin != nil {
+		if !secret.Origin.Empty() {
 			continue
 		}
 

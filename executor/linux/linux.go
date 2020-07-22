@@ -71,6 +71,9 @@ func New(opts ...Opt) (*client, error) {
 		}
 	}
 
+	// instantiate map for non-plugin secrets
+	c.Secrets = make(map[string]*library.Secret)
+
 	// instantiate all client services
 	c.secret = &secretSvc{client: c}
 

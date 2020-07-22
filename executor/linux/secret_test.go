@@ -6,11 +6,15 @@ package linux
 
 import (
 	"context"
+	"flag"
+	"io/ioutil"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/urfave/cli/v2"
 
+	"github.com/go-vela/compiler/compiler/native"
 	"github.com/go-vela/mock/server"
 
 	"github.com/go-vela/pkg-runtime/runtime/docker"
@@ -102,7 +106,7 @@ func TestLinux_Secret_create(t *testing.T) {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
 
-		err = _engine.secret.create(context.Background(), _engine.Secrets, test.container)
+		err = _engine.secret.create(context.Background(), test.container)
 
 		if test.failure {
 			if err == nil {
@@ -240,10 +244,12 @@ func TestLinux_Secret_delete(t *testing.T) {
 
 func TestLinux_Secret_exec(t *testing.T) {
 	// setup types
+	compiler, _ := native.New(cli.NewContext(nil, flag.NewFlagSet("test", 0), nil))
+
 	_build := testBuild()
 	_repo := testRepo()
 	_user := testUser()
-	_steps := testSteps()
+	_metadata := testMetadata()
 
 	gin.SetMode(gin.TestMode)
 
@@ -261,63 +267,33 @@ func TestLinux_Secret_exec(t *testing.T) {
 
 	// setup tests
 	tests := []struct {
-		failure   bool
-		container *pipeline.Container
+		failure  bool
+		pipeline string
 	}{
-		{
-			failure: false,
-			container: &pipeline.Container{
-				ID:        "step_github_octocat_1_init",
-				Directory: "/vela/src/vcs.company.com/github/octocat",
-				Image:     "#init",
-				Name:      "init",
-				Number:    1,
-				Pull:      true,
-			},
+		{ // basic secrets pipeline
+			failure:  false,
+			pipeline: "testdata/build/secrets/basic.yml",
 		},
-		{
-			failure: false,
-			container: &pipeline.Container{
-				ID:          "secret_github_octocat_1_vault",
-				Directory:   "/vela/src/vcs.company.com/github/octocat",
-				Environment: map[string]string{"FOO": "bar"},
-				Image:       "target/secret-vault:latest",
-				Name:        "vault",
-				Number:      2,
-				Pull:        true,
-			},
-		},
-		{
-			failure: false,
-			container: &pipeline.Container{
-				ID:          "secret_github_octocat_1_vault",
-				Directory:   "/vela/src/vcs.company.com/github/octocat",
-				Environment: map[string]string{"FOO": "bar"},
-				Image:       "target/secret-vault:latest",
-				Name:        "vault",
-				Number:      2,
-				Pull:        true,
-			},
-		},
-		{
-			failure: true,
-			container: &pipeline.Container{
-				ID:          "secret_github_octocat_1_notfound",
-				Directory:   "/vela/src/vcs.company.com/github/octocat",
-				Environment: map[string]string{"FOO": "bar"},
-				Image:       "target/secret-vault:latest",
-				Name:        "notfound",
-				Number:      2,
-				Pull:        true,
-			},
+		{ // pipeline with secret name not found
+			failure:  true,
+			pipeline: "testdata/build/secrets/name_notfound.yml",
 		},
 	}
 
 	// run tests
 	for _, test := range tests {
+		file, _ := ioutil.ReadFile(test.pipeline)
+
+		p, _ := compiler.
+			WithBuild(_build).
+			WithRepo(_repo).
+			WithUser(_user).
+			WithMetadata(_metadata).
+			Compile(file)
+
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(_steps),
+			WithPipeline(p),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
@@ -327,22 +303,23 @@ func TestLinux_Secret_exec(t *testing.T) {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
 
-		_ = _engine.CreateBuild(context.Background())
-		_engine.stepLogs.Store(test.container.ID, new(library.Log))
-		_engine.steps.Store(test.container.ID, new(library.Step))
+		_engine.build.SetStatus(constants.StatusSuccess)
 
-		err = _engine.secret.exec(context.Background(), test.container)
+		// add init container info to client
+		_ = _engine.CreateBuild(context.Background())
+
+		err = _engine.secret.exec(context.Background(), &p.Secrets)
 
 		if test.failure {
 			if err == nil {
-				t.Errorf("ExecStep should have returned err")
+				t.Errorf("exec should have returned err")
 			}
 
 			continue
 		}
 
 		if err != nil {
-			t.Errorf("ExecStep returned err: %v", err)
+			t.Errorf("exec returned err: %v", err)
 		}
 	}
 }

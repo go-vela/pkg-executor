@@ -216,19 +216,19 @@ func (c *client) PlanBuild(ctx context.Context) error {
 
 	// iterate through each secret provided in the pipeline
 	for _, secret := range p.Secrets {
-		c.logger.Infof("pulling %s %s secret %s", secret.Engine, secret.Type, secret.Name)
-
-		l.AppendData([]byte(fmt.Sprintf("  $ get %s %s secret %s \n", secret.Engine, secret.Type, secret.Name)))
-
 		// ignore pulling secrets coming from plugins
 		if !secret.Origin.Empty() {
 			continue
 		}
 
+		c.logger.Infof("pulling %s %s secret %s", secret.Engine, secret.Type, secret.Name)
+
+		l.AppendData([]byte(fmt.Sprintf("  $ get %s %s secret %s \n", secret.Engine, secret.Type, secret.Name)))
+
 		s, err := c.secret.pull(secret)
 		if err != nil {
 			e = err
-			return fmt.Errorf("unable to inspect volume: %w", err)
+			return fmt.Errorf("unable to pull secrets: %w", err)
 		}
 
 		// add secret to the map
@@ -244,6 +244,9 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	p := c.pipeline
 	r := c.repo
 	e := c.err
+
+	b.SetStatus(constants.StatusSuccess)
+	c.build = b
 
 	defer func() {
 		// NOTE: When an error occurs during a build that does not have to do
@@ -268,12 +271,14 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	// load init container from the pipeline
 	init, err := c.loadInitContainer(p)
 	if err != nil {
+		e = err
 		return err
 	}
 
 	// load the logs for the init step from the client
 	l, err := c.loadStepLogs(init.ID)
 	if err != nil {
+		e = err
 		return err
 	}
 
@@ -349,7 +354,6 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 			continue
 		}
 
-		// TODO: make this not hardcoded
 		// update the init log with progress
 		//
 		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
@@ -384,37 +388,49 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 
 	// create the secrets for the pipeline
 	for _, s := range p.Secrets {
-		// check if the secret is a plugin
+		// skip over non-plugin secrets
 		if s.Origin.Empty() {
 			continue
 		}
 
-		// TODO: remove hardcoded reference
 		// update the init log with progress
 		//
 		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
 		l.AppendData([]byte(fmt.Sprintf("  $ docker image inspect %s\n", s.Origin.Name)))
 
-		c.logger.Infof("creating %s secret", s.Name)
+		c.logger.Infof("creating %s secret", s.Origin.Name)
 		// create the service
-		err := c.secret.create(ctx, c.Secrets, s.Origin)
+		err := c.secret.create(ctx, s.Origin)
 		if err != nil {
 			e = err
-			return fmt.Errorf("unable to create %s secret: %w", s.Name, err)
+			return fmt.Errorf("unable to create %s secret: %w", s.Origin.Name, err)
 		}
 
-		c.logger.Infof("inspecting %s secret", s.Name)
+		c.logger.Infof("inspecting %s secret", s.Origin.Name)
 		// inspect the service image
 		image, err := c.Runtime.InspectImage(ctx, s.Origin)
 		if err != nil {
 			e = err
-			return fmt.Errorf("unable to inspect %s secret: %w", s.Name, err)
+			return fmt.Errorf("unable to inspect %s secret: %w", s.Origin.Name, err)
 		}
 
 		// update the init log with secret image info
 		//
 		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
 		l.AppendData(image)
+	}
+
+	// update the init log with progress
+	//
+	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+	l.AppendData([]byte("$ Executing secret images...\n"))
+
+	c.logger.Info("executing secret images")
+	// execute the secret
+	err = c.secret.exec(ctx, &p.Secrets)
+	if err != nil {
+		e = err
+		return fmt.Errorf("unable to execute secret: %w", err)
 	}
 
 	return nil
@@ -426,9 +442,6 @@ func (c *client) ExecBuild(ctx context.Context) error {
 	p := c.pipeline
 	r := c.repo
 	e := c.err
-
-	b.SetStatus(constants.StatusSuccess)
-	c.build = b
 
 	defer func() {
 		// NOTE: When an error occurs during a build that does not have to do
@@ -451,22 +464,6 @@ func (c *client) ExecBuild(ctx context.Context) error {
 			c.logger.Errorf("unable to upload errorred state: %v", err)
 		}
 	}()
-
-	// execute the secrets for the pipeline
-	for _, s := range p.Secrets {
-		// check if the secret is a plugin
-		if s.Origin.Empty() {
-			continue
-		}
-
-		c.logger.Infof("executing %s secret", s.Name)
-		// execute the secret
-		err := c.secret.exec(ctx, s.Origin)
-		if err != nil {
-			e = err
-			return fmt.Errorf("unable to execute secret: %w", err)
-		}
-	}
 
 	// execute the services for the pipeline
 	for _, s := range p.Services {
@@ -667,11 +664,16 @@ func (c *client) DestroyBuild(ctx context.Context) error {
 
 	// destroy the secrets for the pipeline
 	for _, s := range c.pipeline.Secrets {
-		c.logger.Infof("destroying %s service", s.Name)
+		// skip over non-plugin secrets
+		if s.Origin.Empty() {
+			continue
+		}
+
+		c.logger.Infof("destroying %s secret", s.Name)
 		// destroy the service
 		err = c.secret.destroy(ctx, s.Origin)
 		if err != nil {
-			c.logger.Errorf("unable to destroy service: %v", err)
+			c.logger.Errorf("unable to destroy secret: %v", err)
 		}
 	}
 

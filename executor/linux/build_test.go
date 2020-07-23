@@ -19,6 +19,7 @@ import (
 
 	"github.com/go-vela/sdk-go/vela"
 
+	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/library"
 
 	"github.com/gin-gonic/gin"
@@ -411,6 +412,10 @@ func TestLinux_ExecBuild(t *testing.T) {
 		if err != nil {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
+
+		build := _engine.build
+		build.SetStatus(constants.StatusSuccess)
+		_engine.build = build
 
 		for _, service := range p.Services {
 			s := &library.Service{

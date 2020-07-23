@@ -443,6 +443,9 @@ func (c *client) ExecBuild(ctx context.Context) error {
 	r := c.repo
 	e := c.err
 
+	b.SetStatus(constants.StatusSuccess)
+	c.build = b
+
 	defer func() {
 		// NOTE: When an error occurs during a build that does not have to do
 		// with a pipeline we should set build status to "error" not "failed"
@@ -509,11 +512,11 @@ func (c *client) ExecBuild(ctx context.Context) error {
 			ruledata.Target = b.GetDeploy()
 		}
 
+		fmt.Printf("RULEDATA: %+v \n", ruledata)
 		// check if you need to excute this step
 		if !s.Execute(ruledata) {
 			continue
 		}
-
 		c.logger.Infof("planning %s step", s.Name)
 		// plan the step
 		err := c.PlanStep(ctx, s)

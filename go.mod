@@ -15,5 +15,6 @@ require (
 	github.com/onsi/gomega v1.7.1 // indirect
 	github.com/sirupsen/logrus v1.6.0
 	github.com/urfave/cli/v2 v2.2.0
-	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
+	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
+	google.golang.org/genproto v0.0.0-20200702021140-07506425bd67 // indirect
 )

@@ -388,3 +388,21 @@ func (c *client) loadStepLogs(name string) (*library.Log, error) {
 
 	return l, nil
 }
+
+// loadInitContainer is a helper function to capture
+// the init step from the client.
+func (c *client) loadInitContainer(p *pipeline.Build) (*pipeline.Container, error) {
+
+	// TODO: make this better
+	init := new(pipeline.Container)
+	if len(p.Steps) > 0 {
+		init = p.Steps[0]
+	}
+
+	// TODO: make this better
+	if len(p.Stages) > 0 {
+		init = p.Stages[0].Steps[0]
+	}
+
+	return init, nil
+}

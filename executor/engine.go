@@ -36,20 +36,19 @@ type Engine interface {
 	// configures the build for execution.
 	CreateBuild(context.Context) error
 	// PlanBuild defines a function that
-	// prepares the build for execution.
+	// handles the resource initialization process
+	// for the build.
 	PlanBuild(context.Context) error
+	// AssembleBuild defines a function that
+	// prepares the containers within a build
+	// for execution.
+	AssembleBuild(context.Context) error
 	// ExecBuild defines a function that
 	// runs a pipeline for a build.
 	ExecBuild(context.Context) error
 	// DestroyBuild defines a function that
 	// cleans up the build after execution.
 	DestroyBuild(context.Context) error
-
-	// Secrets Engine Interface Functions
-
-	// PullSecret defines a function that pulls
-	// the secrets for a given pipeline.
-	PullSecret(context.Context) error
 
 	// Service Engine Interface Functions
 

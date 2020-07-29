@@ -63,23 +63,16 @@ func (c *client) CreateBuild(ctx context.Context) error {
 
 	c.build = b
 
-	// TODO: Pull this out into a the plan function for steps.
-	c.logger.Info("pulling secrets")
-	// pull secrets for the build
-	err = c.PullSecret(ctx)
-	if err != nil {
-		e = err
-		return fmt.Errorf("unable to pull secrets: %v", err)
-	}
-
-	// TODO: make this better
+	// create init container
 	init := new(pipeline.Container)
+
 	if len(p.Steps) > 0 {
+		// add init container to pipeline
 		init = p.Steps[0]
 	}
 
-	// TODO: make this better
 	if len(p.Stages) > 0 {
+		// add init container to pipeline
 		init = p.Stages[0].Steps[0]
 	}
 
@@ -99,6 +92,9 @@ func (c *client) CreateBuild(ctx context.Context) error {
 		return fmt.Errorf("unable to plan %s step: %w", init.Name, err)
 	}
 
+	// add the init container to secrets client
+	c.init = init
+
 	return nil
 }
 
@@ -108,6 +104,7 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	p := c.pipeline
 	r := c.repo
 	e := c.err
+	init := c.init
 
 	defer func() {
 		// NOTE: When an error occurs during a build that does not have to do
@@ -128,16 +125,6 @@ func (c *client) PlanBuild(ctx context.Context) error {
 			c.logger.Errorf("unable to upload build snapshot: %v", err)
 		}
 	}()
-
-	// TODO: make this better
-	init := new(pipeline.Container)
-	if len(p.Steps) > 0 {
-		init = p.Steps[0]
-	}
-	// TODO: make this better
-	if len(p.Stages) > 0 {
-		init = p.Stages[0].Steps[0]
-	}
 
 	// load the init step from the client
 	s, err := c.loadStep(init.ID)
@@ -225,6 +212,79 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	// update the init log with progress
 	//
 	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+	l.AppendData([]byte("$ Pulling secrets...\n"))
+
+	// iterate through each secret provided in the pipeline
+	for _, secret := range p.Secrets {
+		// ignore pulling secrets coming from plugins
+		if !secret.Origin.Empty() {
+			continue
+		}
+
+		c.logger.Infof("pulling %s %s secret %s", secret.Engine, secret.Type, secret.Name)
+
+		l.AppendData([]byte(fmt.Sprintf("  $ get %s %s secret %s \n", secret.Engine, secret.Type, secret.Name)))
+
+		s, err := c.secret.pull(secret)
+		if err != nil {
+			e = err
+			return fmt.Errorf("unable to pull secrets: %w", err)
+		}
+
+		// add secret to the map
+		c.Secrets[secret.Name] = s
+	}
+
+	return nil
+}
+
+// AssembleBuild prepares the containers within a build for execution.
+func (c *client) AssembleBuild(ctx context.Context) error {
+	b := c.build
+	p := c.pipeline
+	r := c.repo
+	e := c.err
+
+	b.SetStatus(constants.StatusSuccess)
+	c.build = b
+
+	defer func() {
+		// NOTE: When an error occurs during a build that does not have to do
+		// with a pipeline we should set build status to "error" not "failed"
+		// because it is worker related and not build.
+		if e != nil {
+			b.SetError(e.Error())
+			b.SetStatus(constants.StatusError)
+			b.SetFinished(time.Now().UTC().Unix())
+		}
+
+		c.logger.Info("uploading build snapshot")
+		// send API call to update the build
+		//
+		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#BuildService.Update
+		_, _, err := c.Vela.Build.Update(r.GetOrg(), r.GetName(), b)
+		if err != nil {
+			c.logger.Errorf("unable to upload build snapshot: %v", err)
+		}
+	}()
+
+	// load init container from the pipeline
+	init, err := c.loadInitContainer(p)
+	if err != nil {
+		e = err
+		return err
+	}
+
+	// load the logs for the init step from the client
+	l, err := c.loadStepLogs(init.ID)
+	if err != nil {
+		e = err
+		return err
+	}
+
+	// update the init log with progress
+	//
+	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
 	l.AppendData([]byte("$ Pulling service images...\n"))
 
 	// create the services for the pipeline
@@ -241,7 +301,7 @@ func (c *client) PlanBuild(ctx context.Context) error {
 
 		c.logger.Infof("creating %s service", s.Name)
 		// create the service
-		err = c.CreateService(ctx, s)
+		err := c.CreateService(ctx, s)
 		if err != nil {
 			e = err
 			return fmt.Errorf("unable to create %s service: %w", s.Name, err)
@@ -275,7 +335,7 @@ func (c *client) PlanBuild(ctx context.Context) error {
 
 		c.logger.Infof("creating %s stage", s.Name)
 		// create the stage
-		err = c.CreateStage(ctx, s)
+		err := c.CreateStage(ctx, s)
 		if err != nil {
 			e = err
 			return fmt.Errorf("unable to create %s stage: %w", s.Name, err)
@@ -294,7 +354,6 @@ func (c *client) PlanBuild(ctx context.Context) error {
 			continue
 		}
 
-		// TODO: make this not hardcoded
 		// update the init log with progress
 		//
 		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
@@ -302,7 +361,7 @@ func (c *client) PlanBuild(ctx context.Context) error {
 
 		c.logger.Infof("creating %s step", s.Name)
 		// create the step
-		err = c.CreateStep(ctx, s)
+		err := c.CreateStep(ctx, s)
 		if err != nil {
 			e = err
 			return fmt.Errorf("unable to create %s step: %w", s.Name, err)
@@ -320,6 +379,58 @@ func (c *client) PlanBuild(ctx context.Context) error {
 		//
 		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
 		l.AppendData(image)
+	}
+
+	// update the init log with progress
+	//
+	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+	l.AppendData([]byte("$ Pulling secret images...\n"))
+
+	// create the secrets for the pipeline
+	for _, s := range p.Secrets {
+		// skip over non-plugin secrets
+		if s.Origin.Empty() {
+			continue
+		}
+
+		// update the init log with progress
+		//
+		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+		l.AppendData([]byte(fmt.Sprintf("  $ docker image inspect %s\n", s.Origin.Name)))
+
+		c.logger.Infof("creating %s secret", s.Origin.Name)
+		// create the service
+		err := c.secret.create(ctx, s.Origin)
+		if err != nil {
+			e = err
+			return fmt.Errorf("unable to create %s secret: %w", s.Origin.Name, err)
+		}
+
+		c.logger.Infof("inspecting %s secret", s.Origin.Name)
+		// inspect the service image
+		image, err := c.Runtime.InspectImage(ctx, s.Origin)
+		if err != nil {
+			e = err
+			return fmt.Errorf("unable to inspect %s secret: %w", s.Origin.Name, err)
+		}
+
+		// update the init log with secret image info
+		//
+		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+		l.AppendData(image)
+	}
+
+	// update the init log with progress
+	//
+	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+	l.AppendData([]byte("$ Executing secret images...\n"))
+
+	c.logger.Info("executing secret images")
+	// execute the secret
+	err = c.secret.exec(ctx, &p.Secrets)
+	if err != nil {
+		e = err
+		return fmt.Errorf("unable to execute secret: %w", err)
 	}
 
 	return nil
@@ -405,7 +516,6 @@ func (c *client) ExecBuild(ctx context.Context) error {
 		if !s.Execute(ruledata) {
 			continue
 		}
-
 		c.logger.Infof("planning %s step", s.Name)
 		// plan the step
 		err := c.PlanStep(ctx, s)
@@ -551,6 +661,21 @@ func (c *client) DestroyBuild(ctx context.Context) error {
 		err = c.DestroyService(ctx, s)
 		if err != nil {
 			c.logger.Errorf("unable to destroy service: %v", err)
+		}
+	}
+
+	// destroy the secrets for the pipeline
+	for _, s := range c.pipeline.Secrets {
+		// skip over non-plugin secrets
+		if s.Origin.Empty() {
+			continue
+		}
+
+		c.logger.Infof("destroying %s secret", s.Name)
+		// destroy the secret
+		err = c.secret.destroy(ctx, s.Origin)
+		if err != nil {
+			c.logger.Errorf("unable to destroy secret: %v", err)
 		}
 	}
 

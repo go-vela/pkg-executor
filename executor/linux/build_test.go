@@ -6,28 +6,33 @@ package linux
 
 import (
 	"context"
+	"flag"
+	"io/ioutil"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-vela/compiler/compiler/native"
 	"github.com/go-vela/mock/server"
+	"github.com/urfave/cli/v2"
 
 	"github.com/go-vela/pkg-runtime/runtime/docker"
 
 	"github.com/go-vela/sdk-go/vela"
 
+	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/library"
-	"github.com/go-vela/types/pipeline"
 
 	"github.com/gin-gonic/gin"
 )
 
 func TestLinux_CreateBuild(t *testing.T) {
 	// setup types
+	compiler, _ := native.New(cli.NewContext(nil, flag.NewFlagSet("test", 0), nil))
+
 	_build := testBuild()
 	_repo := testRepo()
 	_user := testUser()
-	_stages := testStages()
-	_steps := testSteps()
+	_metadata := testMetadata()
 
 	gin.SetMode(gin.TestMode)
 
@@ -46,119 +51,39 @@ func TestLinux_CreateBuild(t *testing.T) {
 	tests := []struct {
 		failure  bool
 		build    *library.Build
-		pipeline *pipeline.Build
+		pipeline string
 	}{
-		{
+		{ // basic steps pipeline
 			failure:  false,
 			build:    _build,
-			pipeline: _stages,
+			pipeline: "testdata/build/steps/basic.yml",
 		},
-		{
+		{ // basic stages pipeline
 			failure:  false,
 			build:    _build,
-			pipeline: _steps,
+			pipeline: "testdata/build/stages/basic.yml",
 		},
-		{
+		{ // pipeline with empty build
 			failure:  true,
 			build:    new(library.Build),
-			pipeline: _steps,
-		},
-		{
-			failure: true,
-			build:   _build,
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "github_octocat_1",
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "step_github_octocat_1_clone",
-						Directory:   "/home/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/vela-git:v0.3.0",
-						Name:        "clone",
-						Number:      2,
-						Pull:        true,
-					},
-				},
-				Secrets: pipeline.SecretSlice{
-					{
-						Name:   "foo",
-						Key:    "github/octocat/foo",
-						Engine: "invalid",
-						Type:   "repo",
-					},
-				},
-			},
-		},
-		{
-			failure: true,
-			build:   _build,
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "github_octocat_1",
-				Stages: pipeline.StageSlice{
-					{
-						Name: "clone",
-						Steps: pipeline.ContainerSlice{
-							{
-								ID:          "github_octocat_1_clone_clone",
-								Directory:   "/home/github/octocat",
-								Environment: map[string]string{"FOO": "bar"},
-								Image:       "target/vela-git:notfound",
-								Name:        "clone",
-								Number:      2,
-								Pull:        true,
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			failure: true,
-			build:   _build,
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "github_octocat_1",
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "step_github_octocat_1_clone",
-						Directory:   "/home/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/vela-git:notfound",
-						Name:        "clone",
-						Number:      2,
-						Pull:        true,
-					},
-				},
-			},
-		},
-		{
-			failure: true,
-			build:   _build,
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "github_octocat_1",
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "step_github_octocat_1_clone",
-						Directory:   "/home/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/vela-git:v0.3.0",
-						Name:        "clone",
-						Number:      0,
-						Pull:        true,
-					},
-				},
-			},
+			pipeline: "testdata/build/steps/basic.yml",
 		},
 	}
 
 	// run test
 	for _, test := range tests {
+		file, _ := ioutil.ReadFile(test.pipeline)
+
+		p, _ := compiler.
+			WithBuild(_build).
+			WithRepo(_repo).
+			WithUser(_user).
+			WithMetadata(_metadata).
+			Compile(file)
+
 		_engine, err := New(
 			WithBuild(test.build),
-			WithPipeline(test.pipeline),
+			WithPipeline(p),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
@@ -186,11 +111,12 @@ func TestLinux_CreateBuild(t *testing.T) {
 
 func TestLinux_PlanBuild(t *testing.T) {
 	// setup types
+	compiler, _ := native.New(cli.NewContext(nil, flag.NewFlagSet("test", 0), nil))
+
 	_build := testBuild()
 	_repo := testRepo()
 	_user := testUser()
-	_stages := testStages()
-	_steps := testSteps()
+	_metadata := testMetadata()
 
 	gin.SetMode(gin.TestMode)
 
@@ -208,152 +134,37 @@ func TestLinux_PlanBuild(t *testing.T) {
 
 	tests := []struct {
 		failure  bool
-		skipStep bool
-		skipLog  bool
-		pipeline *pipeline.Build
+		pipeline string
 	}{
-		{
+		{ // basic steps pipeline
 			failure:  false,
-			skipStep: false,
-			skipLog:  false,
-			pipeline: _stages,
+			pipeline: "testdata/build/steps/basic.yml",
 		},
-		{
+		{ // basic stages pipeline
 			failure:  false,
-			skipStep: false,
-			skipLog:  false,
-			pipeline: _steps,
+			pipeline: "testdata/build/stages/basic.yml",
 		},
-		{
-			failure:  true,
-			skipStep: false,
-			skipLog:  false,
-			pipeline: new(pipeline.Build),
-		},
-		{
-			failure:  true,
-			skipStep: true,
-			skipLog:  false,
-			pipeline: new(pipeline.Build),
-		},
-		{
-			failure:  true,
-			skipStep: false,
-			skipLog:  true,
-			pipeline: new(pipeline.Build),
-		},
-		{
-			failure:  true,
-			skipStep: false,
-			skipLog:  false,
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "github_octocat_1",
-				Services: pipeline.ContainerSlice{
-					{
-						ID:          "service_github_octocat_1_postgres",
-						Directory:   "/home/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "postgres:notfound",
-						Name:        "postgres",
-						Number:      1,
-						Ports:       []string{"5432:5432"},
-					},
-				},
-			},
-		},
-		{
-			failure:  true,
-			skipStep: false,
-			skipLog:  false,
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "github_octocat_1",
-				Services: pipeline.ContainerSlice{
-					{
-						ID:          "service_github_octocat_1_postgres",
-						Directory:   "/home/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "postgres:ignorenotfound",
-						Name:        "postgres",
-						Number:      1,
-						Ports:       []string{"5432:5432"},
-					},
-				},
-			},
-		},
-		{
-			failure:  true,
-			skipStep: false,
-			skipLog:  false,
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "github_octocat_1",
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "step_github_octocat_1_clone",
-						Directory:   "/home/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/vela-git:notfound",
-						Name:        "clone",
-						Number:      2,
-						Pull:        true,
-					},
-				},
-			},
-		},
-		{
-			failure:  true,
-			skipStep: false,
-			skipLog:  false,
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "github_octocat_1",
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "step_github_octocat_1_clone",
-						Directory:   "/home/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/vela-git:ignorenotfound",
-						Name:        "clone",
-						Number:      2,
-						Pull:        true,
-					},
-				},
-			},
-		},
-		{
-			failure:  true,
-			skipStep: false,
-			skipLog:  false,
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "github_octocat_1",
-				Stages: pipeline.StageSlice{
-					{
-						Name: "clone",
-						Steps: pipeline.ContainerSlice{
-							{
-								ID:          "github_octocat_1_clone_clone",
-								Directory:   "/home/github/octocat",
-								Environment: map[string]string{"FOO": "bar"},
-								Image:       "target/vela-git:notfound",
-								Name:        "clone",
-								Number:      2,
-								Pull:        true,
-							},
-						},
-					},
-				},
-			},
-		},
+		//TODO: fix this test
+		// { // pipeline empty
+		// 	failure:  true,
+		// 	file:     "testdata/build/empty.yml",
+		// },
 	}
 
 	// run test
 	for _, test := range tests {
+		file, _ := ioutil.ReadFile(test.pipeline)
+
+		p, _ := compiler.
+			WithBuild(_build).
+			WithRepo(_repo).
+			WithUser(_user).
+			WithMetadata(_metadata).
+			Compile(file)
+
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(test.pipeline),
+			WithPipeline(p),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
@@ -363,21 +174,8 @@ func TestLinux_PlanBuild(t *testing.T) {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
 
-		init := new(pipeline.Container)
-		if len(test.pipeline.Steps) > 0 {
-			init = test.pipeline.Steps[0]
-		}
-		if len(test.pipeline.Stages) > 0 {
-			init = test.pipeline.Stages[0].Steps[0]
-		}
-
-		if !test.skipStep {
-			_engine.steps.Store(init.ID, new(library.Step))
-		}
-
-		if !test.skipLog {
-			_engine.stepLogs.Store(init.ID, new(library.Log))
-		}
+		// run create to init steps to be created properly
+		err = _engine.CreateBuild(context.Background())
 
 		err = _engine.PlanBuild(context.Background())
 
@@ -395,13 +193,14 @@ func TestLinux_PlanBuild(t *testing.T) {
 	}
 }
 
-func TestLinux_ExecBuild(t *testing.T) {
+func TestLinux_AssembleBuild(t *testing.T) {
 	// setup types
+	compiler, _ := native.New(cli.NewContext(nil, flag.NewFlagSet("test", 0), nil))
+
 	_build := testBuild()
 	_repo := testRepo()
 	_user := testUser()
-	_stages := testStages()
-	_steps := testSteps()
+	_metadata := testMetadata()
 
 	gin.SetMode(gin.TestMode)
 
@@ -419,177 +218,68 @@ func TestLinux_ExecBuild(t *testing.T) {
 
 	tests := []struct {
 		failure  bool
-		pipeline *pipeline.Build
+		pipeline string
 	}{
-		{
+		{ // basic steps pipeline
 			failure:  false,
-			pipeline: _stages,
+			pipeline: "testdata/build/steps/basic.yml",
 		},
-		{
+		{ // pipeline with steps image tag not found
+			failure:  true,
+			pipeline: "testdata/build/steps/img_notfound.yml",
+		},
+		{ // pipeline with steps image tag ignoring not found
+			failure:  true,
+			pipeline: "testdata/build/steps/img_ignorenotfound.yml",
+		},
+		{ // basic stages pipeline
 			failure:  false,
-			pipeline: _steps,
+			pipeline: "testdata/build/stages/basic.yml",
 		},
-		{
-			failure: true,
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "github_octocat_1",
-				Services: pipeline.ContainerSlice{
-					{
-						ID:          "service_github_octocat_1_postgres",
-						Directory:   "/home/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "postgres:notfound",
-						Name:        "postgres",
-						Number:      1,
-						Ports:       []string{"5432:5432"},
-					},
-				},
-			},
+		{ // pipeline with stages image tag not found
+			failure:  true,
+			pipeline: "testdata/build/stages/img_notfound.yml",
 		},
-		{
-			failure: true,
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "github_octocat_1",
-				Services: pipeline.ContainerSlice{
-					{
-						ID:          "service_github_octocat_1_postgres",
-						Directory:   "/home/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "postgres:12-alpine",
-						Name:        "postgres",
-						Number:      0,
-						Ports:       []string{"5432:5432"},
-					},
-				},
-			},
+		{ // pipeline with stages image tag ignoring not found
+			failure:  true,
+			pipeline: "testdata/build/stages/img_ignorenotfound.yml",
 		},
-		{
-			failure: true,
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "github_octocat_1",
-				Services: pipeline.ContainerSlice{
-					{
-						ID:          "service_github_octocat_1_notfound",
-						Directory:   "/home/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "postgres:12-alpine",
-						Name:        "notfound",
-						Number:      1,
-						Ports:       []string{"5432:5432"},
-					},
-				},
-			},
+		// { // pipeline empty
+		// 	failure:  true,
+		// 	file:     "testdata/build/empty.yml",
+		// },
+		{ // pipeline with service image tag not found
+			failure:  true,
+			pipeline: "testdata/build/services/img_notfound.yml",
 		},
-		{
-			failure: true,
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "github_octocat_1",
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "step_github_octocat_1_clone",
-						Directory:   "/home/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/vela-git:notfound",
-						Name:        "clone",
-						Number:      2,
-						Pull:        true,
-					},
-				},
-			},
+		{ // pipeline with service image tag ignoring not found
+			failure:  true,
+			pipeline: "testdata/build/services/img_ignorenotfound.yml",
 		},
-		{
-			failure: true,
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "github_octocat_1",
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "step_github_octocat_1_clone",
-						Directory:   "/home/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/vela-git:v0.3.0",
-						Name:        "clone",
-						Number:      0,
-						Pull:        true,
-					},
-				},
-			},
+		{ // pipeline with stages image tag not found
+			failure:  true,
+			pipeline: "testdata/build/secrets/img_notfound.yml",
 		},
-		{
-			failure: true,
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "github_octocat_1",
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "step_github_octocat_1_notfound",
-						Directory:   "/home/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/vela-git:v0.3.0",
-						Name:        "notfound",
-						Number:      2,
-						Pull:        true,
-					},
-				},
-			},
-		},
-		{
-			failure: true,
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "github_octocat_1",
-				Stages: pipeline.StageSlice{
-					{
-						Name: "clone",
-						Steps: pipeline.ContainerSlice{
-							{
-								ID:          "github_octocat_1_clone_clone",
-								Directory:   "/home/github/octocat",
-								Environment: map[string]string{"FOO": "bar"},
-								Image:       "target/vela-git:notfound",
-								Name:        "clone",
-								Number:      2,
-								Pull:        true,
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			failure: true,
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "github_octocat_1",
-				Stages: pipeline.StageSlice{
-					{
-						Name: "clone",
-						Steps: pipeline.ContainerSlice{
-							{
-								ID:          "github_octocat_1_clone_notfound",
-								Directory:   "/home/github/octocat",
-								Environment: map[string]string{"FOO": "bar"},
-								Image:       "target/vela-git:v0.3.0",
-								Name:        "notfound",
-								Number:      2,
-								Pull:        true,
-							},
-						},
-					},
-				},
-			},
+		{ // pipeline with stages image tag ignoring not found
+			failure:  true,
+			pipeline: "testdata/build/secrets/img_ignorenotfound.yml",
 		},
 	}
 
 	// run test
 	for _, test := range tests {
+		file, _ := ioutil.ReadFile(test.pipeline)
+
+		p, _ := compiler.
+			WithBuild(_build).
+			WithRepo(_repo).
+			WithUser(_user).
+			WithMetadata(_metadata).
+			Compile(file)
+
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(test.pipeline),
+			WithPipeline(p),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
@@ -599,7 +289,135 @@ func TestLinux_ExecBuild(t *testing.T) {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
 
-		for _, service := range test.pipeline.Services {
+		// run create to init steps to be created properly
+		err = _engine.CreateBuild(context.Background())
+
+		err = _engine.AssembleBuild(context.Background())
+
+		if test.failure {
+			if err == nil {
+				t.Errorf("AssembleBuild should have returned err")
+			}
+
+			continue
+		}
+
+		if err != nil {
+			t.Errorf("AssembleBuild returned err: %v", err)
+		}
+	}
+}
+
+func TestLinux_ExecBuild(t *testing.T) {
+	// setup types
+	compiler, _ := native.New(cli.NewContext(nil, flag.NewFlagSet("test", 0), nil))
+
+	_build := testBuild()
+	_repo := testRepo()
+	_user := testUser()
+	_metadata := testMetadata()
+
+	gin.SetMode(gin.TestMode)
+
+	s := httptest.NewServer(server.FakeHandler())
+
+	_client, err := vela.NewClient(s.URL, nil)
+	if err != nil {
+		t.Errorf("unable to create Vela API client: %v", err)
+	}
+
+	_runtime, err := docker.NewMock()
+	if err != nil {
+		t.Errorf("unable to create runtime engine: %v", err)
+	}
+
+	tests := []struct {
+		failure  bool
+		pipeline string
+	}{
+		// { // pipeline empty
+		// 	failure:  true,
+		// 	file:     "testdata/build/empty.yml",
+		// },
+		{ // basic steps pipeline
+			failure:  false,
+			pipeline: "testdata/build/steps/basic.yml",
+		},
+		{ // pipeline with step image tag not found
+			failure:  true,
+			pipeline: "testdata/build/steps/img_notfound.yml",
+		},
+		{ // pipeline with step name not found
+			failure:  true,
+			pipeline: "testdata/build/steps/name_notfound.yml",
+		},
+		{ // basic stages pipeline
+			failure:  false,
+			pipeline: "testdata/build/stages/basic.yml",
+		},
+		{ // pipeline with stage step image tag not found
+			failure:  true,
+			pipeline: "testdata/build/stages/img_notfound.yml",
+		},
+		{ // pipeline with stage step name not found
+			failure:  true,
+			pipeline: "testdata/build/stages/name_notfound.yml",
+		},
+		{ // basic services pipeline
+			failure:  false,
+			pipeline: "testdata/build/services/basic.yml",
+		},
+		{ // pipeline with service image tag not found
+			failure:  true,
+			pipeline: "testdata/build/services/img_notfound.yml",
+		},
+		{ // pipeline with service name not found
+			failure:  true,
+			pipeline: "testdata/build/services/name_notfound.yml",
+		},
+		{ // basic secrets pipeline
+			failure:  false,
+			pipeline: "testdata/build/secrets/basic.yml",
+		},
+		// TODO: fix this step
+		// { // pipeline with secret image tag not found
+		// 	failure:  true,
+		// 	pipeline: "testdata/build/secrets/img_notfound.yml",
+		// },
+		// { // pipeline with secret name not found
+		// 	failure:  true,
+		// 	pipeline: "testdata/build/secrets/name_notfound.yml",
+		// },
+	}
+
+	// run test
+	for _, test := range tests {
+		file, _ := ioutil.ReadFile(test.pipeline)
+
+		p, _ := compiler.
+			WithBuild(_build).
+			WithRepo(_repo).
+			WithUser(_user).
+			WithMetadata(_metadata).
+			Compile(file)
+
+		_engine, err := New(
+			WithBuild(_build),
+			WithPipeline(p),
+			WithRepo(_repo),
+			WithRuntime(_runtime),
+			WithUser(_user),
+			WithVelaClient(_client),
+		)
+		if err != nil {
+			t.Errorf("unable to create executor engine: %v", err)
+		}
+
+		build := _engine.build
+		build.SetStatus(constants.StatusSuccess)
+		_engine.build = build
+
+		for _, service := range p.Services {
 			s := &library.Service{
 				Name:   &service.Name,
 				Number: &service.Number,
@@ -609,7 +427,7 @@ func TestLinux_ExecBuild(t *testing.T) {
 			_engine.serviceLogs.Store(service.ID, new(library.Log))
 		}
 
-		for _, stage := range test.pipeline.Stages {
+		for _, stage := range p.Stages {
 			for _, step := range stage.Steps {
 				s := &library.Step{
 					Name:   &step.Name,
@@ -621,7 +439,7 @@ func TestLinux_ExecBuild(t *testing.T) {
 			}
 		}
 
-		for _, step := range test.pipeline.Steps {
+		for _, step := range p.Steps {
 			s := &library.Step{
 				Name:   &step.Name,
 				Number: &step.Number,
@@ -630,6 +448,9 @@ func TestLinux_ExecBuild(t *testing.T) {
 			_engine.steps.Store(step.ID, s)
 			_engine.stepLogs.Store(step.ID, new(library.Log))
 		}
+
+		// run create to init steps to be created properly
+		err = _engine.CreateBuild(context.Background())
 
 		err = _engine.ExecBuild(context.Background())
 
@@ -649,11 +470,12 @@ func TestLinux_ExecBuild(t *testing.T) {
 
 func TestLinux_DestroyBuild(t *testing.T) {
 	// setup types
+	compiler, _ := native.New(cli.NewContext(nil, flag.NewFlagSet("test", 0), nil))
+
 	_build := testBuild()
 	_repo := testRepo()
 	_user := testUser()
-	_stages := testStages()
-	_steps := testSteps()
+	_metadata := testMetadata()
 
 	gin.SetMode(gin.TestMode)
 
@@ -671,83 +493,60 @@ func TestLinux_DestroyBuild(t *testing.T) {
 
 	tests := []struct {
 		failure  bool
-		pipeline *pipeline.Build
-		service  *library.Service
+		pipeline string
 	}{
-		{
+		// { // pipeline empty
+		// 	failure:  true,
+		// 	pipeline:     "testdata/build/empty.yml",
+		// },
+		{ // basic steps pipeline
 			failure:  false,
-			pipeline: _stages,
-			service: &library.Service{
-				Name:   &_stages.Services[0].Name,
-				Number: &_stages.Services[0].Number,
-			},
+			pipeline: "testdata/build/steps/basic.yml",
 		},
-		{
+		{ // pipeline with step image tag not found
 			failure:  false,
-			pipeline: _steps,
-			service: &library.Service{
-				Name:   &_steps.Services[0].Name,
-				Number: &_steps.Services[0].Number,
-			},
+			pipeline: "testdata/build/steps/img_notfound.yml",
 		},
-		{
-			failure: false,
-			pipeline: &pipeline.Build{
-				Version: "1",
-				ID:      "github_octocat_1",
-				Services: pipeline.ContainerSlice{
-					{
-						ID:          "service_github_octocat_1_notfound",
-						Directory:   "/home/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "postgres:12-alpine",
-						Name:        "notfound",
-						Number:      1,
-						Ports:       []string{"5432:5432"},
-					},
-				},
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "step_github_octocat_1_notfound",
-						Directory:   "/home/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/vela-git:v0.3.0",
-						Name:        "notfound",
-						Number:      2,
-						Pull:        true,
-					},
-				},
-				Stages: pipeline.StageSlice{
-					{
-						Name: "clone",
-						Steps: pipeline.ContainerSlice{
-							{
-								ID:          "github_octocat_1_clone_notfound",
-								Directory:   "/home/github/octocat",
-								Environment: map[string]string{"FOO": "bar"},
-								Image:       "target/vela-git:v0.3.0",
-								Name:        "notfound",
-								Number:      2,
-								Pull:        true,
-							},
-						},
-					},
-				},
-			},
-			service: nil,
+		{ // basic stages pipeline
+			failure:  false,
+			pipeline: "testdata/build/stages/basic.yml",
 		},
-		{
-			failure:  true,
-			pipeline: new(pipeline.Build),
-			service:  nil,
+		{ // pipeline with stage step image tag not found
+			failure:  false,
+			pipeline: "testdata/build/stages/img_notfound.yml",
+		},
+		{ // basic services pipeline
+			failure:  false,
+			pipeline: "testdata/build/services/basic.yml",
+		},
+		{ // pipeline with service image tag not found
+			failure:  false,
+			pipeline: "testdata/build/services/img_notfound.yml",
+		},
+		{ // basic stages pipeline
+			failure:  false,
+			pipeline: "testdata/build/secrets/basic.yml",
+		},
+		{ // pipeline with secret image tag not found
+			failure:  false,
+			pipeline: "testdata/build/secrets/img_notfound.yml",
 		},
 	}
 
 	// run test
 	for _, test := range tests {
+		file, _ := ioutil.ReadFile(test.pipeline)
+
+		p, _ := compiler.
+			WithBuild(_build).
+			WithRepo(_repo).
+			WithUser(_user).
+			WithMetadata(_metadata).
+			Compile(file)
+
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(test.pipeline),
+			WithPipeline(p),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
@@ -757,9 +556,8 @@ func TestLinux_DestroyBuild(t *testing.T) {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
 
-		if test.service != nil {
-			_engine.services.Store(_engine.pipeline.Services[0].ID, test.service)
-		}
+		// run create to init steps to be created properly
+		err = _engine.CreateBuild(context.Background())
 
 		err = _engine.DestroyBuild(context.Background())
 

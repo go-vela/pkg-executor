@@ -30,7 +30,7 @@ func (c *client) CreateStage(ctx context.Context, s *pipeline.Stage) error {
 	// update the init log with progress
 	//
 	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData([]byte(fmt.Sprintf("  $ Pulling step images for stage %s...\n", s.Name)))
+	l.AppendData([]byte(fmt.Sprintf("> Pulling step images for stage %s...\n", s.Name)))
 
 	// create the steps for the stage
 	for _, step := range s.Steps {
@@ -38,7 +38,7 @@ func (c *client) CreateStage(ctx context.Context, s *pipeline.Stage) error {
 		// update the init log with progress
 		//
 		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-		l.AppendData([]byte(fmt.Sprintf("    $ docker image inspect %s\n", step.Image)))
+		l.AppendData([]byte(fmt.Sprintf("$ docker image inspect %s\n", step.Image)))
 
 		logger.Debugf("creating %s step", step.Name)
 		// create the step

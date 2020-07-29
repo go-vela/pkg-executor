@@ -6,6 +6,7 @@ package linux
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -170,7 +171,7 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	// update the init log with progress
 	//
 	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData([]byte("$ Inspecting runtime network...\n"))
+	l.AppendData([]byte("> Inspecting runtime network...\n"))
 
 	// inspect the runtime network for the pipeline
 	network, err := c.Runtime.InspectNetwork(ctx, p)
@@ -179,9 +180,10 @@ func (c *client) PlanBuild(ctx context.Context) error {
 		return fmt.Errorf("unable to inspect network: %w", err)
 	}
 
-	// update the init log with network info
+	// update the init log with network command
 	//
 	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+	l.AppendData([]byte(fmt.Sprintf("$ docker network inspect %s \n", p.ID)))
 	l.AppendData(network)
 
 	c.logger.Info("creating volume")
@@ -195,7 +197,7 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	// update the init log with progress
 	//
 	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData([]byte("$ Inspecting runtime volume...\n"))
+	l.AppendData([]byte("> Inspecting runtime volume...\n"))
 
 	// inspect the runtime volume for the pipeline
 	volume, err := c.Runtime.InspectVolume(ctx, p)
@@ -204,15 +206,16 @@ func (c *client) PlanBuild(ctx context.Context) error {
 		return fmt.Errorf("unable to inspect volume: %w", err)
 	}
 
-	// update the init log with volume info
+	// update the init log with volume command
 	//
 	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+	l.AppendData([]byte(fmt.Sprintf("$ docker network inspect %s \n", p.ID)))
 	l.AppendData(volume)
 
 	// update the init log with progress
 	//
 	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData([]byte("$ Pulling secrets...\n"))
+	l.AppendData([]byte("> Pulling secrets...\n"))
 
 	// iterate through each secret provided in the pipeline
 	for _, secret := range p.Secrets {
@@ -223,13 +226,23 @@ func (c *client) PlanBuild(ctx context.Context) error {
 
 		c.logger.Infof("pulling %s %s secret %s", secret.Engine, secret.Type, secret.Name)
 
-		l.AppendData([]byte(fmt.Sprintf("  $ get %s %s secret %s \n", secret.Engine, secret.Type, secret.Name)))
-
 		s, err := c.secret.pull(secret)
 		if err != nil {
 			e = err
 			return fmt.Errorf("unable to pull secrets: %w", err)
 		}
+
+		l.AppendData([]byte(
+			fmt.Sprintf("$ vela view secret --engine %s --type %s --org %s --repo %s --name %s \n",
+				secret.Engine, secret.Type, s.GetOrg(), s.GetRepo(), s.GetName())))
+
+		sRaw, err := json.MarshalIndent(s.Sanitize(), "", " ")
+		if err != nil {
+			e = err
+			return fmt.Errorf("unable to decode secret: %w", err)
+		}
+
+		l.AppendData(append(sRaw, "\n"...))
 
 		// add secret to the map
 		c.Secrets[secret.Name] = s
@@ -285,7 +298,7 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	// update the init log with progress
 	//
 	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData([]byte("$ Pulling service images...\n"))
+	l.AppendData([]byte("> Pulling service images...\n"))
 
 	// create the services for the pipeline
 	for _, s := range p.Services {
@@ -297,7 +310,7 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 		// update the init log with progress
 		//
 		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-		l.AppendData([]byte(fmt.Sprintf("  $ docker image inspect %s\n", s.Image)))
+		l.AppendData([]byte(fmt.Sprintf("$ docker image inspect %s\n", s.Image)))
 
 		c.logger.Infof("creating %s service", s.Name)
 		// create the service
@@ -324,7 +337,7 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	// update the init log with progress
 	//
 	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData([]byte("$ Pulling stage images...\n"))
+	l.AppendData([]byte("> Pulling stage images...\n"))
 
 	// create the stages for the pipeline
 	for _, s := range p.Stages {
@@ -345,7 +358,7 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	// update the init log with progress
 	//
 	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData([]byte("$ Pulling step images...\n"))
+	l.AppendData([]byte("> Pulling step images...\n"))
 
 	// create the steps for the pipeline
 	for _, s := range p.Steps {
@@ -357,7 +370,7 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 		// update the init log with progress
 		//
 		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-		l.AppendData([]byte(fmt.Sprintf("  $ docker image inspect %s\n", s.Image)))
+		l.AppendData([]byte(fmt.Sprintf("$ docker image inspect %s\n", s.Image)))
 
 		c.logger.Infof("creating %s step", s.Name)
 		// create the step
@@ -384,7 +397,7 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	// update the init log with progress
 	//
 	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData([]byte("$ Pulling secret images...\n"))
+	l.AppendData([]byte("> Pulling secret images...\n"))
 
 	// create the secrets for the pipeline
 	for _, s := range p.Secrets {
@@ -396,7 +409,7 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 		// update the init log with progress
 		//
 		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-		l.AppendData([]byte(fmt.Sprintf("  $ docker image inspect %s\n", s.Origin.Name)))
+		l.AppendData([]byte(fmt.Sprintf("$ docker image inspect %s\n", s.Origin.Name)))
 
 		c.logger.Infof("creating %s secret", s.Origin.Name)
 		// create the service
@@ -423,7 +436,7 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	// update the init log with progress
 	//
 	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData([]byte("$ Executing secret images...\n"))
+	l.AppendData([]byte("> Executing secret images...\n"))
 
 	c.logger.Info("executing secret images")
 	// execute the secret

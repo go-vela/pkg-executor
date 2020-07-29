@@ -389,8 +389,8 @@ func (c *client) loadStepLogs(name string) (*library.Log, error) {
 	return l, nil
 }
 
-// loadStep is a helper function to capture
-// a step from the client.
+// loadInitContainer is a helper function to capture
+// the init step from the client.
 func (c *client) loadInitContainer(p *pipeline.Build) (*pipeline.Container, error) {
 
 	// TODO: make this better

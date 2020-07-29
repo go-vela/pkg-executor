@@ -28,7 +28,7 @@ type secretSvc svc
 var (
 	// ErrUnrecognizedSecretType defines the error type when the
 	// SecretType provided to the client is unsupported.
-	ErrUnrecognizedSecretType = errors.New("invalid secret type")
+	ErrUnrecognizedSecretType = errors.New("unrecognized secret type")
 
 	// ErrUnableToRetrieve defines the error type when the
 	// secret is not able to be retrieved from the server.

@@ -37,7 +37,7 @@ type Engine interface {
 	CreateBuild(context.Context) error
 	// PlanBuild defines a function that
 	// handles the resource initialization process
-	// build for execution.
+	// for the build.
 	PlanBuild(context.Context) error
 	// AssembleBuild defines a function that
 	// prepares the containers within a build

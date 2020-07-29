@@ -204,7 +204,7 @@ func (c *client) PlanBuild(ctx context.Context) error {
 		return fmt.Errorf("unable to inspect volume: %w", err)
 	}
 
-	// update the init log with network info
+	// update the init log with volume info
 	//
 	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
 	l.AppendData(volume)
@@ -512,7 +512,6 @@ func (c *client) ExecBuild(ctx context.Context) error {
 			ruledata.Target = b.GetDeploy()
 		}
 
-		fmt.Printf("RULEDATA: %+v \n", ruledata)
 		// check if you need to excute this step
 		if !s.Execute(ruledata) {
 			continue
@@ -673,7 +672,7 @@ func (c *client) DestroyBuild(ctx context.Context) error {
 		}
 
 		c.logger.Infof("destroying %s secret", s.Name)
-		// destroy the service
+		// destroy the secret
 		err = c.secret.destroy(ctx, s.Origin)
 		if err != nil {
 			c.logger.Errorf("unable to destroy secret: %v", err)

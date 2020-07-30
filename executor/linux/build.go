@@ -209,7 +209,7 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	// update the init log with volume command
 	//
 	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData([]byte(fmt.Sprintf("$ docker network inspect %s \n", p.ID)))
+	l.AppendData([]byte(fmt.Sprintf("$ docker volume inspect %s \n", p.ID)))
 	l.AppendData(volume)
 
 	// update the init log with progress

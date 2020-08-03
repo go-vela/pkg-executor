@@ -265,7 +265,7 @@ func (s *secretSvc) pull(secret *pipeline.Secret) (*library.Secret, error) {
 	switch secret.Type {
 	// handle repo secrets
 	case constants.SecretOrg:
-		err := secret.ValidOrg(s.client.repo.GetOrg())
+		org, key, err := secret.ParseOrg(s.client.repo.GetOrg())
 		if err != nil {
 			return nil, err
 		}
@@ -273,7 +273,7 @@ func (s *secretSvc) pull(secret *pipeline.Secret) (*library.Secret, error) {
 		// send API call to capture the org secret
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SecretService.Get
-		sec, _, err = s.client.Vela.Secret.Get(secret.Engine, secret.Type, s.client.repo.GetOrg(), "*", secret.Key)
+		sec, _, err = s.client.Vela.Secret.Get(secret.Engine, secret.Type, org, "*", key)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", ErrUnableToRetrieve, err)
 		}
@@ -282,7 +282,7 @@ func (s *secretSvc) pull(secret *pipeline.Secret) (*library.Secret, error) {
 
 	// handle repo secrets
 	case constants.SecretRepo:
-		err := secret.ValidRepo(s.client.repo.GetOrg(), s.client.repo.GetName())
+		org, repo, key, err := secret.ParseRepo(s.client.repo.GetOrg(), s.client.repo.GetName())
 		if err != nil {
 			return nil, err
 		}
@@ -290,7 +290,7 @@ func (s *secretSvc) pull(secret *pipeline.Secret) (*library.Secret, error) {
 		// send API call to capture the repo secret
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SecretService.Get
-		sec, _, err = s.client.Vela.Secret.Get(secret.Engine, secret.Type, s.client.repo.GetOrg(), s.client.repo.GetName(), secret.Key)
+		sec, _, err = s.client.Vela.Secret.Get(secret.Engine, secret.Type, org, repo, key)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", ErrUnableToRetrieve, err)
 		}
@@ -299,17 +299,15 @@ func (s *secretSvc) pull(secret *pipeline.Secret) (*library.Secret, error) {
 
 	// handle shared secrets
 	case constants.SecretShared:
-		err := secret.ValidShared(s.client.repo.GetOrg())
+		org, team, key, err := secret.ParseShared(s.client.repo.GetOrg())
 		if err != nil {
 			return nil, err
 		}
 
-		team := strings.SplitN(secret.Key, "/", 3)[2]
-
 		// send API call to capture the repo secret
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SecretService.Get
-		sec, _, err = s.client.Vela.Secret.Get(secret.Engine, secret.Type, s.client.repo.GetOrg(), team, secret.Key)
+		sec, _, err = s.client.Vela.Secret.Get(secret.Engine, secret.Type, org, team, key)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", ErrUnableToRetrieve, err)
 		}

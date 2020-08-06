@@ -215,6 +215,27 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 	// create new buffer for uploading logs
 	logs := new(bytes.Buffer)
 
+	defer func() {
+		// NOTE: Whenever the stream ends we want to ensure
+		// that this function makes the call to update
+		// the step logs
+		logger.Trace(logs.String())
+
+		// update the existing log with the last bytes
+		//
+		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+		l.AppendData(logs.Bytes())
+
+		logger.Debug("uploading logs")
+		// send API call to update the logs for the step
+		//
+		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateStep
+		_, _, err = c.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), ctn.Number, l)
+		if err != nil {
+			logger.Error("unable to upload final step state: %w", err)
+		}
+	}()
+
 	logger.Debug("tailing container")
 	// tail the runtime container
 	rc, err := c.Runtime.TailContainer(ctx, ctn)
@@ -252,21 +273,6 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 			// flush the buffer of logs
 			logs.Reset()
 		}
-	}
-	logger.Trace(logs.String())
-
-	// update the existing log with the last bytes
-	//
-	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData(logs.Bytes())
-
-	logger.Debug("uploading logs")
-	// send API call to update the logs for the step
-	//
-	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateStep
-	_, _, err = c.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), ctn.Number, l)
-	if err != nil {
-		return err
 	}
 
 	return nil

@@ -19,7 +19,6 @@ import (
 
 	"github.com/go-vela/sdk-go/vela"
 
-	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/library"
 
 	"github.com/gin-gonic/gin"
@@ -144,11 +143,6 @@ func TestLinux_PlanBuild(t *testing.T) {
 			failure:  false,
 			pipeline: "testdata/build/stages/basic.yml",
 		},
-		//TODO: fix this test
-		// { // pipeline empty
-		// 	failure:  true,
-		// 	file:     "testdata/build/empty.yml",
-		// },
 	}
 
 	// run test
@@ -244,10 +238,6 @@ func TestLinux_AssembleBuild(t *testing.T) {
 			failure:  true,
 			pipeline: "testdata/build/stages/img_ignorenotfound.yml",
 		},
-		// { // pipeline empty
-		// 	failure:  true,
-		// 	file:     "testdata/build/empty.yml",
-		// },
 		{ // pipeline with service image tag not found
 			failure:  true,
 			pipeline: "testdata/build/services/img_notfound.yml",
@@ -335,10 +325,6 @@ func TestLinux_ExecBuild(t *testing.T) {
 		failure  bool
 		pipeline string
 	}{
-		// { // pipeline empty
-		// 	failure:  true,
-		// 	file:     "testdata/build/empty.yml",
-		// },
 		{ // basic steps pipeline
 			failure:  false,
 			pipeline: "testdata/build/steps/basic.yml",
@@ -379,15 +365,6 @@ func TestLinux_ExecBuild(t *testing.T) {
 			failure:  false,
 			pipeline: "testdata/build/secrets/basic.yml",
 		},
-		// TODO: fix this step
-		// { // pipeline with secret image tag not found
-		// 	failure:  true,
-		// 	pipeline: "testdata/build/secrets/img_notfound.yml",
-		// },
-		// { // pipeline with secret name not found
-		// 	failure:  true,
-		// 	pipeline: "testdata/build/secrets/name_notfound.yml",
-		// },
 	}
 
 	// run test
@@ -412,10 +389,6 @@ func TestLinux_ExecBuild(t *testing.T) {
 		if err != nil {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
-
-		build := _engine.build
-		build.SetStatus(constants.StatusSuccess)
-		_engine.build = build
 
 		for _, service := range p.Services {
 			s := &library.Service{

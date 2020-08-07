@@ -258,9 +258,6 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	r := c.repo
 	e := c.err
 
-	b.SetStatus(constants.StatusSuccess)
-	c.build = b
-
 	defer func() {
 		// NOTE: When an error occurs during a build that does not have to do
 		// with a pipeline we should set build status to "error" not "failed"
@@ -456,10 +453,13 @@ func (c *client) ExecBuild(ctx context.Context) error {
 	r := c.repo
 	e := c.err
 
-	b.SetStatus(constants.StatusSuccess)
-	c.build = b
-
 	defer func() {
+		// NOTE: if the build is already in a failure state we do not
+		// want to update the state to be success
+		if !strings.EqualFold(b.GetStatus(), constants.StatusFailure) {
+			b.SetStatus(constants.StatusSuccess)
+		}
+
 		// NOTE: When an error occurs during a build that does not have to do
 		// with a pipeline we should set build status to "error" not "failed"
 		// because it is worker related and not build.
@@ -477,7 +477,7 @@ func (c *client) ExecBuild(ctx context.Context) error {
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#BuildService.Update
 		_, _, err := c.Vela.Build.Update(r.GetOrg(), r.GetName(), b)
 		if err != nil {
-			c.logger.Errorf("unable to upload errorred state: %v", err)
+			c.logger.Errorf("unable to upload build state: %v", err)
 		}
 	}()
 
@@ -500,6 +500,9 @@ func (c *client) ExecBuild(ctx context.Context) error {
 		}
 	}
 
+	// create a flag to track the build statuses
+	tracker := constants.StatusSuccess
+
 	// execute the steps for the pipeline
 	for _, s := range p.Steps {
 		// TODO: remove hardcoded reference
@@ -512,7 +515,7 @@ func (c *client) ExecBuild(ctx context.Context) error {
 			Branch: b.GetBranch(),
 			Event:  b.GetEvent(),
 			Repo:   r.GetFullName(),
-			Status: b.GetStatus(),
+			Status: tracker,
 		}
 
 		// when tag event add tag information into ruledata
@@ -529,6 +532,7 @@ func (c *client) ExecBuild(ctx context.Context) error {
 		if !s.Execute(ruledata) {
 			continue
 		}
+
 		c.logger.Infof("planning %s step", s.Name)
 		// plan the step
 		err := c.PlanStep(ctx, s)
@@ -557,6 +561,8 @@ func (c *client) ExecBuild(ctx context.Context) error {
 			if !s.Ruleset.Continue {
 				// set build status to failure
 				b.SetStatus(constants.StatusFailure)
+
+				tracker = constants.StatusFailure
 			}
 
 			// update the step fields

@@ -178,7 +178,6 @@ func (s *secretSvc) destroy(ctx context.Context, ctn *pipeline.Container) error 
 
 // exec runs a secret plugins for a pipeline.
 func (s *secretSvc) exec(ctx context.Context, p *pipeline.SecretSlice) error {
-	b := s.client.build
 	r := s.client.repo
 
 	// stream all the logs to the init step
@@ -193,7 +192,7 @@ func (s *secretSvc) exec(ctx context.Context, p *pipeline.SecretSlice) error {
 		// send API call to update the build
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
-		_, _, err = s.client.Vela.Step.Update(r.GetOrg(), r.GetName(), b.GetNumber(), init)
+		_, _, err = s.client.Vela.Step.Update(r.GetOrg(), r.GetName(), s.client.build.GetNumber(), init)
 		if err != nil {
 			s.client.logger.Errorf("unable to upload init state: %v", err)
 		}
@@ -246,12 +245,22 @@ func (s *secretSvc) exec(ctx context.Context, p *pipeline.SecretSlice) error {
 			// check if we ignore step failures
 			if !secret.Origin.Ruleset.Continue {
 				// set build status to failure
-				b.SetStatus(constants.StatusFailure)
+				s.client.build.SetStatus(constants.StatusFailure)
 			}
 
 			// update the step fields
 			init.SetExitCode(secret.Origin.ExitCode)
 			init.SetStatus(constants.StatusFailure)
+
+			return fmt.Errorf("%s container exited with non-zero code", secret.Origin.Name)
+		}
+
+		// send API call to update the build
+		//
+		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
+		_, _, err = s.client.Vela.Step.Update(r.GetOrg(), r.GetName(), s.client.build.GetNumber(), init)
+		if err != nil {
+			s.client.logger.Errorf("unable to upload init state: %v", err)
 		}
 	}
 
@@ -340,6 +349,27 @@ func (s *secretSvc) stream(ctx context.Context, ctn *pipeline.Container) error {
 	// create new buffer for uploading logs
 	logs := new(bytes.Buffer)
 
+	defer func() {
+		// NOTE: Whenever the stream ends we want to ensure
+		// that this function makes the call to update
+		// the step logs
+		logger.Trace(logs.String())
+
+		// update the existing log with the last bytes
+		//
+		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+		l.AppendData(logs.Bytes())
+
+		logger.Debug("uploading logs")
+		// send API call to update the logs for the service
+		//
+		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateService
+		_, _, err = s.client.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), ctn.Number, l)
+		if err != nil {
+			logger.Error("unable to upload final step state: %w", err)
+		}
+	}()
+
 	logger.Debug("tailing container")
 	// tail the runtime container
 	rc, err := s.client.Runtime.TailContainer(ctx, ctn)
@@ -377,21 +407,6 @@ func (s *secretSvc) stream(ctx context.Context, ctn *pipeline.Container) error {
 			// flush the buffer of logs
 			logs.Reset()
 		}
-	}
-	logger.Trace(logs.String())
-
-	// update the existing log with the last bytes
-	//
-	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData(logs.Bytes())
-
-	logger.Debug("uploading logs")
-	// send API call to update the logs for the service
-	//
-	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateService
-	_, _, err = s.client.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), ctn.Number, l)
-	if err != nil {
-		return err
 	}
 
 	return nil

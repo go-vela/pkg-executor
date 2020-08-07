@@ -351,12 +351,12 @@ func TestLinux_StreamStep(t *testing.T) {
 		logs      *library.Log
 		container *pipeline.Container
 	}{
-		{
+		{ // container step succeeds
 			failure: false,
 			logs:    new(library.Log),
 			container: &pipeline.Container{
 				ID:          "step_github_octocat_1_init",
-				Directory:   "/home/github/octocat",
+				Directory:   "/vela/src/vcs.company.com/github/octocat",
 				Environment: map[string]string{"FOO": "bar"},
 				Image:       "#init",
 				Name:        "init",
@@ -364,12 +364,12 @@ func TestLinux_StreamStep(t *testing.T) {
 				Pull:        true,
 			},
 		},
-		{
+		{ // container step fails because of nil logs
 			failure: true,
 			logs:    nil,
 			container: &pipeline.Container{
 				ID:          "step_github_octocat_1_clone",
-				Directory:   "/home/github/octocat",
+				Directory:   "/vela/src/vcs.company.com/github/octocat",
 				Environment: map[string]string{"FOO": "bar"},
 				Image:       "target/vela-git:v0.3.0",
 				Name:        "clone",
@@ -377,29 +377,16 @@ func TestLinux_StreamStep(t *testing.T) {
 				Pull:        true,
 			},
 		},
-		{
+		{ // container step fails because of invalid container id
 			failure: true,
 			logs:    new(library.Log),
 			container: &pipeline.Container{
 				ID:          "step_github_octocat_1_notfound",
-				Directory:   "/home/github/octocat",
+				Directory:   "/vela/src/vcs.company.com/github/octocat",
 				Environment: map[string]string{"FOO": "bar"},
 				Image:       "target/vela-git:v0.3.0",
 				Name:        "notfound",
 				Number:      2,
-				Pull:        true,
-			},
-		},
-		{
-			failure: true,
-			logs:    new(library.Log),
-			container: &pipeline.Container{
-				ID:          "step_github_octocat_1_clone",
-				Directory:   "/home/github/octocat",
-				Environment: map[string]string{"FOO": "bar"},
-				Image:       "target/vela-git:v0.3.0",
-				Name:        "clone",
-				Number:      0,
 				Pull:        true,
 			},
 		},

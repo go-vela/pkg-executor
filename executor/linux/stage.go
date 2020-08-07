@@ -111,6 +111,9 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 	// close the stage channel at the end
 	defer close(m[s.Name])
 
+	// create a flag to track the build statuses
+	tracker := constants.StatusSuccess
+
 	logger.Debug("starting execution of stage")
 	// execute the steps for the stage
 	for _, step := range s.Steps {
@@ -119,7 +122,7 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 			Branch: b.GetBranch(),
 			Event:  b.GetEvent(),
 			Repo:   r.GetFullName(),
-			Status: b.GetStatus(),
+			Status: tracker,
 		}
 
 		// when tag event add tag information into ruledata
@@ -163,6 +166,8 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 			if !step.Ruleset.Continue {
 				// set build status to failure
 				b.SetStatus(constants.StatusFailure)
+
+				tracker = constants.StatusFailure
 			}
 
 			// update the step fields

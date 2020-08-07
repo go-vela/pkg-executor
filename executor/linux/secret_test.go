@@ -518,7 +518,7 @@ func TestLinux_Secret_stream(t *testing.T) {
 		logs      *library.Log
 		container *pipeline.Container
 	}{
-		{
+		{ // container step succeeds
 			failure: false,
 			logs:    new(library.Log),
 			container: &pipeline.Container{
@@ -531,7 +531,7 @@ func TestLinux_Secret_stream(t *testing.T) {
 				Pull:        true,
 			},
 		},
-		{
+		{ // container step fails because of nil logs
 			failure: true,
 			logs:    nil,
 			container: &pipeline.Container{
@@ -544,7 +544,7 @@ func TestLinux_Secret_stream(t *testing.T) {
 				Pull:        true,
 			},
 		},
-		{
+		{ // container step fails because of invalid container id
 			failure: true,
 			logs:    new(library.Log),
 			container: &pipeline.Container{
@@ -554,19 +554,6 @@ func TestLinux_Secret_stream(t *testing.T) {
 				Image:       "target/secret-vault:latest",
 				Name:        "notfound",
 				Number:      2,
-				Pull:        true,
-			},
-		},
-		{
-			failure: true,
-			logs:    new(library.Log),
-			container: &pipeline.Container{
-				ID:          "secret_github_octocat_1_vault",
-				Directory:   "/vela/src/vcs.company.com/github/octocat",
-				Environment: map[string]string{"FOO": "bar"},
-				Image:       "target/secret-vault:latest",
-				Name:        "vault",
-				Number:      0,
 				Pull:        true,
 			},
 		},
@@ -596,14 +583,14 @@ func TestLinux_Secret_stream(t *testing.T) {
 
 		if test.failure {
 			if err == nil {
-				t.Errorf("StreamStep should have returned err")
+				t.Errorf("stream should have returned err")
 			}
 
 			continue
 		}
 
 		if err != nil {
-			t.Errorf("StreamStep returned err: %v", err)
+			t.Errorf("stream returned err: %v", err)
 		}
 	}
 }

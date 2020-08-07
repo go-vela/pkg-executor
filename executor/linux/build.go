@@ -454,12 +454,12 @@ func (c *client) ExecBuild(ctx context.Context) error {
 	e := c.err
 
 	defer func() {
-		// NOTE: When an error occurs during a build that does not have to do
-		// with a pipeline we should set build status to "error" not "failed"
-		// because it is worker related and not build.
 		b.SetStatus(constants.StatusSuccess)
 		c.build = b
 
+		// NOTE: When an error occurs during a build that does not have to do
+		// with a pipeline we should set build status to "error" not "failed"
+		// because it is worker related and not build.
 		if e != nil {
 			b.SetError(e.Error())
 			b.SetStatus(constants.StatusError)

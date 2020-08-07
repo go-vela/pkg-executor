@@ -178,7 +178,6 @@ func (s *secretSvc) destroy(ctx context.Context, ctn *pipeline.Container) error 
 
 // exec runs a secret plugins for a pipeline.
 func (s *secretSvc) exec(ctx context.Context, p *pipeline.SecretSlice) error {
-	b := s.client.build
 	r := s.client.repo
 
 	// stream all the logs to the init step
@@ -193,7 +192,7 @@ func (s *secretSvc) exec(ctx context.Context, p *pipeline.SecretSlice) error {
 		// send API call to update the build
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
-		_, _, err = s.client.Vela.Step.Update(r.GetOrg(), r.GetName(), b.GetNumber(), init)
+		_, _, err = s.client.Vela.Step.Update(r.GetOrg(), r.GetName(), s.client.build.GetNumber(), init)
 		if err != nil {
 			s.client.logger.Errorf("unable to upload init state: %v", err)
 		}
@@ -246,12 +245,22 @@ func (s *secretSvc) exec(ctx context.Context, p *pipeline.SecretSlice) error {
 			// check if we ignore step failures
 			if !secret.Origin.Ruleset.Continue {
 				// set build status to failure
-				b.SetStatus(constants.StatusFailure)
+				s.client.build.SetStatus(constants.StatusFailure)
 			}
 
 			// update the step fields
 			init.SetExitCode(secret.Origin.ExitCode)
 			init.SetStatus(constants.StatusFailure)
+
+			return fmt.Errorf("%s container exited with non-zero code", secret.Origin.Name)
+		}
+
+		// send API call to update the build
+		//
+		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
+		_, _, err = s.client.Vela.Step.Update(r.GetOrg(), r.GetName(), s.client.build.GetNumber(), init)
+		if err != nil {
+			s.client.logger.Errorf("unable to upload init state: %v", err)
 		}
 	}
 

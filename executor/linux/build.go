@@ -454,8 +454,11 @@ func (c *client) ExecBuild(ctx context.Context) error {
 	e := c.err
 
 	defer func() {
-		b.SetStatus(constants.StatusSuccess)
-		c.build = b
+		// NOTE: if the build is already in a failure state we do not
+		// want to update the state to be success
+		if !strings.EqualFold(b.GetStatus(), constants.StatusFailure) {
+			b.SetStatus(constants.StatusSuccess)
+		}
 
 		// NOTE: When an error occurs during a build that does not have to do
 		// with a pipeline we should set build status to "error" not "failed"

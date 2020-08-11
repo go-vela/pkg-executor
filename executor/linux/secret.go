@@ -308,7 +308,7 @@ func (s *secretSvc) pull(secret *pipeline.Secret) (*library.Secret, error) {
 
 	// handle shared secrets
 	case constants.SecretShared:
-		org, team, key, err := secret.ParseShared(s.client.repo.GetOrg())
+		org, team, key, err := secret.ParseShared()
 		if err != nil {
 			return nil, err
 		}

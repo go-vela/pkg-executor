@@ -426,17 +426,6 @@ func TestLinux_Secret_pull(t *testing.T) {
 				Origin: &pipeline.Container{},
 			},
 		},
-		{ // failure with invalid shared secret
-			failure: true,
-			secret: &pipeline.Secret{
-				Name:   "foo",
-				Value:  "bar",
-				Key:    "foo/foo/foo/foo",
-				Engine: "native",
-				Type:   "shared",
-				Origin: &pipeline.Container{},
-			},
-		},
 		{ // failure with shared secret key not found
 			failure: true,
 			secret: &pipeline.Secret{

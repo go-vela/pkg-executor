@@ -49,8 +49,8 @@ func (c *client) GetRepo() (*library.Repo, error) {
 	return r, nil
 }
 
-// KillBuild kills the current build in execution.
-func (c *client) KillBuild() (*library.Build, error) {
+// CancelBuild cancels the current build in execution.
+func (c *client) CancelBuild() (*library.Build, error) {
 	b := c.build
 
 	// check if the build resource is available
@@ -63,7 +63,7 @@ func (c *client) KillBuild() (*library.Build, error) {
 
 	err := syscall.Kill(syscall.Getpid(), syscall.SIGTERM)
 	if err != nil {
-		return nil, fmt.Errorf("unable to kill PID: %w", err)
+		return nil, fmt.Errorf("unable to cancel PID: %w", err)
 	}
 
 	return b, nil

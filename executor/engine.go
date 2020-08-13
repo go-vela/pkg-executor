@@ -26,9 +26,9 @@ type Engine interface {
 	// GetRepo defines a function for the API
 	// that gets the current repo in execution.
 	GetRepo() (*library.Repo, error)
-	// KillBuild defines a function for the API
-	// that kills the current build in execution.
-	KillBuild() (*library.Build, error)
+	// CancelBuild defines a function for the API
+	// that Cancels the current build in execution.
+	CancelBuild() (*library.Build, error)
 
 	// Build Engine interface functions
 

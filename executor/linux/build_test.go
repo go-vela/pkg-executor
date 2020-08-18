@@ -424,19 +424,37 @@ func TestLinux_ExecBuild(t *testing.T) {
 
 		// run create to init steps to be created properly
 		err = _engine.CreateBuild(context.Background())
+		if err != nil {
+			t.Errorf("unable to create build: %v", err)
+		}
+
+		// TODO: hack - remove this
+		//
+		// When calling CreateBuild(), it will automatically set the
+		// test build object to a status of `created`. This happens
+		// because we use a mock for the go-vela/server in our tests
+		// which only returns dummy based responses.
+		//
+		// The problem this causes is that our container.Execute()
+		// function isn't setup to handle builds in a `created` state.
+		//
+		// In a real world scenario, we never would have a build
+		// in this state when we call ExecBuild() because the
+		// go-vela/server has logic to set it to an expected state.
+		_engine.build.SetStatus("running")
 
 		err = _engine.ExecBuild(context.Background())
 
 		if test.failure {
 			if err == nil {
-				t.Errorf("ExecBuild should have returned err")
+				t.Errorf("ExecBuild for %s should have returned err", test.pipeline)
 			}
 
 			continue
 		}
 
 		if err != nil {
-			t.Errorf("ExecBuild returned err: %v", err)
+			t.Errorf("ExecBuild for %s returned err: %v", test.pipeline, err)
 		}
 	}
 }

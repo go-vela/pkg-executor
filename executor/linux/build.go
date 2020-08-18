@@ -500,9 +500,6 @@ func (c *client) ExecBuild(ctx context.Context) error {
 		}
 	}
 
-	// create a flag to track the build statuses
-	tracker := constants.StatusSuccess
-
 	// execute the steps for the pipeline
 	for _, s := range p.Steps {
 		// TODO: remove hardcoded reference
@@ -515,7 +512,7 @@ func (c *client) ExecBuild(ctx context.Context) error {
 			Branch: b.GetBranch(),
 			Event:  b.GetEvent(),
 			Repo:   r.GetFullName(),
-			Status: tracker,
+			Status: b.GetStatus(),
 		}
 
 		// when tag event add tag information into ruledata
@@ -561,8 +558,6 @@ func (c *client) ExecBuild(ctx context.Context) error {
 			if !s.Ruleset.Continue {
 				// set build status to failure
 				b.SetStatus(constants.StatusFailure)
-
-				tracker = constants.StatusFailure
 			}
 
 			// update the step fields

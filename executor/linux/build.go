@@ -454,20 +454,22 @@ func (c *client) ExecBuild(ctx context.Context) error {
 	e := c.err
 
 	defer func() {
-		// NOTE: if the build is already in a failure state we do not
-		// want to update the state to be success
-		if !strings.EqualFold(b.GetStatus(), constants.StatusFailure) {
-			b.SetStatus(constants.StatusSuccess)
-		}
 
-		// NOTE: When an error occurs during a build that does not have to do
-		// with a pipeline we should set build status to "error" not "failed"
-		// because it is worker related and not build.
-		if e != nil {
-			b.SetError(e.Error())
-			b.SetStatus(constants.StatusError)
-		}
+		if !strings.EqualFold(b.GetStatus(), constants.StatusCanceled) {
+			// NOTE: if the build is already in a failure state we do not
+			// want to update the state to be success
+			if !strings.EqualFold(b.GetStatus(), constants.StatusFailure) {
+				b.SetStatus(constants.StatusSuccess)
+			}
 
+			// NOTE: When an error occurs during a build that does not have to do
+			// with a pipeline we should set build status to "error" not "failed"
+			// because it is worker related and not build.
+			if e != nil {
+				b.SetError(e.Error())
+				b.SetStatus(constants.StatusError)
+			}
+		}
 		// update the build fields
 		b.SetFinished(time.Now().UTC().Unix())
 

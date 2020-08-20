@@ -58,13 +58,13 @@ func (c *client) CancelBuild() (*library.Build, error) {
 		return nil, fmt.Errorf("build resource not found")
 	}
 
+	// set the build status to killed
+	b.SetStatus(constants.StatusCanceled)
+
 	err := syscall.Kill(syscall.Getpid(), syscall.SIGTERM)
 	if err != nil {
 		return nil, fmt.Errorf("unable to cancel PID: %w", err)
 	}
-
-	// set the build status to killed
-	b.SetStatus(constants.StatusCanceled)
 
 	return b, nil
 }

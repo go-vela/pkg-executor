@@ -9,7 +9,7 @@ require (
 	github.com/go-vela/mock v0.5.0
 	github.com/go-vela/pkg-runtime v0.5.0
 	github.com/go-vela/sdk-go v0.5.0
-	github.com/go-vela/types v0.5.1-0.20200818133658-9908dd053621
+	github.com/go-vela/types v0.5.1-0.20200820130232-5218860efe47
 	github.com/google/go-cmp v0.5.0
 	github.com/joho/godotenv v1.3.0
 	github.com/onsi/gomega v1.7.1 // indirect

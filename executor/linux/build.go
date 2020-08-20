@@ -454,7 +454,7 @@ func (c *client) ExecBuild(ctx context.Context) error {
 	e := c.err
 
 	defer func() {
-
+		// Overwrite with proper status and error only if build was not canceled
 		if !strings.EqualFold(b.GetStatus(), constants.StatusCanceled) {
 			// NOTE: if the build is already in a failure state we do not
 			// want to update the state to be success

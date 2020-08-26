@@ -59,7 +59,7 @@ func (c *client) CancelBuild() (*library.Build, error) {
 	}
 
 	// set the build status to killed
-	b.SetStatus(constants.StatusKilled)
+	b.SetStatus(constants.StatusCanceled)
 
 	err := syscall.Kill(syscall.Getpid(), syscall.SIGTERM)
 	if err != nil {

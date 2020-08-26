@@ -233,7 +233,7 @@ func (c *client) PlanBuild(ctx context.Context) error {
 		}
 
 		l.AppendData([]byte(
-			fmt.Sprintf("$ vela view secret --engine %s --type %s --org %s --repo %s --name %s \n",
+			fmt.Sprintf("$ vela view secret --secret.engine %s --secret.type %s --org %s --repo %s --name %s \n",
 				secret.Engine, secret.Type, s.GetOrg(), s.GetRepo(), s.GetName())))
 
 		sRaw, err := json.MarshalIndent(s.Sanitize(), "", " ")

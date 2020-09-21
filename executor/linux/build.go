@@ -301,7 +301,6 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	for _, s := range p.Services {
 		// TODO: remove this; but we need it for tests
 		s.Detach = true
-		s.Pull = true
 
 		// TODO: remove hardcoded reference
 		// update the init log with progress

@@ -191,7 +191,7 @@ var (
 				Image:     "#init",
 				Name:      "init",
 				Number:    1,
-				Pull:      true,
+				Pull:      "always",
 			},
 			{
 				ID:        "step_github_octocat_1_clone",
@@ -199,7 +199,7 @@ var (
 				Image:     "target/vela-git:v0.3.0",
 				Name:      "clone",
 				Number:    2,
-				Pull:      true,
+				Pull:      "always",
 			},
 			{
 				ID:        "step_github_octocat_1_echo",
@@ -208,7 +208,7 @@ var (
 				Image:     "alpine:latest",
 				Name:      "echo",
 				Number:    3,
-				Pull:      true,
+				Pull:      "always",
 			},
 		},
 	}

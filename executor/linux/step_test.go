@@ -57,7 +57,7 @@ func TestLinux_CreateStep(t *testing.T) {
 				Image:       "#init",
 				Name:        "init",
 				Number:      1,
-				Pull:        true,
+				Pull:        "always",
 			},
 		},
 		{
@@ -69,7 +69,7 @@ func TestLinux_CreateStep(t *testing.T) {
 				Image:       "target/vela-git:v0.3.0",
 				Name:        "clone",
 				Number:      2,
-				Pull:        true,
+				Pull:        "always",
 			},
 		},
 		{
@@ -81,7 +81,7 @@ func TestLinux_CreateStep(t *testing.T) {
 				Image:       "target/vela-git:notfound",
 				Name:        "clone",
 				Number:      2,
-				Pull:        true,
+				Pull:        "always",
 			},
 		},
 		{
@@ -97,7 +97,7 @@ func TestLinux_CreateStep(t *testing.T) {
 				Image:  "target/vela-git:v0.3.0",
 				Name:   "clone",
 				Number: 2,
-				Pull:   true,
+				Pull:   "always",
 			},
 		},
 	}
@@ -167,7 +167,7 @@ func TestLinux_PlanStep(t *testing.T) {
 				Image:       "target/vela-git:v0.3.0",
 				Name:        "clone",
 				Number:      2,
-				Pull:        true,
+				Pull:        "always",
 			},
 		},
 		{
@@ -179,7 +179,7 @@ func TestLinux_PlanStep(t *testing.T) {
 				Image:       "target/vela-git:v0.3.0",
 				Name:        "clone",
 				Number:      0,
-				Pull:        true,
+				Pull:        "always",
 			},
 		},
 	}
@@ -249,7 +249,7 @@ func TestLinux_ExecStep(t *testing.T) {
 				Image:       "#init",
 				Name:        "init",
 				Number:      1,
-				Pull:        true,
+				Pull:        "always",
 			},
 		},
 		{
@@ -261,7 +261,7 @@ func TestLinux_ExecStep(t *testing.T) {
 				Image:       "target/vela-git:v0.3.0",
 				Name:        "clone",
 				Number:      2,
-				Pull:        true,
+				Pull:        "always",
 			},
 		},
 		{
@@ -274,7 +274,7 @@ func TestLinux_ExecStep(t *testing.T) {
 				Image:       "target/vela-git:v0.3.0",
 				Name:        "clone",
 				Number:      2,
-				Pull:        true,
+				Pull:        "always",
 			},
 		},
 		{
@@ -286,7 +286,7 @@ func TestLinux_ExecStep(t *testing.T) {
 				Image:       "target/vela-git:v0.3.0",
 				Name:        "notfound",
 				Number:      2,
-				Pull:        true,
+				Pull:        "always",
 			},
 		},
 	}
@@ -361,7 +361,7 @@ func TestLinux_StreamStep(t *testing.T) {
 				Image:       "#init",
 				Name:        "init",
 				Number:      1,
-				Pull:        true,
+				Pull:        "always",
 			},
 		},
 		{ // container step fails because of nil logs
@@ -374,7 +374,7 @@ func TestLinux_StreamStep(t *testing.T) {
 				Image:       "target/vela-git:v0.3.0",
 				Name:        "clone",
 				Number:      2,
-				Pull:        true,
+				Pull:        "always",
 			},
 		},
 		{ // container step fails because of invalid container id
@@ -387,7 +387,7 @@ func TestLinux_StreamStep(t *testing.T) {
 				Image:       "target/vela-git:v0.3.0",
 				Name:        "notfound",
 				Number:      2,
-				Pull:        true,
+				Pull:        "always",
 			},
 		},
 	}
@@ -469,7 +469,7 @@ func TestLinux_DestroyStep(t *testing.T) {
 				Image:       "#init",
 				Name:        "init",
 				Number:      1,
-				Pull:        true,
+				Pull:        "always",
 			},
 			step: new(library.Step),
 		},
@@ -482,7 +482,7 @@ func TestLinux_DestroyStep(t *testing.T) {
 				Image:       "target/vela-git:v0.3.0",
 				Name:        "clone",
 				Number:      2,
-				Pull:        true,
+				Pull:        "always",
 			},
 			step: _step,
 		},
@@ -495,7 +495,7 @@ func TestLinux_DestroyStep(t *testing.T) {
 				Image:       "target/vela-git:v0.3.0",
 				Name:        "notfound",
 				Number:      2,
-				Pull:        true,
+				Pull:        "always",
 			},
 			step: new(library.Step),
 		},
@@ -508,7 +508,7 @@ func TestLinux_DestroyStep(t *testing.T) {
 				Image:       "target/vela-git:v0.3.0",
 				Name:        "ignorenotfound",
 				Number:      2,
-				Pull:        true,
+				Pull:        "always",
 			},
 			step: new(library.Step),
 		},

@@ -58,6 +58,7 @@ func TestLinux_CreateService(t *testing.T) {
 				Name:        "postgres",
 				Number:      1,
 				Ports:       []string{"5432:5432"},
+				Pull:        "not_present",
 			},
 		},
 		{
@@ -70,6 +71,7 @@ func TestLinux_CreateService(t *testing.T) {
 				Name:        "postgres",
 				Number:      1,
 				Ports:       []string{"5432:5432"},
+				Pull:        "not_present",
 			},
 		},
 		{
@@ -86,6 +88,7 @@ func TestLinux_CreateService(t *testing.T) {
 				Name:   "postgres",
 				Number: 1,
 				Ports:  []string{"5432:5432"},
+				Pull:   "not_present",
 			},
 		},
 	}
@@ -156,6 +159,7 @@ func TestLinux_PlanService(t *testing.T) {
 				Name:        "postgres",
 				Number:      1,
 				Ports:       []string{"5432:5432"},
+				Pull:        "not_present",
 			},
 		},
 		{
@@ -168,6 +172,7 @@ func TestLinux_PlanService(t *testing.T) {
 				Name:        "postgres",
 				Number:      0,
 				Ports:       []string{"5432:5432"},
+				Pull:        "not_present",
 			},
 		},
 	}
@@ -238,6 +243,7 @@ func TestLinux_ExecService(t *testing.T) {
 				Name:        "postgres",
 				Number:      1,
 				Ports:       []string{"5432:5432"},
+				Pull:        "not_present",
 			},
 		},
 		{
@@ -249,7 +255,7 @@ func TestLinux_ExecService(t *testing.T) {
 				Image:       "postgres:12-alpine",
 				Name:        "notfound",
 				Number:      2,
-				Pull:        true,
+				Pull:        "always",
 			},
 		},
 	}
@@ -325,6 +331,7 @@ func TestLinux_StreamService(t *testing.T) {
 				Name:        "postgres",
 				Number:      1,
 				Ports:       []string{"5432:5432"},
+				Pull:        "not_present",
 			},
 		},
 		{ // container step fails because of nil logs
@@ -338,6 +345,7 @@ func TestLinux_StreamService(t *testing.T) {
 				Name:        "postgres",
 				Number:      1,
 				Ports:       []string{"5432:5432"},
+				Pull:        "not_present",
 			},
 		},
 		{ // container step fails because of invalid container id
@@ -351,6 +359,7 @@ func TestLinux_StreamService(t *testing.T) {
 				Name:        "notfound",
 				Number:      1,
 				Ports:       []string{"5432:5432"},
+				Pull:        "not_present",
 			},
 		},
 	}
@@ -433,6 +442,7 @@ func TestLinux_DestroyService(t *testing.T) {
 				Name:        "postgres",
 				Number:      1,
 				Ports:       []string{"5432:5432"},
+				Pull:        "not_present",
 			},
 			service: _service,
 		},
@@ -446,6 +456,7 @@ func TestLinux_DestroyService(t *testing.T) {
 				Name:        "notfound",
 				Number:      1,
 				Ports:       []string{"5432:5432"},
+				Pull:        "not_present",
 			},
 			service: new(library.Service),
 		},
@@ -459,6 +470,7 @@ func TestLinux_DestroyService(t *testing.T) {
 				Name:        "ignorenotfound",
 				Number:      1,
 				Ports:       []string{"5432:5432"},
+				Pull:        "not_present",
 			},
 			service: new(library.Service),
 		},

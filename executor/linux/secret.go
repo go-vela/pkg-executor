@@ -46,7 +46,7 @@ func (s *secretSvc) create(ctx context.Context, ctn *pipeline.Container) error {
 	ctn.Environment["VELA_HOST"] = s.client.Hostname
 
 	// TODO: remove hardcoded reference
-	ctn.Environment["VELA_VERSION"] = "v0.5.0"
+	ctn.Environment["VELA_VERSION"] = "v0.6.0"
 	ctn.Environment["VELA_RUNTIME"] = "docker"
 	ctn.Environment["VELA_DISTRIBUTION"] = "linux"
 

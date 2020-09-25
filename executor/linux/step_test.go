@@ -92,7 +92,7 @@ func TestLinux_CreateStep(t *testing.T) {
 				Directory: "/home/github/octocat",
 				Environment: map[string]string{
 					"BAR": "1\n2\n",
-					"FOO": "!@#$%^&*()\\",
+					"FOO": "`~!@#$%^&*()-_=+[{]}\\|;:',<.>/?",
 				},
 				Image:  "target/vela-git:v0.3.0",
 				Name:   "clone",

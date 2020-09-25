@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -81,11 +82,16 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 
 	logger.Debug("unmarshalling configuration")
 	// unmarshal container configuration
-	err = json.Unmarshal([]byte(subStep), ctn)
+	json.Unmarshal([]byte(subStep), ctn)
+	// define a new buffer to capture the output, which doesn't need to be written
+	var buf io.ReadWriter
+	buf = new(bytes.Buffer)
+	enc := json.NewEncoder(buf)
+	// ctn is modified via pointer through enc.Encode
+	err = enc.Encode(ctn)
 	if err != nil {
 		return fmt.Errorf("unable to unmarshal configuration: %v", err)
 	}
-
 	return nil
 }
 

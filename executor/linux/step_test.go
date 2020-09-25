@@ -85,7 +85,7 @@ func TestLinux_CreateStep(t *testing.T) {
 			},
 		},
 		{
-			failure: true,
+			failure: false,
 			container: &pipeline.Container{
 				ID:        "step_github_octocat_1_clone",
 				Commands:  []string{"echo", "${BAR}", "${FOO}"},

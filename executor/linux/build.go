@@ -64,18 +64,8 @@ func (c *client) CreateBuild(ctx context.Context) error {
 
 	c.build = b
 
-	// create init container
-	init := new(pipeline.Container)
-
-	if len(p.Steps) > 0 {
-		// add init container to pipeline
-		init = p.Steps[0]
-	}
-
-	if len(p.Stages) > 0 {
-		// add init container to pipeline
-		init = p.Stages[0].Steps[0]
-	}
+	// load the init container from the pipeline
+	init := c.loadInitContainer(p)
 
 	c.logger.Infof("creating %s step", init.Name)
 	// create the step
@@ -257,6 +247,7 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	p := c.pipeline
 	r := c.repo
 	e := c.err
+	init := c.init
 
 	defer func() {
 		// NOTE: When an error occurs during a build that does not have to do
@@ -278,19 +269,38 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 		}
 	}()
 
-	// load init container from the pipeline
-	init, err := c.loadInitContainer(p)
+	// load the init step from the client
+	sInit, err := c.loadStep(init.ID)
 	if err != nil {
-		e = err
 		return err
 	}
 
 	// load the logs for the init step from the client
 	l, err := c.loadStepLogs(init.ID)
 	if err != nil {
-		e = err
 		return err
 	}
+
+	defer func() {
+		sInit.SetFinished(time.Now().UTC().Unix())
+		c.logger.Infof("uploading %s step state", init.Name)
+		// send API call to update the step
+		//
+		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
+		_, _, err := c.Vela.Step.Update(r.GetOrg(), r.GetName(), b.GetNumber(), sInit)
+		if err != nil {
+			c.logger.Errorf("unable to upload %s state: %v", init.Name, err)
+		}
+
+		c.logger.Infof("uploading %s step logs", init.Name)
+		// send API call to update the logs for the step
+		//
+		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateStep
+		l, _, err = c.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), init.Number, l)
+		if err != nil {
+			c.logger.Errorf("unable to upload %s logs: %v", init.Name, err)
+		}
+	}()
 
 	// update the init log with progress
 	//

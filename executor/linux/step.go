@@ -83,7 +83,18 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 	// unmarshal container configuration
 	err = json.Unmarshal([]byte(subStep), ctn)
 	if err != nil {
-		return fmt.Errorf("unable to unmarshal configuration: %v", err)
+		logger.Error(err)
+
+		// define a new buffer to capture the output, which doesn't need to be written
+		buf := new(bytes.Buffer)
+
+		// create new encoder for buffer
+		enc := json.NewEncoder(buf)
+		// ctn is modified via pointer through enc.Encode
+		err = enc.Encode(ctn)
+		if err != nil {
+			return fmt.Errorf("unable to unmarshal configuration: %v", err)
+		}
 	}
 
 	return nil

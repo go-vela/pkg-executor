@@ -85,14 +85,14 @@ func TestLinux_CreateStep(t *testing.T) {
 			},
 		},
 		{
-			failure: true,
+			failure: false,
 			container: &pipeline.Container{
 				ID:        "step_github_octocat_1_clone",
 				Commands:  []string{"echo", "${BAR}", "${FOO}"},
 				Directory: "/home/github/octocat",
 				Environment: map[string]string{
 					"BAR": "1\n2\n",
-					"FOO": "!@#$%^&*()\\",
+					"FOO": "`~!@#$%^&*()-_=+[{]}\\|;:',<.>/?",
 				},
 				Image:  "target/vela-git:v0.3.0",
 				Name:   "clone",

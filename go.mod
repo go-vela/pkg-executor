@@ -5,11 +5,11 @@ go 1.14
 require (
 	github.com/drone/envsubst v1.0.2
 	github.com/gin-gonic/gin v1.6.3
-	github.com/go-vela/compiler v0.6.0-rc2
-	github.com/go-vela/mock v0.6.0-rc2
-	github.com/go-vela/pkg-runtime v0.6.0-rc2
-	github.com/go-vela/sdk-go v0.6.0-rc2
-	github.com/go-vela/types v0.6.0-rc2
+	github.com/go-vela/compiler v0.6.0
+	github.com/go-vela/mock v0.6.0
+	github.com/go-vela/pkg-runtime v0.6.0
+	github.com/go-vela/sdk-go v0.6.0
+	github.com/go-vela/types v0.6.0
 	github.com/google/go-cmp v0.5.0
 	github.com/joho/godotenv v1.3.0
 	github.com/sirupsen/logrus v1.6.0

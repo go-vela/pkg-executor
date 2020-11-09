@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"strings"
 	"time"
 
@@ -151,7 +152,7 @@ func (c *client) ExecService(ctx context.Context, ctn *pipeline.Container) error
 	}
 
 	go func() {
-		logger.Debug("stream logs for container")
+		logger.Debug("streaming logs for container")
 		// stream logs from container
 		err := c.StreamService(ctx, ctn)
 		if err != nil {
@@ -182,15 +183,23 @@ func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) err
 	logs := new(bytes.Buffer)
 
 	defer func() {
-		// NOTE: Whenever the stream ends we want to ensure
-		// that this function makes the call to update
-		// the service logs
-		logger.Trace(logs.String())
+		// tail the runtime container
+		rc, err := c.Runtime.TailContainer(ctx, ctn)
+		if err != nil {
+			logger.Errorf("unable to tail container output for upload: %v", err)
+		}
+		defer rc.Close()
 
-		// update the existing log with the last bytes
+		// read all output from the runtime container
+		data, err := ioutil.ReadAll(rc)
+		if err != nil {
+			logger.Errorf("unable to read container output for upload: %v", err)
+		}
+
+		// overwrite the existing log with all bytes
 		//
-		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-		l.AppendData(logs.Bytes())
+		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.SetData
+		l.SetData(data)
 
 		logger.Debug("uploading logs")
 		// send API call to update the logs for the service
@@ -198,7 +207,7 @@ func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) err
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateService
 		_, _, err = c.Vela.Log.UpdateService(r.GetOrg(), r.GetName(), b.GetNumber(), ctn.Number, l)
 		if err != nil {
-			logger.Error("unable to upload final service state: %w", err)
+			logger.Errorf("unable to upload container logs: %v", err)
 		}
 	}()
 
@@ -241,7 +250,7 @@ func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) err
 		}
 	}
 
-	return nil
+	return scanner.Err()
 }
 
 // DestroyService cleans up services after execution.

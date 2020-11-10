@@ -187,6 +187,8 @@ func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) err
 		rc, err := c.Runtime.TailContainer(ctx, ctn)
 		if err != nil {
 			logger.Errorf("unable to tail container output for upload: %v", err)
+
+			return
 		}
 		defer rc.Close()
 
@@ -194,6 +196,8 @@ func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) err
 		data, err := ioutil.ReadAll(rc)
 		if err != nil {
 			logger.Errorf("unable to read container output for upload: %v", err)
+
+			return
 		}
 
 		// overwrite the existing log with all bytes

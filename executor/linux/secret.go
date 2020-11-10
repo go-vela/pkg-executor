@@ -355,6 +355,8 @@ func (s *secretSvc) stream(ctx context.Context, ctn *pipeline.Container) error {
 		rc, err := s.client.Runtime.TailContainer(ctx, ctn)
 		if err != nil {
 			logger.Errorf("unable to tail container output for upload: %v", err)
+
+			return
 		}
 		defer rc.Close()
 
@@ -362,6 +364,8 @@ func (s *secretSvc) stream(ctx context.Context, ctn *pipeline.Container) error {
 		data, err := ioutil.ReadAll(rc)
 		if err != nil {
 			logger.Errorf("unable to read container output for upload: %v", err)
+
+			return
 		}
 
 		// overwrite the existing log with all bytes

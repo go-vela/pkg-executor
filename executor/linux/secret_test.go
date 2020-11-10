@@ -523,19 +523,6 @@ func TestLinux_Secret_stream(t *testing.T) {
 				Pull:        "always",
 			},
 		},
-		{ // container step fails because of nil logs
-			failure: true,
-			logs:    nil,
-			container: &pipeline.Container{
-				ID:          "secret_github_octocat_1_vault",
-				Directory:   "/vela/src/vcs.company.com/github/octocat",
-				Environment: map[string]string{"FOO": "bar"},
-				Image:       "target/secret-vault:latest",
-				Name:        "vault",
-				Number:      2,
-				Pull:        "always",
-			},
-		},
 		{ // container step fails because of invalid container id
 			failure: true,
 			logs:    new(library.Log),
@@ -565,13 +552,10 @@ func TestLinux_Secret_stream(t *testing.T) {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
 
-		if test.logs != nil {
-			_engine.stepLogs.Store(test.container.ID, test.logs)
-		}
+		// add init container info to client
+		_ = _engine.CreateBuild(context.Background())
 
-		_engine.steps.Store(test.container.ID, new(library.Step))
-
-		err = _engine.StreamStep(context.Background(), test.container)
+		err = _engine.secret.stream(context.Background(), test.container)
 
 		if test.failure {
 			if err == nil {

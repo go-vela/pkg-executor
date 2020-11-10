@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"strings"
 	"time"
 
@@ -351,27 +350,15 @@ func (s *secretSvc) stream(ctx context.Context, ctn *pipeline.Container) error {
 	logs := new(bytes.Buffer)
 
 	defer func() {
-		// tail the runtime container
-		rc, err := s.client.Runtime.TailContainer(ctx, ctn)
-		if err != nil {
-			logger.Errorf("unable to tail container output for upload: %v", err)
+		// NOTE: Whenever the stream ends we want to ensure
+		// that this function makes the call to update
+		// the step logs
+		logger.Trace(logs.String())
 
-			return
-		}
-		defer rc.Close()
-
-		// read all output from the runtime container
-		data, err := ioutil.ReadAll(rc)
-		if err != nil {
-			logger.Errorf("unable to read container output for upload: %v", err)
-
-			return
-		}
-
-		// overwrite the existing log with all bytes
+		// update the existing log with the last bytes
 		//
-		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.SetData
-		l.SetData(data)
+		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+		l.AppendData(logs.Bytes())
 
 		logger.Debug("uploading logs")
 		// send API call to update the logs for the service

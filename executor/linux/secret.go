@@ -366,7 +366,7 @@ func (s *secretSvc) stream(ctx context.Context, ctn *pipeline.Container) error {
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateService
 		_, _, err = s.client.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), ctn.Number, l)
 		if err != nil {
-			logger.Error("unable to upload final step state: %w", err)
+			logger.Errorf("unable to upload container logs: %v", err)
 		}
 	}()
 
@@ -409,7 +409,7 @@ func (s *secretSvc) stream(ctx context.Context, ctn *pipeline.Container) error {
 		}
 	}
 
-	return nil
+	return scanner.Err()
 }
 
 // helper function to check secret whitelist before setting value

@@ -46,10 +46,6 @@ func TestLocal_New(t *testing.T) {
 			failure: false,
 			build:   testBuild(),
 		},
-		{
-			failure: true,
-			build:   nil,
-		},
 	}
 
 	// run tests

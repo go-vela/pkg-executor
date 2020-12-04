@@ -5,6 +5,8 @@
 package local
 
 import (
+	"fmt"
+
 	"github.com/go-vela/pkg-runtime/runtime"
 
 	"github.com/go-vela/sdk-go/vela"
@@ -19,6 +21,14 @@ type Opt func(*client) error
 // WithBuild sets the library build in the client.
 func WithBuild(b *library.Build) Opt {
 	return func(c *client) error {
+		// check if the build provided is empty
+		if b == nil {
+			return fmt.Errorf("empty build provided")
+		}
+
+		// set the build in the client
+		c.build = b
+
 		return nil
 	}
 }
@@ -26,6 +36,15 @@ func WithBuild(b *library.Build) Opt {
 // WithHostname sets the hostname in the client.
 func WithHostname(hostname string) Opt {
 	return func(c *client) error {
+		// check if a hostname is provided
+		if len(hostname) == 0 {
+			// default the hostname to localhost
+			hostname = "localhost"
+		}
+
+		// set the hostname in the client
+		c.Hostname = hostname
+
 		return nil
 	}
 }
@@ -33,6 +52,14 @@ func WithHostname(hostname string) Opt {
 // WithPipeline sets the pipeline build in the client.
 func WithPipeline(p *pipeline.Build) Opt {
 	return func(c *client) error {
+		// check if the pipeline provided is empty
+		if p == nil {
+			return fmt.Errorf("empty pipeline provided")
+		}
+
+		// set the pipeline in the client
+		c.pipeline = p
+
 		return nil
 	}
 }
@@ -40,6 +67,14 @@ func WithPipeline(p *pipeline.Build) Opt {
 // WithRepo sets the library repo in the client.
 func WithRepo(r *library.Repo) Opt {
 	return func(c *client) error {
+		// check if the repo provided is empty
+		if r == nil {
+			return fmt.Errorf("empty repo provided")
+		}
+
+		// set the repo in the client
+		c.repo = r
+
 		return nil
 	}
 }
@@ -47,6 +82,14 @@ func WithRepo(r *library.Repo) Opt {
 // WithRuntime sets the runtime engine in the client.
 func WithRuntime(r runtime.Engine) Opt {
 	return func(c *client) error {
+		// check if the runtime provided is empty
+		if r == nil {
+			return fmt.Errorf("empty runtime provided")
+		}
+
+		// set the runtime in the client
+		c.Runtime = r
+
 		return nil
 	}
 }
@@ -54,6 +97,14 @@ func WithRuntime(r runtime.Engine) Opt {
 // WithUser sets the library user in the client.
 func WithUser(u *library.User) Opt {
 	return func(c *client) error {
+		// check if the user provided is empty
+		if u == nil {
+			return fmt.Errorf("empty user provided")
+		}
+
+		// set the user in the client
+		c.user = u
+
 		return nil
 	}
 }
@@ -61,6 +112,14 @@ func WithUser(u *library.User) Opt {
 // WithVelaClient sets the Vela client in the client.
 func WithVelaClient(cli *vela.Client) Opt {
 	return func(c *client) error {
+		// check if the Vela client provided is empty
+		if cli == nil {
+			return fmt.Errorf("empty Vela client provided")
+		}
+
+		// set the Vela client in the client
+		c.Vela = cli
+
 		return nil
 	}
 }

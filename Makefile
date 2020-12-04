@@ -64,7 +64,7 @@ fix:
 test:
 	@echo
 	@echo "### Testing Go Code"
-	@go test -race ./...
+	@go test ./...
 
 # The `test-cover` target is intended to run
 # the tests for the Go source code and then
@@ -75,7 +75,7 @@ test:
 test-cover:
 	@echo
 	@echo "### Creating test coverage report"
-	@go test -race -covermode=atomic -coverprofile=coverage.out ./...
+	@go test -covermode=atomic -coverprofile=coverage.out ./...
 	@echo
 	@echo "### Opening test coverage report"
 	@go tool cover -html=coverage.out

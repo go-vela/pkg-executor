@@ -18,7 +18,7 @@ import (
 )
 
 type (
-	// client manages communication with the build resources
+	// client manages communication with the pipeline resources.
 	client struct {
 		Vela     *vela.Client
 		Runtime  runtime.Engine
@@ -49,6 +49,8 @@ type (
 )
 
 // New returns an Executor implementation that integrates with a Linux instance.
+//
+// nolint: golint // ignore unexported type as it is intentional
 func New(opts ...Opt) (*client, error) {
 	// create new Linux client
 	c := new(client)

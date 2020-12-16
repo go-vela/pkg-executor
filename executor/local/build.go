@@ -87,6 +87,8 @@ func (c *client) CreateBuild(ctx context.Context) error {
 }
 
 // PlanBuild prepares the build for execution.
+//
+// nolint: funlen // ignore function length - will be refactored at a later date
 func (c *client) PlanBuild(ctx context.Context) error {
 	b := c.build
 	p := c.pipeline
@@ -235,6 +237,8 @@ func (c *client) PlanBuild(ctx context.Context) error {
 }
 
 // AssembleBuild prepares the containers within a build for execution.
+//
+// nolint: funlen // ignore function length - will be refactored at a later date
 func (c *client) AssembleBuild(ctx context.Context) error {
 	b := c.build
 	p := c.pipeline
@@ -441,6 +445,8 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 }
 
 // ExecBuild runs a pipeline for a build.
+//
+// nolint: funlen // ignore function length - will be refactored at a later date
 func (c *client) ExecBuild(ctx context.Context) error {
 	b := c.build
 	p := c.pipeline

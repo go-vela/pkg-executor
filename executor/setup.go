@@ -10,6 +10,7 @@ import (
 	"github.com/go-vela/sdk-go/vela"
 
 	"github.com/go-vela/pkg-executor/executor/linux"
+	"github.com/go-vela/pkg-executor/executor/local"
 
 	"github.com/go-vela/pkg-runtime/runtime"
 
@@ -71,6 +72,25 @@ func (s *Setup) Linux() (Engine, error) {
 		linux.WithRuntime(s.Runtime),
 		linux.WithUser(s.User),
 		linux.WithVelaClient(s.Client),
+	)
+}
+
+// Local creates and returns a Vela engine capable of
+// integrating with a local executor.
+func (s *Setup) Local() (Engine, error) {
+	logrus.Trace("creating local executor client from setup")
+
+	// create new Local executor engine
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/executor/local?tab=doc#New
+	return local.New(
+		local.WithBuild(s.Build),
+		local.WithHostname(s.Hostname),
+		local.WithPipeline(s.Pipeline),
+		local.WithRepo(s.Repo),
+		local.WithRuntime(s.Runtime),
+		local.WithUser(s.User),
+		local.WithVelaClient(s.Client),
 	)
 }
 

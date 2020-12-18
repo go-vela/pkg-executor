@@ -14,6 +14,7 @@ import (
 	"github.com/go-vela/mock/server"
 
 	"github.com/go-vela/pkg-executor/executor/linux"
+	"github.com/go-vela/pkg-executor/executor/local"
 
 	"github.com/go-vela/pkg-runtime/runtime/docker"
 
@@ -105,6 +106,56 @@ func TestExecutor_Setup_Linux(t *testing.T) {
 
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("Linux is %v, want %v", got, want)
+	}
+}
+
+func TestExecutor_Setup_Local(t *testing.T) {
+	// setup types
+	gin.SetMode(gin.TestMode)
+
+	s := httptest.NewServer(server.FakeHandler())
+
+	_client, err := vela.NewClient(s.URL, nil)
+	if err != nil {
+		t.Errorf("unable to create Vela API client: %v", err)
+	}
+
+	_runtime, err := docker.NewMock()
+	if err != nil {
+		t.Errorf("unable to create runtime engine: %v", err)
+	}
+
+	want, err := local.New(
+		local.WithBuild(_build),
+		local.WithHostname("localhost"),
+		local.WithPipeline(_pipeline),
+		local.WithRepo(_repo),
+		local.WithRuntime(_runtime),
+		local.WithUser(_user),
+		local.WithVelaClient(_client),
+	)
+	if err != nil {
+		t.Errorf("unable to create local engine: %v", err)
+	}
+
+	_setup := &Setup{
+		Build:    _build,
+		Client:   _client,
+		Driver:   "local",
+		Pipeline: _pipeline,
+		Repo:     _repo,
+		Runtime:  _runtime,
+		User:     _user,
+	}
+
+	// run test
+	got, err := _setup.Local()
+	if err != nil {
+		t.Errorf("Local returned err: %v", err)
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("Local is %v, want %v", got, want)
 	}
 }
 

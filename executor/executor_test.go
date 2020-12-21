@@ -179,7 +179,7 @@ func TestExecutor_New(t *testing.T) {
 	}
 }
 
-// setup global variables used for testing
+// setup global variables used for testing.
 var (
 	_build = &library.Build{
 		ID:           vela.Int64(1),

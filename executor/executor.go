@@ -18,6 +18,8 @@ import (
 // Currently the following executors are supported:
 //
 // * linux
+// * local
+// nolint: godot // top level comment ends in a list
 func New(s *Setup) (Engine, error) {
 	// validate the setup being provided
 	//

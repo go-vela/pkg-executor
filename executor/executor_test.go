@@ -14,6 +14,7 @@ import (
 	"github.com/go-vela/mock/server"
 
 	"github.com/go-vela/pkg-executor/executor/linux"
+	"github.com/go-vela/pkg-executor/executor/local"
 
 	"github.com/go-vela/pkg-runtime/runtime/docker"
 
@@ -40,7 +41,7 @@ func TestExecutor_New(t *testing.T) {
 		t.Errorf("unable to create runtime engine: %v", err)
 	}
 
-	_engine, err := linux.New(
+	_linux, err := linux.New(
 		linux.WithBuild(_build),
 		linux.WithHostname("localhost"),
 		linux.WithPipeline(_pipeline),
@@ -51,6 +52,19 @@ func TestExecutor_New(t *testing.T) {
 	)
 	if err != nil {
 		t.Errorf("unable to create linux engine: %v", err)
+	}
+
+	_local, err := local.New(
+		local.WithBuild(_build),
+		local.WithHostname("localhost"),
+		local.WithPipeline(_pipeline),
+		local.WithRepo(_repo),
+		local.WithRuntime(_runtime),
+		local.WithUser(_user),
+		local.WithVelaClient(_client),
+	)
+	if err != nil {
+		t.Errorf("unable to create local engine: %v", err)
 	}
 
 	// setup tests
@@ -83,7 +97,20 @@ func TestExecutor_New(t *testing.T) {
 				Runtime:  _runtime,
 				User:     _user,
 			},
-			want: _engine,
+			want: _linux,
+		},
+		{
+			failure: false,
+			setup: &Setup{
+				Build:    _build,
+				Client:   _client,
+				Driver:   "local",
+				Pipeline: _pipeline,
+				Repo:     _repo,
+				Runtime:  _runtime,
+				User:     _user,
+			},
+			want: _local,
 		},
 		{
 			failure: true,
@@ -152,7 +179,7 @@ func TestExecutor_New(t *testing.T) {
 	}
 }
 
-// setup global variables used for testing
+// setup global variables used for testing.
 var (
 	_build = &library.Build{
 		ID:           vela.Int64(1),

@@ -18,6 +18,8 @@ import (
 // Currently the following executors are supported:
 //
 // * linux
+// * local
+// nolint: godot // top level comment ends in a list
 func New(s *Setup) (Engine, error) {
 	// validate the setup being provided
 	//
@@ -40,6 +42,12 @@ func New(s *Setup) (Engine, error) {
 		//
 		// https://pkg.go.dev/github.com/go-vela/pkg-executor/executor?tab=doc#Setup.Linux
 		return s.Linux()
+	// TODO: use constant from go-vela/types/constants
+	case "local":
+		// handle the Local executor driver being provided
+		//
+		// https://pkg.go.dev/github.com/go-vela/pkg-executor/executor?tab=doc#Setup.Local
+		return s.Local()
 	case constants.DriverWindows:
 		// handle the Windows executor driver being provided
 		//

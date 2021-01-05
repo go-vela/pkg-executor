@@ -6,6 +6,7 @@ package linux
 
 import (
 	"fmt"
+	"os"
 	"syscall"
 
 	"github.com/go-vela/types/constants"
@@ -61,9 +62,14 @@ func (c *client) CancelBuild() (*library.Build, error) {
 	// set the build status to killed
 	b.SetStatus(constants.StatusCanceled)
 
-	err := syscall.Kill(syscall.Getpid(), syscall.SIGTERM)
+	p, err := os.FindProcess(os.Getpid())
 	if err != nil {
-		return nil, fmt.Errorf("unable to cancel PID: %w", err)
+		return nil, fmt.Errorf("unable to find PID: %v", err)
+	}
+
+	err = p.Signal(syscall.SIGTERM)
+	if err != nil {
+		return nil, fmt.Errorf("unable to cancel PID: %v", err)
 	}
 
 	return b, nil

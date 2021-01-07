@@ -10,7 +10,7 @@ require (
 	github.com/go-vela/pkg-runtime v0.6.1-0.20201111181755-32e183648cb0
 	github.com/go-vela/sdk-go v0.6.0
 	github.com/go-vela/types v0.6.0
-	github.com/google/go-cmp v0.5.2
+	github.com/google/go-cmp v0.5.4
 	github.com/joho/godotenv v1.3.0
 	github.com/sirupsen/logrus v1.7.0
 	github.com/urfave/cli/v2 v2.2.0

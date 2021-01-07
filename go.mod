@@ -5,7 +5,7 @@ go 1.15
 require (
 	github.com/drone/envsubst v1.0.2
 	github.com/gin-gonic/gin v1.6.3
-	github.com/go-vela/compiler v0.6.0
+	github.com/go-vela/compiler v0.6.1
 	github.com/go-vela/mock v0.6.1-0.20201110215452-4708b0548219
 	github.com/go-vela/pkg-runtime v0.6.1-0.20201111181755-32e183648cb0
 	github.com/go-vela/sdk-go v0.6.0

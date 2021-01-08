@@ -26,7 +26,7 @@ func (c *client) CreateBuild(ctx context.Context) error {
 	e := c.err
 
 	// defer taking snapshot of build
-	defer build.Snapshot(b, c.Vela, e, nil, r)
+	defer build.Snapshot(b, nil, e, nil, r)
 
 	// update the build fields
 	b.SetStatus(constants.StatusRunning)
@@ -81,7 +81,7 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	init := c.init
 
 	// defer taking snapshot of build
-	defer build.Snapshot(b, c.Vela, e, nil, r)
+	defer build.Snapshot(b, nil, e, nil, r)
 
 	// load the init step from the client
 	s, err := c.loadStep(init.ID)
@@ -214,7 +214,7 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	init := c.init
 
 	// defer taking snapshot of build
-	defer build.Snapshot(b, c.Vela, e, nil, r)
+	defer build.Snapshot(b, nil, e, nil, r)
 
 	// load the init step from the client
 	sInit, err := c.loadStep(init.ID)

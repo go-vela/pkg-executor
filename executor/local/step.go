@@ -10,7 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
@@ -183,53 +183,6 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 		return nil
 	}
 
-	b := c.build
-	r := c.repo
-
-	// load the logs for the step from the client
-	l, err := c.loadStepLogs(ctn.ID)
-	if err != nil {
-		return err
-	}
-
-	// create new buffer for uploading logs
-	logs := new(bytes.Buffer)
-
-	defer func() {
-		// tail the runtime container
-		rc, err := c.Runtime.TailContainer(ctx, ctn)
-		if err != nil {
-			// TODO: Should this be changed or removed?
-			fmt.Println(err)
-
-			return
-		}
-		defer rc.Close()
-
-		// read all output from the runtime container
-		data, err := ioutil.ReadAll(rc)
-		if err != nil {
-			// TODO: Should this be changed or removed?
-			fmt.Println(err)
-
-			return
-		}
-
-		// overwrite the existing log with all bytes
-		//
-		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.SetData
-		l.SetData(data)
-
-		// send API call to update the logs for the step
-		//
-		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateStep
-		_, _, err = c.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), ctn.Number, l)
-		if err != nil {
-			// TODO: Should this be changed or removed?
-			fmt.Println(err)
-		}
-	}()
-
 	// tail the runtime container
 	rc, err := c.Runtime.TailContainer(ctx, ctn)
 	if err != nil {
@@ -242,27 +195,8 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 
 	// scan entire container output
 	for scanner.Scan() {
-		// write all the logs from the scanner
-		logs.Write(append(scanner.Bytes(), []byte("\n")...))
-
-		// if we have at least 1000 bytes in our buffer
-		if logs.Len() > 1000 {
-			// update the existing log with the new bytes
-			//
-			// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-			l.AppendData(logs.Bytes())
-
-			// send API call to append the logs for the step
-			//
-			// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateStep
-			l, _, err = c.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), ctn.Number, l)
-			if err != nil {
-				return err
-			}
-
-			// flush the buffer of logs
-			logs.Reset()
-		}
+		// ensure we output to stdout
+		fmt.Fprintln(os.Stdout, scanner.Text())
 	}
 
 	return scanner.Err()

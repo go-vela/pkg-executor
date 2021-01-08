@@ -331,15 +331,6 @@ func TestLocal_StreamStep(t *testing.T) {
 	_user := testUser()
 	_steps := testSteps()
 
-	gin.SetMode(gin.TestMode)
-
-	s := httptest.NewServer(server.FakeHandler())
-
-	_client, err := vela.NewClient(s.URL, nil)
-	if err != nil {
-		t.Errorf("unable to create Vela API client: %v", err)
-	}
-
 	_runtime, err := docker.NewMock()
 	if err != nil {
 		t.Errorf("unable to create runtime engine: %v", err)
@@ -348,12 +339,10 @@ func TestLocal_StreamStep(t *testing.T) {
 	// setup tests
 	tests := []struct {
 		failure   bool
-		logs      *library.Log
 		container *pipeline.Container
 	}{
 		{ // container step succeeds
 			failure: false,
-			logs:    new(library.Log),
 			container: &pipeline.Container{
 				ID:          "step_github_octocat_1_init",
 				Directory:   "/vela/src/vcs.company.com/github/octocat",
@@ -364,22 +353,8 @@ func TestLocal_StreamStep(t *testing.T) {
 				Pull:        "always",
 			},
 		},
-		{ // container step fails because of nil logs
-			failure: true,
-			logs:    nil,
-			container: &pipeline.Container{
-				ID:          "step_github_octocat_1_clone",
-				Directory:   "/vela/src/vcs.company.com/github/octocat",
-				Environment: map[string]string{"FOO": "bar"},
-				Image:       "target/vela-git:v0.3.0",
-				Name:        "clone",
-				Number:      2,
-				Pull:        "always",
-			},
-		},
 		{ // container step fails because of invalid container id
 			failure: true,
-			logs:    new(library.Log),
 			container: &pipeline.Container{
 				ID:          "step_github_octocat_1_notfound",
 				Directory:   "/vela/src/vcs.company.com/github/octocat",
@@ -400,17 +375,10 @@ func TestLocal_StreamStep(t *testing.T) {
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
-			WithVelaClient(_client),
 		)
 		if err != nil {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
-
-		if test.logs != nil {
-			_engine.stepLogs.Store(test.container.ID, test.logs)
-		}
-
-		_engine.steps.Store(test.container.ID, new(library.Step))
 
 		err = _engine.StreamStep(context.Background(), test.container)
 

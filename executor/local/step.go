@@ -230,6 +230,10 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 	// check if the step is in a pending state
 	if s.GetStatus() == constants.StatusPending {
 		// update the step fields
+		//
+		// TODO: consider making this a constant
+		//
+		// nolint: gomnd // ignore magic number 137
 		s.SetExitCode(137)
 		s.SetFinished(time.Now().UTC().Unix())
 		s.SetStatus(constants.StatusKilled)

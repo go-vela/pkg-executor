@@ -300,15 +300,6 @@ func TestLocal_StreamService(t *testing.T) {
 	_user := testUser()
 	_steps := testSteps()
 
-	gin.SetMode(gin.TestMode)
-
-	s := httptest.NewServer(server.FakeHandler())
-
-	_client, err := vela.NewClient(s.URL, nil)
-	if err != nil {
-		t.Errorf("unable to create Vela API client: %v", err)
-	}
-
 	_runtime, err := docker.NewMock()
 	if err != nil {
 		t.Errorf("unable to create runtime engine: %v", err)
@@ -317,26 +308,10 @@ func TestLocal_StreamService(t *testing.T) {
 	// setup tests
 	tests := []struct {
 		failure   bool
-		logs      *library.Log
 		container *pipeline.Container
 	}{
 		{ // container step succeeds
 			failure: false,
-			logs:    new(library.Log),
-			container: &pipeline.Container{
-				ID:          "service_github_octocat_1_postgres",
-				Directory:   "/vela/src/vcs.company.com/github/octocat",
-				Environment: map[string]string{"FOO": "bar"},
-				Image:       "postgres:12-alpine",
-				Name:        "postgres",
-				Number:      1,
-				Ports:       []string{"5432:5432"},
-				Pull:        "not_present",
-			},
-		},
-		{ // container step fails because of nil logs
-			failure: true,
-			logs:    nil,
 			container: &pipeline.Container{
 				ID:          "service_github_octocat_1_postgres",
 				Directory:   "/vela/src/vcs.company.com/github/octocat",
@@ -350,7 +325,6 @@ func TestLocal_StreamService(t *testing.T) {
 		},
 		{ // container step fails because of invalid container id
 			failure: true,
-			logs:    new(library.Log),
 			container: &pipeline.Container{
 				ID:          "service_github_octocat_1_notfound",
 				Directory:   "/vela/src/vcs.company.com/github/octocat",
@@ -372,17 +346,10 @@ func TestLocal_StreamService(t *testing.T) {
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
-			WithVelaClient(_client),
 		)
 		if err != nil {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
-
-		if test.logs != nil {
-			_engine.serviceLogs.Store(test.container.ID, test.logs)
-		}
-
-		_engine.services.Store(test.container.ID, new(library.Service))
 
 		err = _engine.StreamService(context.Background(), test.container)
 

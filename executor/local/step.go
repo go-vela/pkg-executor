@@ -16,6 +16,7 @@ import (
 
 	"github.com/drone/envsubst"
 
+	"github.com/go-vela/pkg-executor/internal/step"
 	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/library"
 	"github.com/go-vela/types/pipeline"
@@ -203,23 +204,23 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 	}
 
 	// load the step from the client
-	step, err := c.loadStep(ctn.ID)
+	s, err := step.Load(ctn, &c.steps)
 	if err != nil {
 		// create the step from the container
-		step = new(library.Step)
-		step.SetName(ctn.Name)
-		step.SetNumber(ctn.Number)
-		step.SetStatus(constants.StatusPending)
-		step.SetHost(ctn.Environment["VELA_HOST"])
-		step.SetRuntime(ctn.Environment["VELA_RUNTIME"])
-		step.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
+		s = new(library.Step)
+		s.SetName(ctn.Name)
+		s.SetNumber(ctn.Number)
+		s.SetStatus(constants.StatusPending)
+		s.SetHost(ctn.Environment["VELA_HOST"])
+		s.SetRuntime(ctn.Environment["VELA_RUNTIME"])
+		s.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 	}
 
 	defer func() {
 		// send API call to update the step
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
-		_, _, err := c.Vela.Step.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), step)
+		_, _, err := c.Vela.Step.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), s)
 		if err != nil {
 			// TODO: Should this be changed or removed?
 			fmt.Println(err)
@@ -227,16 +228,16 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 	}()
 
 	// check if the step is in a pending state
-	if step.GetStatus() == constants.StatusPending {
+	if s.GetStatus() == constants.StatusPending {
 		// update the step fields
-		step.SetExitCode(137)
-		step.SetFinished(time.Now().UTC().Unix())
-		step.SetStatus(constants.StatusKilled)
+		s.SetExitCode(137)
+		s.SetFinished(time.Now().UTC().Unix())
+		s.SetStatus(constants.StatusKilled)
 
 		// check if the step was not started
-		if step.GetStarted() == 0 {
+		if s.GetStarted() == 0 {
 			// set the started time to the finished time
-			step.SetStarted(step.GetFinished())
+			s.SetStarted(s.GetFinished())
 		}
 	}
 
@@ -247,16 +248,16 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 	}
 
 	// check if the step finished
-	if step.GetFinished() == 0 {
+	if s.GetFinished() == 0 {
 		// update the step fields
-		step.SetFinished(time.Now().UTC().Unix())
-		step.SetStatus(constants.StatusSuccess)
+		s.SetFinished(time.Now().UTC().Unix())
+		s.SetStatus(constants.StatusSuccess)
 
 		// check the container for an unsuccessful exit code
 		if ctn.ExitCode > 0 {
 			// update the step fields
-			step.SetExitCode(ctn.ExitCode)
-			step.SetStatus(constants.StatusFailure)
+			s.SetExitCode(ctn.ExitCode)
+			s.SetStatus(constants.StatusFailure)
 		}
 	}
 
@@ -267,42 +268,6 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 	}
 
 	return nil
-}
-
-// loadStep is a helper function to capture
-// a step from the client.
-func (c *client) loadStep(name string) (*library.Step, error) {
-	// load the step key from the client
-	result, ok := c.steps.Load(name)
-	if !ok {
-		return nil, fmt.Errorf("unable to load step %s", name)
-	}
-
-	// cast the step key to the expected type
-	s, ok := result.(*library.Step)
-	if !ok {
-		return nil, fmt.Errorf("step %s had unexpected value", name)
-	}
-
-	return s, nil
-}
-
-// loadStepLog is a helper function to capture
-// the logs for a step from the client.
-func (c *client) loadStepLogs(name string) (*library.Log, error) {
-	// load the step log key from the client
-	result, ok := c.stepLogs.Load(name)
-	if !ok {
-		return nil, fmt.Errorf("unable to load logs for step %s", name)
-	}
-
-	// cast the step log key to the expected type
-	l, ok := result.(*library.Log)
-	if !ok {
-		return nil, fmt.Errorf("logs for step %s had unexpected value", name)
-	}
-
-	return l, nil
 }
 
 // loadInitContainer is a helper function to capture

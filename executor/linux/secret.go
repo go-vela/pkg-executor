@@ -135,6 +135,10 @@ func (s *secretSvc) destroy(ctx context.Context, ctn *pipeline.Container) error 
 	// check if the step is in a pending state
 	if secret.GetStatus() == constants.StatusPending {
 		// update the step fields
+		//
+		// TODO: consider making this a constant
+		//
+		// nolint: gomnd // ignore magic number 137
 		secret.SetExitCode(137)
 		secret.SetFinished(time.Now().UTC().Unix())
 		secret.SetStatus(constants.StatusKilled)

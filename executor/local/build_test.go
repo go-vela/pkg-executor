@@ -246,14 +246,6 @@ func TestLocal_AssembleBuild(t *testing.T) {
 			failure:  true,
 			pipeline: "testdata/build/services/img_ignorenotfound.yml",
 		},
-		{ // pipeline with stages image tag not found
-			failure:  true,
-			pipeline: "testdata/build/secrets/img_notfound.yml",
-		},
-		{ // pipeline with stages image tag ignoring not found
-			failure:  true,
-			pipeline: "testdata/build/secrets/img_ignorenotfound.yml",
-		},
 	}
 
 	// run test
@@ -360,10 +352,6 @@ func TestLocal_ExecBuild(t *testing.T) {
 		{ // pipeline with service name not found
 			failure:  true,
 			pipeline: "testdata/build/services/name_notfound.yml",
-		},
-		{ // basic secrets pipeline
-			failure:  false,
-			pipeline: "testdata/build/secrets/basic.yml",
 		},
 	}
 
@@ -513,14 +501,6 @@ func TestLocal_DestroyBuild(t *testing.T) {
 		{ // pipeline with service image tag not found
 			failure:  false,
 			pipeline: "testdata/build/services/img_notfound.yml",
-		},
-		{ // basic stages pipeline
-			failure:  false,
-			pipeline: "testdata/build/secrets/basic.yml",
-		},
-		{ // pipeline with secret image tag not found
-			failure:  false,
-			pipeline: "testdata/build/secrets/img_notfound.yml",
 		},
 	}
 

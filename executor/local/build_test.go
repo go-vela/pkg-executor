@@ -416,6 +416,12 @@ func TestLocal_ExecBuild(t *testing.T) {
 			t.Errorf("unable to create build: %v", err)
 		}
 
+		// run plan to create network and volume
+		err = _engine.PlanBuild(context.Background())
+		if err != nil {
+			t.Errorf("unable to create build: %v", err)
+		}
+
 		// TODO: hack - remove this
 		//
 		// When calling CreateBuild(), it will automatically set the

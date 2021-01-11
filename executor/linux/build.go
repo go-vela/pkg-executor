@@ -13,6 +13,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/go-vela/pkg-executor/internal/build"
 	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/pipeline"
 )
@@ -24,25 +25,8 @@ func (c *client) CreateBuild(ctx context.Context) error {
 	r := c.repo
 	e := c.err
 
-	defer func() {
-		// NOTE: When an error occurs during a build that does not have to do
-		// with a pipeline we should set build status to "error" not "failed"
-		// because it is worker related and not build.
-		if e != nil {
-			b.SetError(e.Error())
-			b.SetStatus(constants.StatusError)
-			b.SetFinished(time.Now().UTC().Unix())
-		}
-
-		c.logger.Info("uploading build snapshot")
-		// send API call to update the build
-		//
-		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#BuildService.Update
-		_, _, err := c.Vela.Build.Update(r.GetOrg(), r.GetName(), b)
-		if err != nil {
-			c.logger.Errorf("unable to upload build snapshot: %v", err)
-		}
-	}()
+	// defer taking snapshot of build
+	defer build.Snapshot(b, c.Vela, e, c.logger, r)
 
 	// update the build fields
 	b.SetStatus(constants.StatusRunning)
@@ -97,25 +81,8 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	e := c.err
 	init := c.init
 
-	defer func() {
-		// NOTE: When an error occurs during a build that does not have to do
-		// with a pipeline we should set build status to "error" not "failed"
-		// because it is worker related and not build.
-		if e != nil {
-			b.SetError(e.Error())
-			b.SetStatus(constants.StatusError)
-			b.SetFinished(time.Now().UTC().Unix())
-		}
-
-		c.logger.Info("uploading build snapshot")
-		// send API call to update the build
-		//
-		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#BuildService.Update
-		_, _, err := c.Vela.Build.Update(r.GetOrg(), r.GetName(), b)
-		if err != nil {
-			c.logger.Errorf("unable to upload build snapshot: %v", err)
-		}
-	}()
+	// defer taking snapshot of build
+	defer build.Snapshot(b, c.Vela, e, c.logger, r)
 
 	// load the init step from the client
 	s, err := c.loadStep(init.ID)
@@ -249,25 +216,8 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	e := c.err
 	init := c.init
 
-	defer func() {
-		// NOTE: When an error occurs during a build that does not have to do
-		// with a pipeline we should set build status to "error" not "failed"
-		// because it is worker related and not build.
-		if e != nil {
-			b.SetError(e.Error())
-			b.SetStatus(constants.StatusError)
-			b.SetFinished(time.Now().UTC().Unix())
-		}
-
-		c.logger.Info("uploading build snapshot")
-		// send API call to update the build
-		//
-		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#BuildService.Update
-		_, _, err := c.Vela.Build.Update(r.GetOrg(), r.GetName(), b)
-		if err != nil {
-			c.logger.Errorf("unable to upload build snapshot: %v", err)
-		}
-	}()
+	// defer taking snapshot of build
+	defer build.Snapshot(b, c.Vela, e, c.logger, r)
 
 	// load the init step from the client
 	sInit, err := c.loadStep(init.ID)

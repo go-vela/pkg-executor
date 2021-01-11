@@ -6,7 +6,6 @@ package local
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -199,40 +198,6 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	l.AppendData([]byte(fmt.Sprintf("$ docker volume inspect %s \n", p.ID)))
 	l.AppendData(volume)
 
-	// update the init log with progress
-	//
-	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData([]byte("> Pulling secrets...\n"))
-
-	// iterate through each secret provided in the pipeline
-	for _, secret := range p.Secrets {
-		// ignore pulling secrets coming from plugins
-		if !secret.Origin.Empty() {
-			continue
-		}
-
-		s, err := c.secret.pull(secret)
-		if err != nil {
-			e = err
-			return fmt.Errorf("unable to pull secrets: %w", err)
-		}
-
-		l.AppendData([]byte(
-			fmt.Sprintf("$ vela view secret --secret.engine %s --secret.type %s --org %s --repo %s --name %s \n",
-				secret.Engine, secret.Type, s.GetOrg(), s.GetRepo(), s.GetName())))
-
-		sRaw, err := json.MarshalIndent(s.Sanitize(), "", " ")
-		if err != nil {
-			e = err
-			return fmt.Errorf("unable to decode secret: %w", err)
-		}
-
-		l.AppendData(append(sRaw, "\n"...))
-
-		// add secret to the map
-		c.Secrets[secret.Name] = s
-	}
-
 	return nil
 }
 
@@ -390,55 +355,6 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 		//
 		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
 		l.AppendData(image)
-	}
-
-	// update the init log with progress
-	//
-	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData([]byte("> Pulling secret images...\n"))
-
-	// create the secrets for the pipeline
-	for _, s := range p.Secrets {
-		// skip over non-plugin secrets
-		if s.Origin.Empty() {
-			continue
-		}
-
-		// update the init log with progress
-		//
-		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-		l.AppendData([]byte(fmt.Sprintf("$ docker image inspect %s\n", s.Origin.Name)))
-
-		// create the service
-		err := c.secret.create(ctx, s.Origin)
-		if err != nil {
-			e = err
-			return fmt.Errorf("unable to create %s secret: %w", s.Origin.Name, err)
-		}
-
-		// inspect the service image
-		image, err := c.Runtime.InspectImage(ctx, s.Origin)
-		if err != nil {
-			e = err
-			return fmt.Errorf("unable to inspect %s secret: %w", s.Origin.Name, err)
-		}
-
-		// update the init log with secret image info
-		//
-		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-		l.AppendData(image)
-	}
-
-	// update the init log with progress
-	//
-	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData([]byte("> Executing secret images...\n"))
-
-	// execute the secret
-	err = c.secret.exec(ctx, &p.Secrets)
-	if err != nil {
-		e = err
-		return fmt.Errorf("unable to execute secret: %w", err)
 	}
 
 	return nil
@@ -666,21 +582,6 @@ func (c *client) DestroyBuild(ctx context.Context) error {
 	for _, s := range c.pipeline.Services {
 		// destroy the service
 		err = c.DestroyService(ctx, s)
-		if err != nil {
-			// TODO: Should this be changed or removed?
-			fmt.Println(err)
-		}
-	}
-
-	// destroy the secrets for the pipeline
-	for _, s := range c.pipeline.Secrets {
-		// skip over non-plugin secrets
-		if s.Origin.Empty() {
-			continue
-		}
-
-		// destroy the secret
-		err = c.secret.destroy(ctx, s.Origin)
 		if err != nil {
 			// TODO: Should this be changed or removed?
 			fmt.Println(err)

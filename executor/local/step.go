@@ -41,13 +41,6 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 		return err
 	}
 
-	// TODO: will be uncommented in a future PR
-	// // inject secrets for container
-	// err = injectSecrets(ctn, c.Secrets)
-	// if err != nil {
-	// 	return err
-	// }
-
 	// marshal container configuration
 	body, err := json.Marshal(ctn)
 	if err != nil {

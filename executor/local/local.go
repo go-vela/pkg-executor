@@ -18,28 +18,19 @@ type (
 	client struct {
 		Vela     *vela.Client
 		Runtime  runtime.Engine
-		Secrets  map[string]*library.Secret
 		Hostname string
-
-		// clients for build actions
-		secret *secretSvc
 
 		// private fields
 		init        *pipeline.Container
 		build       *library.Build
 		pipeline    *pipeline.Build
 		repo        *library.Repo
-		secrets     sync.Map
 		services    sync.Map
 		serviceLogs sync.Map
 		steps       sync.Map
 		stepLogs    sync.Map
 		user        *library.User
 		err         error
-	}
-
-	svc struct {
-		client *client
 	}
 )
 
@@ -57,12 +48,6 @@ func New(opts ...Opt) (*client, error) {
 			return nil, err
 		}
 	}
-
-	// instantiate map for non-plugin secrets
-	c.Secrets = make(map[string]*library.Secret)
-
-	// instantiate all client services
-	c.secret = &secretSvc{client: c}
 
 	return c, nil
 }

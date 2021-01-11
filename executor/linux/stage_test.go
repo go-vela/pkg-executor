@@ -375,6 +375,12 @@ func TestLinux_ExecStage(t *testing.T) {
 			t.Errorf("unable to create step: %v", err)
 		}
 
+		// create volume for runtime host config
+		err = _runtime.CreateVolume(context.Background(), _stages)
+		if err != nil {
+			t.Errorf("unable to create runtime volume: %w", err)
+		}
+
 		err = _engine.ExecStage(context.Background(), test.stage, stageMap)
 
 		if test.failure {

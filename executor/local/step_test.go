@@ -308,6 +308,12 @@ func TestLocal_ExecStep(t *testing.T) {
 		_engine.stepLogs.Store(test.container.ID, new(library.Log))
 		_engine.steps.Store(test.container.ID, new(library.Step))
 
+		// create volume for runtime host config
+		err = _runtime.CreateVolume(context.Background(), _steps)
+		if err != nil {
+			t.Errorf("unable to create runtime volume: %w", err)
+		}
+
 		err = _engine.ExecStep(context.Background(), test.container)
 
 		if test.failure {

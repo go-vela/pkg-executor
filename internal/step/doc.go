@@ -2,7 +2,7 @@
 //
 // Use of this source code is governed by the LICENSE file in this repository.
 
-// Package steo provides the ability for Vela to
+// Package step provides the ability for Vela to
 // manipulate and manage a step from a pipeline.
 //
 // Usage:

@@ -16,6 +16,7 @@ import (
 
 	"github.com/drone/envsubst"
 
+	"github.com/go-vela/pkg-executor/internal/service"
 	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/library"
 	"github.com/go-vela/types/pipeline"
@@ -174,7 +175,7 @@ func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) err
 	logger := c.logger.WithField("service", ctn.Name)
 
 	// load the logs for the service from the client
-	l, err := c.loadServiceLogs(ctn.ID)
+	l, err := service.LoadLogs(ctn, &c.serviceLogs)
 	if err != nil {
 		return err
 	}
@@ -265,16 +266,16 @@ func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) er
 	logger := c.logger.WithField("service", ctn.Name)
 
 	// load the service from the client
-	service, err := c.loadService(ctn.ID)
+	s, err := service.Load(ctn, &c.services)
 	if err != nil {
 		// create the service from the container
-		service = new(library.Service)
-		service.SetName(ctn.Name)
-		service.SetNumber(ctn.Number)
-		service.SetStatus(constants.StatusPending)
-		service.SetHost(ctn.Environment["VELA_HOST"])
-		service.SetRuntime(ctn.Environment["VELA_RUNTIME"])
-		service.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
+		s = new(library.Service)
+		s.SetName(ctn.Name)
+		s.SetNumber(ctn.Number)
+		s.SetStatus(constants.StatusPending)
+		s.SetHost(ctn.Environment["VELA_HOST"])
+		s.SetRuntime(ctn.Environment["VELA_RUNTIME"])
+		s.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 	}
 
 	defer func() {
@@ -282,23 +283,23 @@ func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) er
 		// send API call to update the step
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SvcService.Update
-		_, _, err := c.Vela.Svc.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), service)
+		_, _, err := c.Vela.Svc.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), s)
 		if err != nil {
 			logger.Errorf("unable to upload service snapshot: %v", err)
 		}
 	}()
 
 	// check if the service is in a pending state
-	if service.GetStatus() == constants.StatusPending {
+	if s.GetStatus() == constants.StatusPending {
 		// update the service fields
-		service.SetExitCode(137)
-		service.SetFinished(time.Now().UTC().Unix())
-		service.SetStatus(constants.StatusKilled)
+		s.SetExitCode(137)
+		s.SetFinished(time.Now().UTC().Unix())
+		s.SetStatus(constants.StatusKilled)
 
 		// check if the service was not started
-		if service.GetStarted() == 0 {
+		if s.GetStarted() == 0 {
 			// set the started time to the finished time
-			service.SetStarted(service.GetFinished())
+			s.SetStarted(s.GetFinished())
 		}
 	}
 
@@ -310,16 +311,16 @@ func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) er
 	}
 
 	// check if the service finished
-	if service.GetFinished() == 0 {
+	if s.GetFinished() == 0 {
 		// update the service fields
-		service.SetFinished(time.Now().UTC().Unix())
-		service.SetStatus(constants.StatusSuccess)
+		s.SetFinished(time.Now().UTC().Unix())
+		s.SetStatus(constants.StatusSuccess)
 
 		// check the container for an unsuccessful exit code
 		if ctn.ExitCode > 0 {
 			// update the service fields
-			service.SetExitCode(ctn.ExitCode)
-			service.SetStatus(constants.StatusFailure)
+			s.SetExitCode(ctn.ExitCode)
+			s.SetStatus(constants.StatusFailure)
 		}
 	}
 
@@ -331,40 +332,4 @@ func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) er
 	}
 
 	return nil
-}
-
-// loadService is a helper function to capture
-// a service from the client.
-func (c *client) loadService(name string) (*library.Service, error) {
-	// load the service key from the client
-	result, ok := c.services.Load(name)
-	if !ok {
-		return nil, fmt.Errorf("unable to load service %s", name)
-	}
-
-	// cast the service key to the expected type
-	s, ok := result.(*library.Service)
-	if !ok {
-		return nil, fmt.Errorf("service %s had unexpected value", name)
-	}
-
-	return s, nil
-}
-
-// loadServiceLog is a helper function to capture
-// the logs for a service from the client.
-func (c *client) loadServiceLogs(name string) (*library.Log, error) {
-	// load the service log key from the client
-	result, ok := c.serviceLogs.Load(name)
-	if !ok {
-		return nil, fmt.Errorf("unable to load logs for service %s", name)
-	}
-
-	// cast the service log key to the expected type
-	l, ok := result.(*library.Log)
-	if !ok {
-		return nil, fmt.Errorf("logs for service %s had unexpected value", name)
-	}
-
-	return l, nil
 }

@@ -273,7 +273,6 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 // loadInitContainer is a helper function to capture
 // the init step from the client.
 func (c *client) loadInitContainer(p *pipeline.Build) *pipeline.Container {
-
 	// TODO: make this better
 	init := new(pipeline.Container)
 	if len(p.Steps) > 0 {

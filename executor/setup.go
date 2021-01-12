@@ -6,6 +6,7 @@ package executor
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/go-vela/sdk-go/vela"
 
@@ -123,7 +124,7 @@ func (s *Setup) Validate() error {
 	}
 
 	// check if the local driver is provided
-	if s.Driver == constants.DriverLocal {
+	if strings.EqualFold(constants.DriverLocal, s.Driver) {
 		// all other fields are not required
 		// for the local executor
 		return nil

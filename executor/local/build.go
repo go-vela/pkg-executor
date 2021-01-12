@@ -36,22 +36,13 @@ func (c *client) CreateBuild(ctx context.Context) error {
 	b.SetDistribution("linux")
 	b.SetRuntime("docker")
 
-	// send API call to update the build
-	//
-	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#BuildService.Update
-	b, _, err := c.Vela.Build.Update(r.GetOrg(), r.GetName(), b)
-	if err != nil {
-		e = err
-		return fmt.Errorf("unable to upload build state: %v", err)
-	}
-
 	c.build = b
 
 	// load the init container from the pipeline
 	init := c.loadInitContainer(p)
 
 	// create the step
-	err = c.CreateStep(ctx, init)
+	err := c.CreateStep(ctx, init)
 	if err != nil {
 		e = err
 		return fmt.Errorf("unable to create %s step: %w", init.Name, err)
@@ -97,23 +88,6 @@ func (c *client) PlanBuild(ctx context.Context) error {
 
 	defer func() {
 		s.SetFinished(time.Now().UTC().Unix())
-		// send API call to update the step
-		//
-		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
-		_, _, err := c.Vela.Step.Update(r.GetOrg(), r.GetName(), b.GetNumber(), s)
-		if err != nil {
-			// TODO: Should this be changed or removed?
-			fmt.Println(err)
-		}
-
-		// send API call to update the logs for the step
-		//
-		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateStep
-		l, _, err = c.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), init.Number, l)
-		if err != nil {
-			// TODO: Should this be changed or removed?
-			fmt.Println(err)
-		}
 	}()
 
 	// create the runtime network for the pipeline
@@ -196,23 +170,6 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 
 	defer func() {
 		sInit.SetFinished(time.Now().UTC().Unix())
-		// send API call to update the step
-		//
-		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
-		_, _, err := c.Vela.Step.Update(r.GetOrg(), r.GetName(), b.GetNumber(), sInit)
-		if err != nil {
-			// TODO: Should this be changed or removed?
-			fmt.Println(err)
-		}
-
-		// send API call to update the logs for the step
-		//
-		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateStep
-		l, _, err = c.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), init.Number, l)
-		if err != nil {
-			// TODO: Should this be changed or removed?
-			fmt.Println(err)
-		}
 	}()
 
 	// update the init log with progress
@@ -339,15 +296,6 @@ func (c *client) ExecBuild(ctx context.Context) error {
 		}
 		// update the build fields
 		b.SetFinished(time.Now().UTC().Unix())
-
-		// send API call to update the build
-		//
-		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#BuildService.Update
-		_, _, err := c.Vela.Build.Update(r.GetOrg(), r.GetName(), b)
-		if err != nil {
-			// TODO: Should this be changed or removed?
-			fmt.Println(err)
-		}
 	}()
 
 	// execute the services for the pipeline
@@ -431,14 +379,6 @@ func (c *client) ExecBuild(ctx context.Context) error {
 		}
 
 		cStep.SetFinished(time.Now().UTC().Unix())
-		// send API call to update the build
-		//
-		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
-		_, _, err = c.Vela.Step.Update(r.GetOrg(), r.GetName(), b.GetNumber(), cStep)
-		if err != nil {
-			e = err
-			return fmt.Errorf("unable to upload step state: %v", err)
-		}
 	}
 
 	// create an error group with the context for each stage

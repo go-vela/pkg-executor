@@ -154,18 +154,6 @@ func TestLocal_PlanStep(t *testing.T) {
 				Pull:        "always",
 			},
 		},
-		{
-			failure: true,
-			container: &pipeline.Container{
-				ID:          "step_github_octocat_1_clone",
-				Directory:   "/home/github/octocat",
-				Environment: map[string]string{"FOO": "bar"},
-				Image:       "target/vela-git:v0.3.0",
-				Name:        "clone",
-				Number:      0,
-				Pull:        "always",
-			},
-		},
 	}
 
 	// run tests

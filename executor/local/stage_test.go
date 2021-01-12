@@ -317,24 +317,6 @@ func TestLocal_ExecStage(t *testing.T) {
 				Name: "clone",
 				Steps: pipeline.ContainerSlice{
 					{
-						ID:          "github_octocat_1_bad_clone_clone",
-						Directory:   "/home/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/vela-git:v0.3.0",
-						Name:        "clone",
-						Number:      0,
-						Pull:        "always",
-					},
-				},
-			},
-		},
-
-		{
-			failure: true,
-			stage: &pipeline.Stage{
-				Name: "clone",
-				Steps: pipeline.ContainerSlice{
-					{
 						ID:          "github_octocat_1_clone_notfound",
 						Directory:   "/home/github/octocat",
 						Environment: map[string]string{"FOO": "bar"},

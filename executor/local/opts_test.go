@@ -28,16 +28,10 @@ func TestLocal_Opt_WithBuild(t *testing.T) {
 
 	// setup tests
 	tests := []struct {
-		failure bool
-		build   *library.Build
+		build *library.Build
 	}{
 		{
-			failure: false,
-			build:   _build,
-		},
-		{
-			failure: true,
-			build:   nil,
+			build: _build,
 		},
 	}
 
@@ -46,14 +40,6 @@ func TestLocal_Opt_WithBuild(t *testing.T) {
 		_engine, err := New(
 			WithBuild(test.build),
 		)
-
-		if test.failure {
-			if err == nil {
-				t.Errorf("WithBuild should have returned err")
-			}
-
-			continue
-		}
 
 		if err != nil {
 			t.Errorf("WithBuild returned err: %v", err)
@@ -145,16 +131,10 @@ func TestLocal_Opt_WithRepo(t *testing.T) {
 
 	// setup tests
 	tests := []struct {
-		failure bool
-		repo    *library.Repo
+		repo *library.Repo
 	}{
 		{
-			failure: false,
-			repo:    _repo,
-		},
-		{
-			failure: true,
-			repo:    nil,
+			repo: _repo,
 		},
 	}
 
@@ -163,14 +143,6 @@ func TestLocal_Opt_WithRepo(t *testing.T) {
 		_engine, err := New(
 			WithRepo(test.repo),
 		)
-
-		if test.failure {
-			if err == nil {
-				t.Errorf("WithRepo should have returned err")
-			}
-
-			continue
-		}
 
 		if err != nil {
 			t.Errorf("WithRepo returned err: %v", err)
@@ -234,16 +206,10 @@ func TestLocal_Opt_WithUser(t *testing.T) {
 
 	// setup tests
 	tests := []struct {
-		failure bool
-		user    *library.User
+		user *library.User
 	}{
 		{
-			failure: false,
-			user:    _user,
-		},
-		{
-			failure: true,
-			user:    nil,
+			user: _user,
 		},
 	}
 
@@ -252,14 +218,6 @@ func TestLocal_Opt_WithUser(t *testing.T) {
 		_engine, err := New(
 			WithUser(test.user),
 		)
-
-		if test.failure {
-			if err == nil {
-				t.Errorf("WithUser should have returned err")
-			}
-
-			continue
-		}
 
 		if err != nil {
 			t.Errorf("WithUser returned err: %v", err)
@@ -284,16 +242,10 @@ func TestLocal_Opt_WithVelaClient(t *testing.T) {
 
 	// setup tests
 	tests := []struct {
-		failure bool
-		client  *vela.Client
+		client *vela.Client
 	}{
 		{
-			failure: false,
-			client:  _client,
-		},
-		{
-			failure: true,
-			client:  nil,
+			client: _client,
 		},
 	}
 
@@ -302,14 +254,6 @@ func TestLocal_Opt_WithVelaClient(t *testing.T) {
 		_engine, err := New(
 			WithVelaClient(test.client),
 		)
-
-		if test.failure {
-			if err == nil {
-				t.Errorf("WithVelaClient should have returned err")
-			}
-
-			continue
-		}
 
 		if err != nil {
 			t.Errorf("WithVelaClient returned err: %v", err)

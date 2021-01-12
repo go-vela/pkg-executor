@@ -148,13 +148,6 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 		}
 
 		cStep.SetFinished(time.Now().UTC().Unix())
-		// send API call to update the build
-		//
-		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
-		_, _, err = c.Vela.Step.Update(r.GetOrg(), r.GetName(), b.GetNumber(), cStep)
-		if err != nil {
-			return fmt.Errorf("unable to upload step state: %v", err)
-		}
 	}
 
 	return nil

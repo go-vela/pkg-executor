@@ -145,19 +145,6 @@ func TestLocal_PlanService(t *testing.T) {
 				Pull:        "not_present",
 			},
 		},
-		{
-			failure: true,
-			container: &pipeline.Container{
-				ID:          "service_github_octocat_1_postgres",
-				Directory:   "/home/github/octocat",
-				Environment: map[string]string{"FOO": "bar"},
-				Image:       "postgres:12-alpine",
-				Name:        "postgres",
-				Number:      0,
-				Ports:       []string{"5432:5432"},
-				Pull:        "not_present",
-			},
-		},
 	}
 
 	// run tests

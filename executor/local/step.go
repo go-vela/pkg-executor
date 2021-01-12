@@ -48,8 +48,6 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 
 // PlanStep prepares the step for execution.
 func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
-	var err error
-
 	b := c.build
 	r := c.repo
 
@@ -63,26 +61,14 @@ func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
 	s.SetRuntime(ctn.Environment["VELA_RUNTIME"])
 	s.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 
-	// send API call to update the step
-	//
-	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
-	s, _, err = c.Vela.Step.Update(r.GetOrg(), r.GetName(), b.GetNumber(), s)
-	if err != nil {
-		return err
-	}
-
-	s.SetStatus(constants.StatusSuccess)
-
 	// add a step to a map
 	c.steps.Store(ctn.ID, s)
 
-	// send API call to capture the step log
-	//
-	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.GetStep
-	l, _, err := c.Vela.Log.GetStep(r.GetOrg(), r.GetName(), b.GetNumber(), s.GetNumber())
-	if err != nil {
-		return err
-	}
+	// update the engine step log object
+	l := new(library.Log)
+	l.SetBuildID(b.GetID())
+	l.SetRepoID(r.GetID())
+	l.SetStepID(s.GetID())
 
 	// add a step log to a map
 	c.stepLogs.Store(ctn.ID, l)
@@ -177,17 +163,6 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 		s.SetRuntime(ctn.Environment["VELA_RUNTIME"])
 		s.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 	}
-
-	defer func() {
-		// send API call to update the step
-		//
-		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
-		_, _, err := c.Vela.Step.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), s)
-		if err != nil {
-			// TODO: Should this be changed or removed?
-			fmt.Println(err)
-		}
-	}()
 
 	// check if the step is in a pending state
 	if s.GetStatus() == constants.StatusPending {

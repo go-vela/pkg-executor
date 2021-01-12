@@ -62,11 +62,6 @@ func TestLocal_CreateBuild(t *testing.T) {
 			build:    _build,
 			pipeline: "testdata/build/stages/basic.yml",
 		},
-		{ // pipeline with empty build
-			failure:  true,
-			build:    new(library.Build),
-			pipeline: "testdata/build/steps/basic.yml",
-		},
 	}
 
 	// run test

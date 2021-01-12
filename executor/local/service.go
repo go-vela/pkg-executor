@@ -44,8 +44,6 @@ func (c *client) CreateService(ctx context.Context, ctn *pipeline.Container) err
 
 // PlanService prepares the service for execution.
 func (c *client) PlanService(ctx context.Context, ctn *pipeline.Container) error {
-	var err error
-
 	b := c.build
 	r := c.repo
 
@@ -59,26 +57,14 @@ func (c *client) PlanService(ctx context.Context, ctn *pipeline.Container) error
 	s.SetRuntime(ctn.Environment["VELA_RUNTIME"])
 	s.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 
-	// send API call to update the service
-	//
-	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SvcService.Update
-	s, _, err = c.Vela.Svc.Update(r.GetOrg(), r.GetName(), b.GetNumber(), s)
-	if err != nil {
-		return err
-	}
-
-	s.SetStatus(constants.StatusSuccess)
-
 	// add a service to a map
 	c.services.Store(ctn.ID, s)
 
-	// send API call to capture the service log
-	//
-	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.GetService
-	l, _, err := c.Vela.Log.GetService(r.GetOrg(), r.GetName(), b.GetNumber(), s.GetNumber())
-	if err != nil {
-		return err
-	}
+	// update the engine service log object
+	l := new(library.Log)
+	l.SetBuildID(b.GetID())
+	l.SetRepoID(r.GetID())
+	l.SetServiceID(s.GetID())
 
 	// add a service log to a map
 	c.serviceLogs.Store(ctn.ID, l)
@@ -141,17 +127,6 @@ func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) er
 		s.SetRuntime(ctn.Environment["VELA_RUNTIME"])
 		s.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 	}
-
-	defer func() {
-		// send API call to update the step
-		//
-		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SvcService.Update
-		_, _, err := c.Vela.Svc.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), s)
-		if err != nil {
-			// TODO: Should this be changed or removed?
-			fmt.Println(err)
-		}
-	}()
 
 	// check if the service is in a pending state
 	if s.GetStatus() == constants.StatusPending {

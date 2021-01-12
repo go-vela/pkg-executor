@@ -428,6 +428,12 @@ func TestLinux_ExecBuild(t *testing.T) {
 			t.Errorf("unable to create build: %v", err)
 		}
 
+		// create volume for runtime host config
+		err = _runtime.CreateVolume(context.Background(), p)
+		if err != nil {
+			t.Errorf("unable to create runtime volume: %w", err)
+		}
+
 		// TODO: hack - remove this
 		//
 		// When calling CreateBuild(), it will automatically set the

@@ -6,15 +6,10 @@ package local
 
 import (
 	"bufio"
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 	"time"
-
-	"github.com/drone/envsubst"
 
 	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/library"
@@ -41,43 +36,10 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 		return err
 	}
 
-	// marshal container configuration
-	body, err := json.Marshal(ctn)
+	// substitute container configuration
+	err = ctn.Substitute()
 	if err != nil {
-		return fmt.Errorf("unable to marshal configuration: %v", err)
-	}
-
-	// create substitute function
-	subFunc := func(name string) string {
-		env := ctn.Environment[name]
-		if strings.Contains(env, "\n") {
-			env = fmt.Sprintf("%q", env)
-		}
-
-		return env
-	}
-
-	// substitute the environment variables
-	//
-	// https://pkg.go.dev/github.com/drone/envsubst?tab=doc#Eval
-	subStep, err := envsubst.Eval(string(body), subFunc)
-	if err != nil {
-		return fmt.Errorf("unable to substitute environment variables: %v", err)
-	}
-
-	// unmarshal container configuration
-	err = json.Unmarshal([]byte(subStep), ctn)
-	if err != nil {
-		// define a new buffer to capture the output, which doesn't need to be written
-		buf := new(bytes.Buffer)
-
-		// create new encoder for buffer
-		enc := json.NewEncoder(buf)
-		// ctn is modified via pointer through enc.Encode
-		err = enc.Encode(ctn)
-		if err != nil {
-			return fmt.Errorf("unable to unmarshal configuration: %v", err)
-		}
+		return err
 	}
 
 	return nil

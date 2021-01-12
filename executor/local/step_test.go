@@ -84,22 +84,6 @@ func TestLocal_CreateStep(t *testing.T) {
 				Pull:        "always",
 			},
 		},
-		{
-			failure: false,
-			container: &pipeline.Container{
-				ID:        "step_github_octocat_1_clone",
-				Commands:  []string{"echo", "${BAR}", "${FOO}"},
-				Directory: "/home/github/octocat",
-				Environment: map[string]string{
-					"BAR": "1\n2\n",
-					"FOO": "`~!@#$%^&*()-_=+[{]}\\|;:',<.>/?",
-				},
-				Image:  "target/vela-git:v0.3.0",
-				Name:   "clone",
-				Number: 2,
-				Pull:   "always",
-			},
-		},
 	}
 
 	// run tests

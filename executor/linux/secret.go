@@ -342,7 +342,6 @@ func (s *secretSvc) stream(ctx context.Context, ctn *pipeline.Container) error {
 
 	// stream all the logs to the init step
 	l, err := step.LoadLogs(s.client.init, &s.client.stepLogs)
-	// l, err := s.client.loadStepLogs(s.client.init.ID)
 	if err != nil {
 		return err
 	}

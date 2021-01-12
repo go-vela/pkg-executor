@@ -13,6 +13,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/go-vela/pkg-executor/internal/build"
+	"github.com/go-vela/pkg-executor/internal/step"
 	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/pipeline"
 )
@@ -83,13 +84,13 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	defer build.Snapshot(b, nil, e, nil, r)
 
 	// load the init step from the client
-	s, err := c.loadStep(init.ID)
+	s, err := step.Load(init, &c.steps)
 	if err != nil {
 		return err
 	}
 
 	// load the logs for the init step from the client
-	l, err := c.loadStepLogs(init.ID)
+	l, err := step.LoadLogs(init, &c.stepLogs)
 	if err != nil {
 		return err
 	}
@@ -182,13 +183,13 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	defer build.Snapshot(b, nil, e, nil, r)
 
 	// load the init step from the client
-	sInit, err := c.loadStep(init.ID)
+	sInit, err := step.Load(init, &c.steps)
 	if err != nil {
 		return err
 	}
 
 	// load the logs for the init step from the client
-	l, err := c.loadStepLogs(init.ID)
+	l, err := step.LoadLogs(init, &c.stepLogs)
 	if err != nil {
 		return err
 	}
@@ -410,8 +411,8 @@ func (c *client) ExecBuild(ctx context.Context) error {
 			return fmt.Errorf("unable to execute step: %w", err)
 		}
 
-		// load the step from the client
-		cStep, err := c.loadStep(s.ID)
+		// load the init step from the client
+		cStep, err := step.Load(s, &c.steps)
 		if err != nil {
 			return err
 		}

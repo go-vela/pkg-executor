@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-vela/pkg-executor/internal/step"
 	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/pipeline"
 )
@@ -17,7 +18,7 @@ import (
 // CreateStage prepares the stage for execution.
 func (c *client) CreateStage(ctx context.Context, s *pipeline.Stage) error {
 	// load the logs for the init step from the client
-	l, err := c.loadStepLogs(c.pipeline.Stages[0].Steps[0].ID)
+	l, err := step.LoadLogs(c.pipeline.Stages[0].Steps[0], &c.stepLogs)
 	if err != nil {
 		return err
 	}
@@ -113,7 +114,7 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 
 	logger.Debug("starting execution of stage")
 	// execute the steps for the stage
-	for _, step := range s.Steps {
+	for _, _step := range s.Steps {
 		// extract rule data from build information
 		ruledata := &pipeline.RuleData{
 			Branch: b.GetBranch(),
@@ -133,45 +134,45 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 		}
 
 		// check if you need to excute this step
-		if !step.Execute(ruledata) {
+		if !_step.Execute(ruledata) {
 			continue
 		}
 
-		logger.Debugf("planning %s step", step.Name)
+		logger.Debugf("planning %s step", _step.Name)
 		// plan the step
-		err := c.PlanStep(ctx, step)
+		err := c.PlanStep(ctx, _step)
 		if err != nil {
-			return fmt.Errorf("unable to plan step %s: %w", step.Name, err)
+			return fmt.Errorf("unable to plan step %s: %w", _step.Name, err)
 		}
 
-		logger.Infof("executing %s step", step.Name)
+		logger.Infof("executing %s step", _step.Name)
 		// execute the step
-		err = c.ExecStep(ctx, step)
+		err = c.ExecStep(ctx, _step)
 		if err != nil {
 			return err
 		}
 
 		// load the step from the client
-		cStep, err := c.loadStep(step.ID)
+		cStep, err := step.Load(_step, &c.steps)
 		if err != nil {
 			return err
 		}
 
 		// check the step exit code
-		if step.ExitCode != 0 {
+		if _step.ExitCode != 0 {
 			// check if we ignore step failures
-			if !step.Ruleset.Continue {
+			if !_step.Ruleset.Continue {
 				// set build status to failure
 				b.SetStatus(constants.StatusFailure)
 			}
 
 			// update the step fields
-			cStep.SetExitCode(step.ExitCode)
+			cStep.SetExitCode(_step.ExitCode)
 			cStep.SetStatus(constants.StatusFailure)
 		}
 
 		cStep.SetFinished(time.Now().UTC().Unix())
-		logger.Infof("uploading %s step state", step.Name)
+		logger.Infof("uploading %s step state", _step.Name)
 		// send API call to update the build
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update

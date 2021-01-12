@@ -21,11 +21,6 @@ type Opt func(*client) error
 // WithBuild sets the library build in the client.
 func WithBuild(b *library.Build) Opt {
 	return func(c *client) error {
-		// check if the build provided is empty
-		if b == nil {
-			return fmt.Errorf("empty build provided")
-		}
-
 		// set the build in the client
 		c.build = b
 
@@ -67,11 +62,6 @@ func WithPipeline(p *pipeline.Build) Opt {
 // WithRepo sets the library repo in the client.
 func WithRepo(r *library.Repo) Opt {
 	return func(c *client) error {
-		// check if the repo provided is empty
-		if r == nil {
-			return fmt.Errorf("empty repo provided")
-		}
-
 		// set the repo in the client
 		c.repo = r
 
@@ -97,11 +87,6 @@ func WithRuntime(r runtime.Engine) Opt {
 // WithUser sets the library user in the client.
 func WithUser(u *library.User) Opt {
 	return func(c *client) error {
-		// check if the user provided is empty
-		if u == nil {
-			return fmt.Errorf("empty user provided")
-		}
-
 		// set the user in the client
 		c.user = u
 
@@ -112,11 +97,6 @@ func WithUser(u *library.User) Opt {
 // WithVelaClient sets the Vela client in the client.
 func WithVelaClient(cli *vela.Client) Opt {
 	return func(c *client) error {
-		// check if the Vela client provided is empty
-		if cli == nil {
-			return fmt.Errorf("empty Vela client provided")
-		}
-
 		// set the Vela client in the client
 		c.Vela = cli
 

@@ -39,25 +39,25 @@ func TestLocal_New(t *testing.T) {
 
 	// setup tests
 	tests := []struct {
-		failure bool
-		build   *library.Build
+		failure  bool
+		pipeline *pipeline.Build
 	}{
 		{
-			failure: false,
-			build:   testBuild(),
+			failure:  false,
+			pipeline: testSteps(),
 		},
 		{
-			failure: true,
-			build:   nil,
+			failure:  true,
+			pipeline: nil,
 		},
 	}
 
 	// run tests
 	for _, test := range tests {
 		_, err := New(
-			WithBuild(test.build),
+			WithBuild(testBuild()),
 			WithHostname("localhost"),
-			WithPipeline(testSteps()),
+			WithPipeline(test.pipeline),
 			WithRepo(testRepo()),
 			WithRuntime(_runtime),
 			WithUser(testUser()),

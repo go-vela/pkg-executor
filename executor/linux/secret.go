@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/drone/envsubst"
+	"github.com/go-vela/pkg-executor/internal/step"
 	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/library"
 	"github.com/go-vela/types/pipeline"
@@ -108,16 +109,16 @@ func (s *secretSvc) destroy(ctx context.Context, ctn *pipeline.Container) error 
 	logger := s.client.logger.WithField("secret", ctn.Name)
 
 	// load the step from the client
-	step, err := s.client.loadStep(s.client.init.ID)
+	secret, err := step.Load(s.client.init, &s.client.steps)
 	if err != nil {
 		// create the step from the container
-		step = new(library.Step)
-		step.SetName(ctn.Name)
-		step.SetNumber(ctn.Number)
-		step.SetStatus(constants.StatusPending)
-		step.SetHost(ctn.Environment["VELA_HOST"])
-		step.SetRuntime(ctn.Environment["VELA_RUNTIME"])
-		step.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
+		secret = new(library.Step)
+		secret.SetName(ctn.Name)
+		secret.SetNumber(ctn.Number)
+		secret.SetStatus(constants.StatusPending)
+		secret.SetHost(ctn.Environment["VELA_HOST"])
+		secret.SetRuntime(ctn.Environment["VELA_RUNTIME"])
+		secret.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 	}
 
 	defer func() {
@@ -125,23 +126,27 @@ func (s *secretSvc) destroy(ctx context.Context, ctn *pipeline.Container) error 
 		// send API call to update the step
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
-		_, _, err := s.client.Vela.Step.Update(s.client.repo.GetOrg(), s.client.repo.GetName(), s.client.build.GetNumber(), step)
+		_, _, err := s.client.Vela.Step.Update(s.client.repo.GetOrg(), s.client.repo.GetName(), s.client.build.GetNumber(), secret)
 		if err != nil {
 			logger.Errorf("unable to upload step snapshot: %v", err)
 		}
 	}()
 
 	// check if the step is in a pending state
-	if step.GetStatus() == constants.StatusPending {
+	if secret.GetStatus() == constants.StatusPending {
 		// update the step fields
-		step.SetExitCode(137)
-		step.SetFinished(time.Now().UTC().Unix())
-		step.SetStatus(constants.StatusKilled)
+		//
+		// TODO: consider making this a constant
+		//
+		// nolint: gomnd // ignore magic number 137
+		secret.SetExitCode(137)
+		secret.SetFinished(time.Now().UTC().Unix())
+		secret.SetStatus(constants.StatusKilled)
 
 		// check if the step was not started
-		if step.GetStarted() == 0 {
+		if secret.GetStarted() == 0 {
 			// set the started time to the finished time
-			step.SetStarted(step.GetFinished())
+			secret.SetStarted(secret.GetFinished())
 		}
 	}
 
@@ -153,16 +158,16 @@ func (s *secretSvc) destroy(ctx context.Context, ctn *pipeline.Container) error 
 	}
 
 	// check if the step finished
-	if step.GetFinished() == 0 {
+	if secret.GetFinished() == 0 {
 		// update the step fields
-		step.SetFinished(time.Now().UTC().Unix())
-		step.SetStatus(constants.StatusSuccess)
+		secret.SetFinished(time.Now().UTC().Unix())
+		secret.SetStatus(constants.StatusSuccess)
 
 		// check the container for an unsuccessful exit code
 		if ctn.ExitCode > 0 {
 			// update the step fields
-			step.SetExitCode(ctn.ExitCode)
-			step.SetStatus(constants.StatusFailure)
+			secret.SetExitCode(ctn.ExitCode)
+			secret.SetStatus(constants.StatusFailure)
 		}
 	}
 
@@ -181,7 +186,7 @@ func (s *secretSvc) exec(ctx context.Context, p *pipeline.SecretSlice) error {
 	r := s.client.repo
 
 	// stream all the logs to the init step
-	init, err := s.client.loadStep(s.client.init.ID)
+	init, err := step.Load(s.client.init, &s.client.steps)
 	if err != nil {
 		return err
 	}
@@ -336,7 +341,7 @@ func (s *secretSvc) stream(ctx context.Context, ctn *pipeline.Container) error {
 	r := s.client.repo
 
 	// stream all the logs to the init step
-	l, err := s.client.loadStepLogs(s.client.init.ID)
+	l, err := step.LoadLogs(s.client.init, &s.client.stepLogs)
 	if err != nil {
 		return err
 	}

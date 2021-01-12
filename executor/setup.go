@@ -112,9 +112,9 @@ func (s *Setup) Validate() error {
 		return fmt.Errorf("no executor driver provided in setup")
 	}
 
-	// check if a Vela client was provided
-	if s.Client == nil {
-		return fmt.Errorf("no Vela client provided in setup")
+	// check if a Vela pipeline was provided
+	if s.Pipeline == nil {
+		return fmt.Errorf("no Vela pipeline provided in setup")
 	}
 
 	// check if a runtime engine was provided
@@ -122,14 +122,21 @@ func (s *Setup) Validate() error {
 		return fmt.Errorf("no runtime engine provided in setup")
 	}
 
+	// check if the local driver is provided
+	if s.Driver == constants.DriverLocal {
+		// all other fields are not required
+		// for the local executor
+		return nil
+	}
+
+	// check if a Vela client was provided
+	if s.Client == nil {
+		return fmt.Errorf("no Vela client provided in setup")
+	}
+
 	// check if a Vela build was provided
 	if s.Build == nil {
 		return fmt.Errorf("no Vela build provided in setup")
-	}
-
-	// check if a Vela pipeline was provided
-	if s.Pipeline == nil {
-		return fmt.Errorf("no Vela pipeline provided in setup")
 	}
 
 	// check if a Vela repo was provided

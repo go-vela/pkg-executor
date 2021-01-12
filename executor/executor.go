@@ -12,6 +12,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// nolint: godot // top level comment ends in a list
+//
 // New creates and returns a Vela engine capable of
 // integrating with the configured executor.
 //
@@ -19,7 +21,6 @@ import (
 //
 // * linux
 // * local
-// nolint: godot // top level comment ends in a list
 func New(s *Setup) (Engine, error) {
 	// validate the setup being provided
 	//
@@ -42,8 +43,7 @@ func New(s *Setup) (Engine, error) {
 		//
 		// https://pkg.go.dev/github.com/go-vela/pkg-executor/executor?tab=doc#Setup.Linux
 		return s.Linux()
-	// TODO: use constant from go-vela/types/constants
-	case "local":
+	case constants.DriverLocal:
 		// handle the Local executor driver being provided
 		//
 		// https://pkg.go.dev/github.com/go-vela/pkg-executor/executor?tab=doc#Setup.Local

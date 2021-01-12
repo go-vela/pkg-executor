@@ -2,7 +2,7 @@
 //
 // Use of this source code is governed by the LICENSE file in this repository.
 
-package step
+package service
 
 import (
 	"testing"
@@ -12,7 +12,7 @@ import (
 	"github.com/go-vela/types/raw"
 )
 
-func TestStep_Environment(t *testing.T) {
+func TestService_Environment(t *testing.T) {
 	// setup types
 	b := new(library.Build)
 	b.SetID(1)
@@ -46,13 +46,14 @@ func TestStep_Environment(t *testing.T) {
 	b.SetDistribution("linux")
 
 	c := &pipeline.Container{
-		ID:          "step_github_octocat_1_init",
+		ID:          "service_github_octocat_1_postgres",
 		Directory:   "/home/github/octocat",
 		Environment: map[string]string{"FOO": "bar"},
-		Image:       "#init",
-		Name:        "init",
+		Image:       "postgres:12-alpine",
+		Name:        "postgres",
 		Number:      1,
-		Pull:        "always",
+		Ports:       []string{"5432:5432"},
+		Pull:        "not_present",
 	}
 
 	r := new(library.Repo)
@@ -74,13 +75,13 @@ func TestStep_Environment(t *testing.T) {
 	r.SetAllowTag(false)
 	r.SetAllowComment(false)
 
-	s := new(library.Step)
+	s := new(library.Service)
 	s.SetID(1)
 	s.SetBuildID(1)
 	s.SetRepoID(1)
 	s.SetNumber(1)
-	s.SetName("clone")
-	s.SetImage("target/vela-git:v0.3.0")
+	s.SetName("postgres")
+	s.SetImage("postgres:12-alpine")
 	s.SetStatus("running")
 	s.SetExitCode(0)
 	s.SetCreated(1563474076)
@@ -96,27 +97,27 @@ func TestStep_Environment(t *testing.T) {
 		build     *library.Build
 		container *pipeline.Container
 		repo      *library.Repo
-		step      *library.Step
+		service   *library.Service
 	}{
 		{
 			failure:   false,
 			build:     b,
 			container: c,
 			repo:      r,
-			step:      s,
+			service:   s,
 		},
 		{
 			failure:   true,
 			build:     nil,
 			container: nil,
 			repo:      nil,
-			step:      nil,
+			service:   nil,
 		},
 	}
 
 	// run tests
 	for _, test := range tests {
-		err := Environment(test.container, test.build, test.repo, test.step)
+		err := Environment(test.container, test.build, test.repo, test.service)
 
 		if test.failure {
 			if err == nil {

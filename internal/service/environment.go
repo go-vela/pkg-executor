@@ -2,7 +2,7 @@
 //
 // Use of this source code is governed by the LICENSE file in this repository.
 
-package step
+package service
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ import (
 
 // Environment attempts to update the environment variables
 // for the container based off the library resources.
-func Environment(c *pipeline.Container, b *library.Build, r *library.Repo, s *library.Step) error {
+func Environment(c *pipeline.Container, b *library.Build, r *library.Repo, s *library.Service) error {
 	// check if container or container environment are empty
 	if c == nil || c.Environment == nil {
 		return fmt.Errorf("empty container provided for environment")
@@ -48,9 +48,9 @@ func Environment(c *pipeline.Container, b *library.Build, r *library.Repo, s *li
 		c.Environment = appendMap(c.Environment, r.Environment())
 	}
 
-	// check if the step provided is empty
+	// check if the service provided is empty
 	if s != nil {
-		// populate environment variables from step library
+		// populate environment variables from service library
 		c.Environment = appendMap(c.Environment, s.Environment())
 	}
 

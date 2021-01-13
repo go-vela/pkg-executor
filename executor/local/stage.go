@@ -7,6 +7,7 @@ package local
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -17,30 +18,22 @@ import (
 
 // CreateStage prepares the stage for execution.
 func (c *client) CreateStage(ctx context.Context, s *pipeline.Stage) error {
-	// load the logs for the init step from the client
-	l, err := step.LoadLogs(c.pipeline.Stages[0].Steps[0], &c.stepLogs)
-	if err != nil {
-		return err
-	}
+	// create a step pattern for log output
+	_pattern := fmt.Sprintf(stepPattern, c.init.Name)
 
-	// update the init log with progress
-	//
-	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData([]byte(fmt.Sprintf("> Pulling step images for stage %s...\n", s.Name)))
+	// output init progress to stdout
+	fmt.Fprintln(os.Stdout, _pattern, "> Pulling step images for stage", s.Name, "...")
 
 	// create the steps for the stage
 	for _, step := range s.Steps {
-		// TODO: make this not hardcoded
-		// update the init log with progress
-		//
-		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-		l.AppendData([]byte(fmt.Sprintf("$ docker image inspect %s\n", step.Image)))
-
 		// create the step
 		err := c.CreateStep(ctx, step)
 		if err != nil {
 			return err
 		}
+
+		// output image command to stdout
+		fmt.Fprintln(os.Stdout, _pattern, "$ docker image inspect", step.Image)
 
 		// inspect the step image
 		image, err := c.Runtime.InspectImage(ctx, step)
@@ -48,10 +41,8 @@ func (c *client) CreateStage(ctx context.Context, s *pipeline.Stage) error {
 			return err
 		}
 
-		// update the init log with step image info
-		//
-		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-		l.AppendData(image)
+		// output the image information to stdout
+		fmt.Fprintln(os.Stdout, _pattern, string(image))
 	}
 
 	return nil

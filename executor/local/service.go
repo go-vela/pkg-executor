@@ -18,6 +18,9 @@ import (
 	"github.com/go-vela/types/pipeline"
 )
 
+// create a service logging pattern.
+const servicePattern = "[service: %s]"
+
 // CreateService configures the service for execution.
 func (c *client) CreateService(ctx context.Context, ctn *pipeline.Container) error {
 	ctn.Environment["BUILD_HOST"] = c.Hostname
@@ -101,13 +104,16 @@ func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) err
 	}
 	defer rc.Close()
 
+	// create a service pattern for log output
+	_pattern := fmt.Sprintf(servicePattern, ctn.Name)
+
 	// create new scanner from the container output
 	scanner := bufio.NewScanner(rc)
 
 	// scan entire container output
 	for scanner.Scan() {
 		// ensure we output to stdout
-		fmt.Fprintln(os.Stdout, scanner.Text())
+		fmt.Fprintln(os.Stdout, _pattern, scanner.Text())
 	}
 
 	return scanner.Err()

@@ -7,6 +7,7 @@ package local
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -80,11 +81,8 @@ func (c *client) PlanBuild(ctx context.Context) error {
 		return err
 	}
 
-	// load the logs for the init step from the client
-	l, err := step.LoadLogs(init, &c.stepLogs)
-	if err != nil {
-		return err
-	}
+	// create a step pattern for log output
+	_pattern := fmt.Sprintf(stepPattern, init.Name)
 
 	defer func() {
 		s.SetFinished(time.Now().UTC().Unix())
@@ -97,10 +95,11 @@ func (c *client) PlanBuild(ctx context.Context) error {
 		return fmt.Errorf("unable to create network: %w", err)
 	}
 
-	// update the init log with progress
-	//
-	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData([]byte("> Inspecting runtime network...\n"))
+	// output init progress to stdout
+	fmt.Fprintln(os.Stdout, _pattern, "> Inspecting runtime network...")
+
+	// output the network command to stdout
+	fmt.Fprintln(os.Stdout, _pattern, "$ docker network inspect", p.ID)
 
 	// inspect the runtime network for the pipeline
 	network, err := c.Runtime.InspectNetwork(ctx, p)
@@ -109,11 +108,8 @@ func (c *client) PlanBuild(ctx context.Context) error {
 		return fmt.Errorf("unable to inspect network: %w", err)
 	}
 
-	// update the init log with network command
-	//
-	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData([]byte(fmt.Sprintf("$ docker network inspect %s \n", p.ID)))
-	l.AppendData(network)
+	// output the network information to stdout
+	fmt.Fprintln(os.Stdout, _pattern, string(network))
 
 	// create the runtime volume for the pipeline
 	err = c.Runtime.CreateVolume(ctx, p)
@@ -122,10 +118,11 @@ func (c *client) PlanBuild(ctx context.Context) error {
 		return fmt.Errorf("unable to create volume: %w", err)
 	}
 
-	// update the init log with progress
-	//
-	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData([]byte("> Inspecting runtime volume...\n"))
+	// output init progress to stdout
+	fmt.Fprintln(os.Stdout, _pattern, "> Inspecting runtime volume...")
+
+	// output the volume command to stdout
+	fmt.Fprintln(os.Stdout, _pattern, "$ docker volume inspect", p.ID)
 
 	// inspect the runtime volume for the pipeline
 	volume, err := c.Runtime.InspectVolume(ctx, p)
@@ -134,11 +131,8 @@ func (c *client) PlanBuild(ctx context.Context) error {
 		return fmt.Errorf("unable to inspect volume: %w", err)
 	}
 
-	// update the init log with volume command
-	//
-	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData([]byte(fmt.Sprintf("$ docker volume inspect %s \n", p.ID)))
-	l.AppendData(volume)
+	// output the volume information to stdout
+	fmt.Fprintln(os.Stdout, _pattern, string(volume))
 
 	return nil
 }
@@ -162,31 +156,20 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 		return err
 	}
 
-	// load the logs for the init step from the client
-	l, err := step.LoadLogs(init, &c.stepLogs)
-	if err != nil {
-		return err
-	}
+	// create a step pattern for log output
+	_pattern := fmt.Sprintf(stepPattern, init.Name)
 
 	defer func() {
 		sInit.SetFinished(time.Now().UTC().Unix())
 	}()
 
-	// update the init log with progress
-	//
-	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData([]byte("> Pulling service images...\n"))
+	// output init progress to stdout
+	fmt.Fprintln(os.Stdout, _pattern, "> Pulling service images...")
 
 	// create the services for the pipeline
 	for _, s := range p.Services {
 		// TODO: remove this; but we need it for tests
 		s.Detach = true
-
-		// TODO: remove hardcoded reference
-		// update the init log with progress
-		//
-		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-		l.AppendData([]byte(fmt.Sprintf("$ docker image inspect %s\n", s.Image)))
 
 		// create the service
 		err := c.CreateService(ctx, s)
@@ -195,6 +178,9 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 			return fmt.Errorf("unable to create %s service: %w", s.Name, err)
 		}
 
+		// output the image command to stdout
+		fmt.Fprintln(os.Stdout, _pattern, "$ docker image inspect", s.Image)
+
 		// inspect the service image
 		image, err := c.Runtime.InspectImage(ctx, s)
 		if err != nil {
@@ -202,16 +188,12 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 			return fmt.Errorf("unable to inspect %s service: %w", s.Name, err)
 		}
 
-		// update the init log with service image info
-		//
-		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-		l.AppendData(image)
+		// output the image information to stdout
+		fmt.Fprintln(os.Stdout, _pattern, string(image))
 	}
 
-	// update the init log with progress
-	//
-	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData([]byte("> Pulling stage images...\n"))
+	// output init progress to stdout
+	fmt.Fprintln(os.Stdout, _pattern, "> Pulling stage images...")
 
 	// create the stages for the pipeline
 	for _, s := range p.Stages {
@@ -228,10 +210,8 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 		}
 	}
 
-	// update the init log with progress
-	//
-	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData([]byte("> Pulling step images...\n"))
+	// output init progress to stdout
+	fmt.Fprintln(os.Stdout, _pattern, "> Pulling step images...")
 
 	// create the steps for the pipeline
 	for _, s := range p.Steps {
@@ -240,17 +220,15 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 			continue
 		}
 
-		// update the init log with progress
-		//
-		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-		l.AppendData([]byte(fmt.Sprintf("$ docker image inspect %s\n", s.Image)))
-
 		// create the step
 		err := c.CreateStep(ctx, s)
 		if err != nil {
 			e = err
 			return fmt.Errorf("unable to create %s step: %w", s.Name, err)
 		}
+
+		// output the image command to stdout
+		fmt.Fprintln(os.Stdout, _pattern, "$ docker image inspect", s.Image)
 
 		// inspect the step image
 		image, err := c.Runtime.InspectImage(ctx, s)
@@ -259,11 +237,12 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 			return fmt.Errorf("unable to inspect %s step: %w", s.Name, err)
 		}
 
-		// update the init log with step image info
-		//
-		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-		l.AppendData(image)
+		// output the image information to stdout
+		fmt.Fprintln(os.Stdout, _pattern, string(image))
 	}
+
+	// output a new line for readability to stdout
+	fmt.Fprintln(os.Stdout, "")
 
 	return nil
 }

@@ -17,6 +17,9 @@ import (
 	"github.com/go-vela/types/pipeline"
 )
 
+// create a step logging pattern.
+const stepPattern = "[step: %s]"
+
 // CreateStep configures the step for execution.
 func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error {
 	ctn.Environment["BUILD_HOST"] = c.Hostname
@@ -132,13 +135,16 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 	}
 	defer rc.Close()
 
+	// create a step pattern for log output
+	_pattern := fmt.Sprintf(stepPattern, ctn.Name)
+
 	// create new scanner from the container output
 	scanner := bufio.NewScanner(rc)
 
 	// scan entire container output
 	for scanner.Scan() {
 		// ensure we output to stdout
-		fmt.Fprintln(os.Stdout, scanner.Text())
+		fmt.Fprintln(os.Stdout, _pattern, scanner.Text())
 	}
 
 	return scanner.Err()

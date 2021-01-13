@@ -7,7 +7,7 @@ package local
 import (
 	"context"
 	"fmt"
-	"strings"
+	"os"
 	"time"
 
 	"github.com/go-vela/pkg-executor/internal/step"
@@ -17,30 +17,22 @@ import (
 
 // CreateStage prepares the stage for execution.
 func (c *client) CreateStage(ctx context.Context, s *pipeline.Stage) error {
-	// load the logs for the init step from the client
-	l, err := step.LoadLogs(c.pipeline.Stages[0].Steps[0], &c.stepLogs)
-	if err != nil {
-		return err
-	}
+	// create a step pattern for log output
+	_pattern := fmt.Sprintf(stepPattern, c.init.Name)
 
-	// update the init log with progress
-	//
-	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData([]byte(fmt.Sprintf("> Pulling step images for stage %s...\n", s.Name)))
+	// output init progress to stdout
+	fmt.Fprintln(os.Stdout, _pattern, "> Pulling step images for stage", s.Name, "...")
 
 	// create the steps for the stage
 	for _, step := range s.Steps {
-		// TODO: make this not hardcoded
-		// update the init log with progress
-		//
-		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-		l.AppendData([]byte(fmt.Sprintf("$ docker image inspect %s\n", step.Image)))
-
 		// create the step
 		err := c.CreateStep(ctx, step)
 		if err != nil {
 			return err
 		}
+
+		// output image command to stdout
+		fmt.Fprintln(os.Stdout, _pattern, "$ docker image inspect", step.Image)
 
 		// inspect the step image
 		image, err := c.Runtime.InspectImage(ctx, step)
@@ -48,10 +40,8 @@ func (c *client) CreateStage(ctx context.Context, s *pipeline.Stage) error {
 			return err
 		}
 
-		// update the init log with step image info
-		//
-		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-		l.AppendData(image)
+		// output the image information to stdout
+		fmt.Fprintln(os.Stdout, _pattern, string(image))
 	}
 
 	return nil
@@ -86,35 +76,35 @@ func (c *client) PlanStage(ctx context.Context, s *pipeline.Stage, m map[string]
 // ExecStage runs a stage.
 func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]chan error) error {
 	b := c.build
-	r := c.repo
+	// r := c.repo
 
 	// close the stage channel at the end
 	defer close(m[s.Name])
 
 	// execute the steps for the stage
 	for _, _step := range s.Steps {
-		// extract rule data from build information
-		ruledata := &pipeline.RuleData{
-			Branch: b.GetBranch(),
-			Event:  b.GetEvent(),
-			Repo:   r.GetFullName(),
-			Status: b.GetStatus(),
-		}
+		// // extract rule data from build information
+		// ruledata := &pipeline.RuleData{
+		// 	Branch: b.GetBranch(),
+		// 	Event:  b.GetEvent(),
+		// 	Repo:   r.GetFullName(),
+		// 	Status: b.GetStatus(),
+		// }
 
-		// when tag event add tag information into ruledata
-		if strings.EqualFold(b.GetEvent(), constants.EventTag) {
-			ruledata.Tag = strings.TrimPrefix(c.build.GetRef(), "refs/tags/")
-		}
+		// // when tag event add tag information into ruledata
+		// if strings.EqualFold(b.GetEvent(), constants.EventTag) {
+		// 	ruledata.Tag = strings.TrimPrefix(c.build.GetRef(), "refs/tags/")
+		// }
 
-		// when deployment event add deployment information into ruledata
-		if strings.EqualFold(b.GetEvent(), constants.EventDeploy) {
-			ruledata.Target = b.GetDeploy()
-		}
+		// // when deployment event add deployment information into ruledata
+		// if strings.EqualFold(b.GetEvent(), constants.EventDeploy) {
+		// 	ruledata.Target = b.GetDeploy()
+		// }
 
-		// check if you need to excute this step
-		if !_step.Execute(ruledata) {
-			continue
-		}
+		// // check if you need to excute this step
+		// if !_step.Execute(ruledata) {
+		// 	continue
+		// }
 
 		// plan the step
 		err := c.PlanStep(ctx, _step)

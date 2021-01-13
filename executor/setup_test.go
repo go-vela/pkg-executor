@@ -29,7 +29,7 @@ func TestExecutor_Setup_Darwin(t *testing.T) {
 
 	s := httptest.NewServer(server.FakeHandler())
 
-	_client, err := vela.NewClient(s.URL, nil)
+	_client, err := vela.NewClient(s.URL, "", nil)
 	if err != nil {
 		t.Errorf("unable to create Vela API client: %v", err)
 	}
@@ -65,7 +65,7 @@ func TestExecutor_Setup_Linux(t *testing.T) {
 
 	s := httptest.NewServer(server.FakeHandler())
 
-	_client, err := vela.NewClient(s.URL, nil)
+	_client, err := vela.NewClient(s.URL, "", nil)
 	if err != nil {
 		t.Errorf("unable to create Vela API client: %v", err)
 	}
@@ -115,7 +115,7 @@ func TestExecutor_Setup_Local(t *testing.T) {
 
 	s := httptest.NewServer(server.FakeHandler())
 
-	_client, err := vela.NewClient(s.URL, nil)
+	_client, err := vela.NewClient(s.URL, "", nil)
 	if err != nil {
 		t.Errorf("unable to create Vela API client: %v", err)
 	}
@@ -165,7 +165,7 @@ func TestExecutor_Setup_Windows(t *testing.T) {
 
 	s := httptest.NewServer(server.FakeHandler())
 
-	_client, err := vela.NewClient(s.URL, nil)
+	_client, err := vela.NewClient(s.URL, "", nil)
 	if err != nil {
 		t.Errorf("unable to create Vela API client: %v", err)
 	}
@@ -201,7 +201,7 @@ func TestExecutor_Setup_Validate(t *testing.T) {
 
 	s := httptest.NewServer(server.FakeHandler())
 
-	_client, err := vela.NewClient(s.URL, nil)
+	_client, err := vela.NewClient(s.URL, "", nil)
 	if err != nil {
 		t.Errorf("unable to create Vela API client: %v", err)
 	}

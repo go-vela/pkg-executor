@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/go-vela/pkg-executor/internal/step"
@@ -76,35 +77,35 @@ func (c *client) PlanStage(ctx context.Context, s *pipeline.Stage, m map[string]
 // ExecStage runs a stage.
 func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]chan error) error {
 	b := c.build
-	// r := c.repo
+	r := c.repo
 
 	// close the stage channel at the end
 	defer close(m[s.Name])
 
 	// execute the steps for the stage
 	for _, _step := range s.Steps {
-		// // extract rule data from build information
-		// ruledata := &pipeline.RuleData{
-		// 	Branch: b.GetBranch(),
-		// 	Event:  b.GetEvent(),
-		// 	Repo:   r.GetFullName(),
-		// 	Status: b.GetStatus(),
-		// }
+		// extract rule data from build information
+		ruledata := &pipeline.RuleData{
+			Branch: b.GetBranch(),
+			Event:  b.GetEvent(),
+			Repo:   r.GetFullName(),
+			Status: b.GetStatus(),
+		}
 
-		// // when tag event add tag information into ruledata
-		// if strings.EqualFold(b.GetEvent(), constants.EventTag) {
-		// 	ruledata.Tag = strings.TrimPrefix(c.build.GetRef(), "refs/tags/")
-		// }
+		// when tag event add tag information into ruledata
+		if strings.EqualFold(b.GetEvent(), constants.EventTag) {
+			ruledata.Tag = strings.TrimPrefix(c.build.GetRef(), "refs/tags/")
+		}
 
-		// // when deployment event add deployment information into ruledata
-		// if strings.EqualFold(b.GetEvent(), constants.EventDeploy) {
-		// 	ruledata.Target = b.GetDeploy()
-		// }
+		// when deployment event add deployment information into ruledata
+		if strings.EqualFold(b.GetEvent(), constants.EventDeploy) {
+			ruledata.Target = b.GetDeploy()
+		}
 
-		// // check if you need to excute this step
-		// if !_step.Execute(ruledata) {
-		// 	continue
-		// }
+		// check if you need to excute this step
+		if !_step.Execute(ruledata) {
+			continue
+		}
 
 		// plan the step
 		err := c.PlanStep(ctx, _step)

@@ -16,6 +16,7 @@ import (
 	"github.com/go-vela/pkg-executor/internal/build"
 	"github.com/go-vela/pkg-executor/internal/step"
 	"github.com/go-vela/types/constants"
+	"github.com/go-vela/types/pipeline"
 )
 
 // CreateBuild configures the build for execution.
@@ -252,7 +253,7 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 func (c *client) ExecBuild(ctx context.Context) error {
 	b := c.build
 	p := c.pipeline
-	// r := c.repo
+	r := c.repo
 	e := c.err
 
 	defer func() {
@@ -300,28 +301,28 @@ func (c *client) ExecBuild(ctx context.Context) error {
 			continue
 		}
 
-		// // extract rule data from build information
-		// ruledata := &pipeline.RuleData{
-		// 	Branch: b.GetBranch(),
-		// 	Event:  b.GetEvent(),
-		// 	Repo:   r.GetFullName(),
-		// 	Status: b.GetStatus(),
-		// }
+		// extract rule data from build information
+		ruledata := &pipeline.RuleData{
+			Branch: b.GetBranch(),
+			Event:  b.GetEvent(),
+			Repo:   r.GetFullName(),
+			Status: b.GetStatus(),
+		}
 
-		// // when tag event add tag information into ruledata
-		// if strings.EqualFold(b.GetEvent(), constants.EventTag) {
-		// 	ruledata.Tag = strings.TrimPrefix(c.build.GetRef(), "refs/tags/")
-		// }
+		// when tag event add tag information into ruledata
+		if strings.EqualFold(b.GetEvent(), constants.EventTag) {
+			ruledata.Tag = strings.TrimPrefix(c.build.GetRef(), "refs/tags/")
+		}
 
-		// // when deployment event add deployment information into ruledata
-		// if strings.EqualFold(b.GetEvent(), constants.EventDeploy) {
-		// 	ruledata.Target = b.GetDeploy()
-		// }
+		// when deployment event add deployment information into ruledata
+		if strings.EqualFold(b.GetEvent(), constants.EventDeploy) {
+			ruledata.Target = b.GetDeploy()
+		}
 
-		// // check if you need to excute this step
-		// if !s.Execute(ruledata) {
-		// 	continue
-		// }
+		// check if you need to excute this step
+		if !s.Execute(ruledata) {
+			continue
+		}
 
 		// plan the step
 		err := c.PlanStep(ctx, s)

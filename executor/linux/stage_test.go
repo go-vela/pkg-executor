@@ -33,7 +33,7 @@ func TestLinux_CreateStage(t *testing.T) {
 
 	s := httptest.NewServer(server.FakeHandler())
 
-	_client, err := vela.NewClient(s.URL, nil)
+	_client, err := vela.NewClient(s.URL, "", nil)
 	if err != nil {
 		t.Errorf("unable to create Vela API client: %v", err)
 	}
@@ -170,7 +170,7 @@ func TestLinux_PlanStage(t *testing.T) {
 
 	s := httptest.NewServer(server.FakeHandler())
 
-	_client, err := vela.NewClient(s.URL, nil)
+	_client, err := vela.NewClient(s.URL, "", nil)
 	if err != nil {
 		t.Errorf("unable to create Vela API client: %v", err)
 	}
@@ -279,7 +279,7 @@ func TestLinux_ExecStage(t *testing.T) {
 
 	s := httptest.NewServer(server.FakeHandler())
 
-	_client, err := vela.NewClient(s.URL, nil)
+	_client, err := vela.NewClient(s.URL, "", nil)
 	if err != nil {
 		t.Errorf("unable to create Vela API client: %v", err)
 	}
@@ -408,7 +408,7 @@ func TestLinux_DestroyStage(t *testing.T) {
 
 	s := httptest.NewServer(server.FakeHandler())
 
-	_client, err := vela.NewClient(s.URL, nil)
+	_client, err := vela.NewClient(s.URL, "", nil)
 	if err != nil {
 		t.Errorf("unable to create Vela API client: %v", err)
 	}

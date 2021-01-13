@@ -33,7 +33,7 @@ func TestLocal_CreateService(t *testing.T) {
 
 	s := httptest.NewServer(server.FakeHandler())
 
-	_client, err := vela.NewClient(s.URL, nil)
+	_client, err := vela.NewClient(s.URL, "", nil)
 	if err != nil {
 		t.Errorf("unable to create Vela API client: %v", err)
 	}
@@ -117,7 +117,7 @@ func TestLocal_PlanService(t *testing.T) {
 
 	s := httptest.NewServer(server.FakeHandler())
 
-	_client, err := vela.NewClient(s.URL, nil)
+	_client, err := vela.NewClient(s.URL, "", nil)
 	if err != nil {
 		t.Errorf("unable to create Vela API client: %v", err)
 	}
@@ -188,7 +188,7 @@ func TestLocal_ExecService(t *testing.T) {
 
 	s := httptest.NewServer(server.FakeHandler())
 
-	_client, err := vela.NewClient(s.URL, nil)
+	_client, err := vela.NewClient(s.URL, "", nil)
 	if err != nil {
 		t.Errorf("unable to create Vela API client: %v", err)
 	}
@@ -348,7 +348,7 @@ func TestLocal_DestroyService(t *testing.T) {
 
 	s := httptest.NewServer(server.FakeHandler())
 
-	_client, err := vela.NewClient(s.URL, nil)
+	_client, err := vela.NewClient(s.URL, "", nil)
 	if err != nil {
 		t.Errorf("unable to create Vela API client: %v", err)
 	}

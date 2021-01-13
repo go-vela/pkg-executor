@@ -52,26 +52,26 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 // PlanStep prepares the step for execution.
 func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
 	// update the engine step object
-	s := new(library.Step)
-	s.SetName(ctn.Name)
-	s.SetNumber(ctn.Number)
-	s.SetStatus(constants.StatusRunning)
-	s.SetStarted(time.Now().UTC().Unix())
-	s.SetHost(ctn.Environment["VELA_HOST"])
-	s.SetRuntime(ctn.Environment["VELA_RUNTIME"])
-	s.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
+	_step := new(library.Step)
+	_step.SetName(ctn.Name)
+	_step.SetNumber(ctn.Number)
+	_step.SetStatus(constants.StatusRunning)
+	_step.SetStarted(time.Now().UTC().Unix())
+	_step.SetHost(ctn.Environment["VELA_HOST"])
+	_step.SetRuntime(ctn.Environment["VELA_RUNTIME"])
+	_step.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 
 	// add a step to a map
-	c.steps.Store(ctn.ID, s)
+	c.steps.Store(ctn.ID, _step)
 
 	// update the engine step log object
-	l := new(library.Log)
-	l.SetBuildID(c.build.GetID())
-	l.SetRepoID(c.repo.GetID())
-	l.SetStepID(s.GetID())
+	_log := new(library.Log)
+	_log.SetBuildID(c.build.GetID())
+	_log.SetRepoID(c.repo.GetID())
+	_log.SetStepID(_step.GetID())
 
 	// add a step log to a map
-	c.stepLogs.Store(ctn.ID, l)
+	c.stepLogs.Store(ctn.ID, _log)
 
 	return nil
 }
@@ -155,33 +155,33 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 	}
 
 	// load the step from the client
-	s, err := step.Load(ctn, &c.steps)
+	_step, err := step.Load(ctn, &c.steps)
 	if err != nil {
 		// create the step from the container
-		s = new(library.Step)
-		s.SetName(ctn.Name)
-		s.SetNumber(ctn.Number)
-		s.SetStatus(constants.StatusPending)
-		s.SetHost(ctn.Environment["VELA_HOST"])
-		s.SetRuntime(ctn.Environment["VELA_RUNTIME"])
-		s.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
+		_step = new(library.Step)
+		_step.SetName(ctn.Name)
+		_step.SetNumber(ctn.Number)
+		_step.SetStatus(constants.StatusPending)
+		_step.SetHost(ctn.Environment["VELA_HOST"])
+		_step.SetRuntime(ctn.Environment["VELA_RUNTIME"])
+		_step.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 	}
 
 	// check if the step is in a pending state
-	if s.GetStatus() == constants.StatusPending {
+	if _step.GetStatus() == constants.StatusPending {
 		// update the step fields
 		//
 		// TODO: consider making this a constant
 		//
 		// nolint: gomnd // ignore magic number 137
-		s.SetExitCode(137)
-		s.SetFinished(time.Now().UTC().Unix())
-		s.SetStatus(constants.StatusKilled)
+		_step.SetExitCode(137)
+		_step.SetFinished(time.Now().UTC().Unix())
+		_step.SetStatus(constants.StatusKilled)
 
 		// check if the step was not started
-		if s.GetStarted() == 0 {
+		if _step.GetStarted() == 0 {
 			// set the started time to the finished time
-			s.SetStarted(s.GetFinished())
+			_step.SetStarted(_step.GetFinished())
 		}
 	}
 
@@ -192,16 +192,16 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 	}
 
 	// check if the step finished
-	if s.GetFinished() == 0 {
+	if _step.GetFinished() == 0 {
 		// update the step fields
-		s.SetFinished(time.Now().UTC().Unix())
-		s.SetStatus(constants.StatusSuccess)
+		_step.SetFinished(time.Now().UTC().Unix())
+		_step.SetStatus(constants.StatusSuccess)
 
 		// check the container for an unsuccessful exit code
 		if ctn.ExitCode > 0 {
 			// update the step fields
-			s.SetExitCode(ctn.ExitCode)
-			s.SetStatus(constants.StatusFailure)
+			_step.SetExitCode(ctn.ExitCode)
+			_step.SetStatus(constants.StatusFailure)
 		}
 	}
 

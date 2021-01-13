@@ -25,18 +25,18 @@ func (c *client) CreateStage(ctx context.Context, s *pipeline.Stage) error {
 	fmt.Fprintln(os.Stdout, _pattern, "> Pulling step images for stage", s.Name, "...")
 
 	// create the steps for the stage
-	for _, step := range s.Steps {
+	for _, _step := range s.Steps {
 		// create the step
-		err := c.CreateStep(ctx, step)
+		err := c.CreateStep(ctx, _step)
 		if err != nil {
 			return err
 		}
 
 		// output image command to stdout
-		fmt.Fprintln(os.Stdout, _pattern, "$ docker image inspect", step.Image)
+		fmt.Fprintln(os.Stdout, _pattern, "$ docker image inspect", _step.Image)
 
 		// inspect the step image
-		image, err := c.Runtime.InspectImage(ctx, step)
+		image, err := c.Runtime.InspectImage(ctx, _step)
 		if err != nil {
 			return err
 		}
@@ -144,9 +144,9 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 // DestroyStage cleans up the stage after execution.
 func (c *client) DestroyStage(ctx context.Context, s *pipeline.Stage) error {
 	// destroy the steps for the stage
-	for _, step := range s.Steps {
+	for _, _step := range s.Steps {
 		// destroy the step
-		err := c.DestroyStep(ctx, step)
+		err := c.DestroyStep(ctx, _step)
 		if err != nil {
 			return err
 		}

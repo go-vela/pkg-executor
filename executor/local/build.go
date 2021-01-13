@@ -57,18 +57,8 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	// defer taking snapshot of build
 	defer build.Snapshot(c.build, nil, c.err, nil, nil)
 
-	// load the init step from the client
-	s, err := step.Load(c.init, &c.steps)
-	if err != nil {
-		return err
-	}
-
 	// create a step pattern for log output
 	_pattern := fmt.Sprintf(stepPattern, c.init.Name)
-
-	defer func() {
-		s.SetFinished(time.Now().UTC().Unix())
-	}()
 
 	// create the runtime network for the pipeline
 	c.err = c.Runtime.CreateNetwork(ctx, c.pipeline)
@@ -126,7 +116,7 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	defer build.Snapshot(c.build, nil, c.err, nil, nil)
 
 	// load the init step from the client
-	sInit, err := step.Load(c.init, &c.steps)
+	_init, err := step.Load(c.init, &c.steps)
 	if err != nil {
 		return err
 	}
@@ -135,31 +125,31 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	_pattern := fmt.Sprintf(stepPattern, c.init.Name)
 
 	defer func() {
-		sInit.SetFinished(time.Now().UTC().Unix())
+		_init.SetFinished(time.Now().UTC().Unix())
 	}()
 
 	// output init progress to stdout
 	fmt.Fprintln(os.Stdout, _pattern, "> Pulling service images...")
 
 	// create the services for the pipeline
-	for _, s := range c.pipeline.Services {
+	for _, _service := range c.pipeline.Services {
 		// TODO: remove this; but we need it for tests
-		s.Detach = true
+		_service.Detach = true
 
 		// create the service
-		c.err = c.CreateService(ctx, s)
+		c.err = c.CreateService(ctx, _service)
 		if c.err != nil {
-			return fmt.Errorf("unable to create %s service: %w", s.Name, c.err)
+			return fmt.Errorf("unable to create %s service: %w", _service.Name, c.err)
 		}
 
 		// output the image command to stdout
-		fmt.Fprintln(os.Stdout, _pattern, "$ docker image inspect", s.Image)
+		fmt.Fprintln(os.Stdout, _pattern, "$ docker image inspect", _service.Image)
 
 		// inspect the service image
-		image, err := c.Runtime.InspectImage(ctx, s)
+		image, err := c.Runtime.InspectImage(ctx, _service)
 		if err != nil {
 			c.err = err
-			return fmt.Errorf("unable to inspect %s service: %w", s.Name, err)
+			return fmt.Errorf("unable to inspect %s service: %w", _service.Name, err)
 		}
 
 		// output the image information to stdout
@@ -170,16 +160,16 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	fmt.Fprintln(os.Stdout, _pattern, "> Pulling stage images...")
 
 	// create the stages for the pipeline
-	for _, s := range c.pipeline.Stages {
+	for _, _stage := range c.pipeline.Stages {
 		// TODO: remove hardcoded reference
-		if s.Name == "init" {
+		if _stage.Name == "init" {
 			continue
 		}
 
 		// create the stage
-		c.err = c.CreateStage(ctx, s)
+		c.err = c.CreateStage(ctx, _stage)
 		if c.err != nil {
-			return fmt.Errorf("unable to create %s stage: %w", s.Name, c.err)
+			return fmt.Errorf("unable to create %s stage: %w", _stage.Name, c.err)
 		}
 	}
 
@@ -187,26 +177,26 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	fmt.Fprintln(os.Stdout, _pattern, "> Pulling step images...")
 
 	// create the steps for the pipeline
-	for _, s := range c.pipeline.Steps {
+	for _, _step := range c.pipeline.Steps {
 		// TODO: remove hardcoded reference
-		if s.Name == "init" {
+		if _step.Name == "init" {
 			continue
 		}
 
 		// create the step
-		c.err = c.CreateStep(ctx, s)
+		c.err = c.CreateStep(ctx, _step)
 		if c.err != nil {
-			return fmt.Errorf("unable to create %s step: %w", s.Name, c.err)
+			return fmt.Errorf("unable to create %s step: %w", _step.Name, c.err)
 		}
 
 		// output the image command to stdout
-		fmt.Fprintln(os.Stdout, _pattern, "$ docker image inspect", s.Image)
+		fmt.Fprintln(os.Stdout, _pattern, "$ docker image inspect", _step.Image)
 
 		// inspect the step image
-		image, err := c.Runtime.InspectImage(ctx, s)
+		image, err := c.Runtime.InspectImage(ctx, _step)
 		if err != nil {
 			c.err = err
-			return fmt.Errorf("unable to inspect %s step: %w", s.Name, err)
+			return fmt.Errorf("unable to inspect %s step: %w", _step.Name, err)
 		}
 
 		// output the image information to stdout
@@ -245,24 +235,24 @@ func (c *client) ExecBuild(ctx context.Context) error {
 	}()
 
 	// execute the services for the pipeline
-	for _, s := range c.pipeline.Services {
+	for _, _service := range c.pipeline.Services {
 		// plan the service
-		c.err = c.PlanService(ctx, s)
+		c.err = c.PlanService(ctx, _service)
 		if c.err != nil {
 			return fmt.Errorf("unable to plan service: %w", c.err)
 		}
 
 		// execute the service
-		c.err = c.ExecService(ctx, s)
+		c.err = c.ExecService(ctx, _service)
 		if c.err != nil {
 			return fmt.Errorf("unable to execute service: %w", c.err)
 		}
 	}
 
 	// execute the steps for the pipeline
-	for _, s := range c.pipeline.Steps {
+	for _, _step := range c.pipeline.Steps {
 		// TODO: remove hardcoded reference
-		if s.Name == "init" {
+		if _step.Name == "init" {
 			continue
 		}
 
@@ -285,43 +275,43 @@ func (c *client) ExecBuild(ctx context.Context) error {
 		}
 
 		// check if you need to excute this step
-		if !s.Execute(ruledata) {
+		if !_step.Execute(ruledata) {
 			continue
 		}
 
 		// plan the step
-		c.err = c.PlanStep(ctx, s)
+		c.err = c.PlanStep(ctx, _step)
 		if c.err != nil {
 			return fmt.Errorf("unable to plan step: %w", c.err)
 		}
 
 		// execute the step
-		c.err = c.ExecStep(ctx, s)
+		c.err = c.ExecStep(ctx, _step)
 		if c.err != nil {
 			return fmt.Errorf("unable to execute step: %w", c.err)
 		}
 
 		// load the init step from the client
-		cStep, err := step.Load(s, &c.steps)
+		s, err := step.Load(_step, &c.steps)
 		if err != nil {
 			c.err = err
 			return err
 		}
 
 		// check the step exit code
-		if s.ExitCode != 0 {
+		if _step.ExitCode != 0 {
 			// check if we ignore step failures
-			if !s.Ruleset.Continue {
+			if !_step.Ruleset.Continue {
 				// set build status to failure
 				c.build.SetStatus(constants.StatusFailure)
 			}
 
 			// update the step fields
-			cStep.SetExitCode(s.ExitCode)
-			cStep.SetStatus(constants.StatusFailure)
+			s.SetExitCode(_step.ExitCode)
+			s.SetStatus(constants.StatusFailure)
 		}
 
-		cStep.SetFinished(time.Now().UTC().Unix())
+		s.SetFinished(time.Now().UTC().Unix())
 	}
 
 	// create an error group with the context for each stage
@@ -332,14 +322,14 @@ func (c *client) ExecBuild(ctx context.Context) error {
 	stageMap := make(map[string]chan error)
 
 	// iterate through each stage in the pipeline
-	for _, s := range c.pipeline.Stages {
+	for _, _stage := range c.pipeline.Stages {
 		// TODO: remove hardcoded reference
-		if s.Name == "init" {
+		if _stage.Name == "init" {
 			continue
 		}
 
 		// https://golang.org/doc/faq#closures_and_goroutines
-		stage := s
+		stage := _stage
 
 		// create a new channel for each stage in the map
 		stageMap[stage.Name] = make(chan error)
@@ -380,14 +370,14 @@ func (c *client) DestroyBuild(ctx context.Context) error {
 	var err error
 
 	// destroy the steps for the pipeline
-	for _, s := range c.pipeline.Steps {
+	for _, _step := range c.pipeline.Steps {
 		// TODO: remove hardcoded reference
-		if s.Name == "init" {
+		if _step.Name == "init" {
 			continue
 		}
 
 		// destroy the step
-		err = c.DestroyStep(ctx, s)
+		err = c.DestroyStep(ctx, _step)
 		if err != nil {
 			// output the error information to stdout
 			fmt.Fprintln(os.Stdout, "unable to destroy step:", err)
@@ -395,14 +385,14 @@ func (c *client) DestroyBuild(ctx context.Context) error {
 	}
 
 	// destroy the stages for the pipeline
-	for _, s := range c.pipeline.Stages {
+	for _, _stage := range c.pipeline.Stages {
 		// TODO: remove hardcoded reference
-		if s.Name == "init" {
+		if _stage.Name == "init" {
 			continue
 		}
 
 		// destroy the stage
-		err = c.DestroyStage(ctx, s)
+		err = c.DestroyStage(ctx, _stage)
 		if err != nil {
 			// output the error information to stdout
 			fmt.Fprintln(os.Stdout, "unable to destroy stage:", err)
@@ -410,9 +400,9 @@ func (c *client) DestroyBuild(ctx context.Context) error {
 	}
 
 	// destroy the services for the pipeline
-	for _, s := range c.pipeline.Services {
+	for _, _service := range c.pipeline.Services {
 		// destroy the service
-		err = c.DestroyService(ctx, s)
+		err = c.DestroyService(ctx, _service)
 		if err != nil {
 			// output the error information to stdout
 			fmt.Fprintln(os.Stdout, "unable to destroy service:", err)

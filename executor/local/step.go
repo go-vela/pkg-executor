@@ -51,9 +51,6 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 
 // PlanStep prepares the step for execution.
 func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
-	b := c.build
-	r := c.repo
-
 	// update the engine step object
 	s := new(library.Step)
 	s.SetName(ctn.Name)
@@ -69,8 +66,8 @@ func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
 
 	// update the engine step log object
 	l := new(library.Log)
-	l.SetBuildID(b.GetID())
-	l.SetRepoID(r.GetID())
+	l.SetBuildID(c.build.GetID())
+	l.SetRepoID(c.repo.GetID())
 	l.SetStepID(s.GetID())
 
 	// add a step log to a map

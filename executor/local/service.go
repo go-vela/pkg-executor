@@ -47,9 +47,6 @@ func (c *client) CreateService(ctx context.Context, ctn *pipeline.Container) err
 
 // PlanService prepares the service for execution.
 func (c *client) PlanService(ctx context.Context, ctn *pipeline.Container) error {
-	b := c.build
-	r := c.repo
-
 	// update the engine service object
 	s := new(library.Service)
 	s.SetName(ctn.Name)
@@ -65,8 +62,8 @@ func (c *client) PlanService(ctx context.Context, ctn *pipeline.Container) error
 
 	// update the engine service log object
 	l := new(library.Log)
-	l.SetBuildID(b.GetID())
-	l.SetRepoID(r.GetID())
+	l.SetBuildID(c.build.GetID())
+	l.SetRepoID(c.repo.GetID())
 	l.SetServiceID(s.GetID())
 
 	// add a service log to a map
@@ -87,8 +84,7 @@ func (c *client) ExecService(ctx context.Context, ctn *pipeline.Container) error
 		// stream logs from container
 		err := c.StreamService(ctx, ctn)
 		if err != nil {
-			// TODO: Should this be changed or removed?
-			fmt.Println(err)
+			fmt.Fprintln(os.Stdout, "unable to stream logs for service:", err)
 		}
 	}()
 

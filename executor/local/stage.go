@@ -76,9 +76,6 @@ func (c *client) PlanStage(ctx context.Context, s *pipeline.Stage, m map[string]
 
 // ExecStage runs a stage.
 func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]chan error) error {
-	b := c.build
-	r := c.repo
-
 	// close the stage channel at the end
 	defer close(m[s.Name])
 
@@ -86,20 +83,20 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 	for _, _step := range s.Steps {
 		// extract rule data from build information
 		ruledata := &pipeline.RuleData{
-			Branch: b.GetBranch(),
-			Event:  b.GetEvent(),
-			Repo:   r.GetFullName(),
-			Status: b.GetStatus(),
+			Branch: c.build.GetBranch(),
+			Event:  c.build.GetEvent(),
+			Repo:   c.repo.GetFullName(),
+			Status: c.build.GetStatus(),
 		}
 
 		// when tag event add tag information into ruledata
-		if strings.EqualFold(b.GetEvent(), constants.EventTag) {
+		if strings.EqualFold(c.build.GetEvent(), constants.EventTag) {
 			ruledata.Tag = strings.TrimPrefix(c.build.GetRef(), "refs/tags/")
 		}
 
 		// when deployment event add deployment information into ruledata
-		if strings.EqualFold(b.GetEvent(), constants.EventDeploy) {
-			ruledata.Target = b.GetDeploy()
+		if strings.EqualFold(c.build.GetEvent(), constants.EventDeploy) {
+			ruledata.Target = c.build.GetDeploy()
 		}
 
 		// check if you need to excute this step
@@ -116,7 +113,7 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 		// execute the step
 		err = c.ExecStep(ctx, _step)
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to exec step %s: %w", _step.Name, err)
 		}
 
 		// load the step from the client
@@ -130,7 +127,7 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 			// check if we ignore step failures
 			if !_step.Ruleset.Continue {
 				// set build status to failure
-				b.SetStatus(constants.StatusFailure)
+				c.build.SetStatus(constants.StatusFailure)
 			}
 
 			// update the step fields

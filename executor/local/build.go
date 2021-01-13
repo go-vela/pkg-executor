@@ -21,90 +21,71 @@ import (
 
 // CreateBuild configures the build for execution.
 func (c *client) CreateBuild(ctx context.Context) error {
-	b := c.build
-	p := c.pipeline
-	r := c.repo
-	e := c.err
-
 	// defer taking snapshot of build
-	defer build.Snapshot(b, nil, e, nil, r)
+	defer build.Snapshot(c.build, nil, c.err, nil, nil)
 
 	// update the build fields
-	b.SetStatus(constants.StatusRunning)
-	b.SetStarted(time.Now().UTC().Unix())
-	b.SetHost(c.Hostname)
+	c.build.SetStatus(constants.StatusRunning)
+	c.build.SetStarted(time.Now().UTC().Unix())
+	c.build.SetHost(c.Hostname)
 	// TODO: This should not be hardcoded
-	b.SetDistribution("linux")
-	b.SetRuntime("docker")
-
-	c.build = b
+	c.build.SetDistribution(constants.DriverLocal)
+	c.build.SetRuntime("docker")
 
 	// load the init container from the pipeline
-	init := c.loadInitContainer(p)
+	c.init = c.loadInitContainer(c.pipeline)
 
 	// create the step
-	err := c.CreateStep(ctx, init)
-	if err != nil {
-		e = err
-		return fmt.Errorf("unable to create %s step: %w", init.Name, err)
+	c.err = c.CreateStep(ctx, c.init)
+	if c.err != nil {
+		return fmt.Errorf("unable to create %s step: %w", c.init.Name, c.err)
 	}
 
 	// plan the step
-	err = c.PlanStep(ctx, init)
-	if err != nil {
-		e = err
-		return fmt.Errorf("unable to plan %s step: %w", init.Name, err)
+	c.err = c.PlanStep(ctx, c.init)
+	if c.err != nil {
+		return fmt.Errorf("unable to plan %s step: %w", c.init.Name, c.err)
 	}
 
-	// add the init container to secrets client
-	c.init = init
-
-	return nil
+	return c.err
 }
 
 // PlanBuild prepares the build for execution.
 //
 // nolint: funlen // ignore function length - will be refactored at a later date
 func (c *client) PlanBuild(ctx context.Context) error {
-	b := c.build
-	p := c.pipeline
-	r := c.repo
-	e := c.err
-	init := c.init
-
 	// defer taking snapshot of build
-	defer build.Snapshot(b, nil, e, nil, r)
+	defer build.Snapshot(c.build, nil, c.err, nil, nil)
 
 	// load the init step from the client
-	s, err := step.Load(init, &c.steps)
+	s, err := step.Load(c.init, &c.steps)
 	if err != nil {
 		return err
 	}
 
 	// create a step pattern for log output
-	_pattern := fmt.Sprintf(stepPattern, init.Name)
+	_pattern := fmt.Sprintf(stepPattern, c.init.Name)
 
 	defer func() {
 		s.SetFinished(time.Now().UTC().Unix())
 	}()
 
 	// create the runtime network for the pipeline
-	err = c.Runtime.CreateNetwork(ctx, p)
-	if err != nil {
-		e = err
-		return fmt.Errorf("unable to create network: %w", err)
+	c.err = c.Runtime.CreateNetwork(ctx, c.pipeline)
+	if c.err != nil {
+		return fmt.Errorf("unable to create network: %w", c.err)
 	}
 
 	// output init progress to stdout
 	fmt.Fprintln(os.Stdout, _pattern, "> Inspecting runtime network...")
 
 	// output the network command to stdout
-	fmt.Fprintln(os.Stdout, _pattern, "$ docker network inspect", p.ID)
+	fmt.Fprintln(os.Stdout, _pattern, "$ docker network inspect", c.pipeline.ID)
 
 	// inspect the runtime network for the pipeline
-	network, err := c.Runtime.InspectNetwork(ctx, p)
+	network, err := c.Runtime.InspectNetwork(ctx, c.pipeline)
 	if err != nil {
-		e = err
+		c.err = err
 		return fmt.Errorf("unable to inspect network: %w", err)
 	}
 
@@ -112,9 +93,9 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	fmt.Fprintln(os.Stdout, _pattern, string(network))
 
 	// create the runtime volume for the pipeline
-	err = c.Runtime.CreateVolume(ctx, p)
+	err = c.Runtime.CreateVolume(ctx, c.pipeline)
 	if err != nil {
-		e = err
+		c.err = err
 		return fmt.Errorf("unable to create volume: %w", err)
 	}
 
@@ -122,42 +103,36 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	fmt.Fprintln(os.Stdout, _pattern, "> Inspecting runtime volume...")
 
 	// output the volume command to stdout
-	fmt.Fprintln(os.Stdout, _pattern, "$ docker volume inspect", p.ID)
+	fmt.Fprintln(os.Stdout, _pattern, "$ docker volume inspect", c.pipeline.ID)
 
 	// inspect the runtime volume for the pipeline
-	volume, err := c.Runtime.InspectVolume(ctx, p)
+	volume, err := c.Runtime.InspectVolume(ctx, c.pipeline)
 	if err != nil {
-		e = err
+		c.err = err
 		return fmt.Errorf("unable to inspect volume: %w", err)
 	}
 
 	// output the volume information to stdout
 	fmt.Fprintln(os.Stdout, _pattern, string(volume))
 
-	return nil
+	return c.err
 }
 
 // AssembleBuild prepares the containers within a build for execution.
 //
 // nolint: funlen // ignore function length - will be refactored at a later date
 func (c *client) AssembleBuild(ctx context.Context) error {
-	b := c.build
-	p := c.pipeline
-	r := c.repo
-	e := c.err
-	init := c.init
-
 	// defer taking snapshot of build
-	defer build.Snapshot(b, nil, e, nil, r)
+	defer build.Snapshot(c.build, nil, c.err, nil, nil)
 
 	// load the init step from the client
-	sInit, err := step.Load(init, &c.steps)
+	sInit, err := step.Load(c.init, &c.steps)
 	if err != nil {
 		return err
 	}
 
 	// create a step pattern for log output
-	_pattern := fmt.Sprintf(stepPattern, init.Name)
+	_pattern := fmt.Sprintf(stepPattern, c.init.Name)
 
 	defer func() {
 		sInit.SetFinished(time.Now().UTC().Unix())
@@ -167,15 +142,14 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	fmt.Fprintln(os.Stdout, _pattern, "> Pulling service images...")
 
 	// create the services for the pipeline
-	for _, s := range p.Services {
+	for _, s := range c.pipeline.Services {
 		// TODO: remove this; but we need it for tests
 		s.Detach = true
 
 		// create the service
-		err := c.CreateService(ctx, s)
-		if err != nil {
-			e = err
-			return fmt.Errorf("unable to create %s service: %w", s.Name, err)
+		c.err = c.CreateService(ctx, s)
+		if c.err != nil {
+			return fmt.Errorf("unable to create %s service: %w", s.Name, c.err)
 		}
 
 		// output the image command to stdout
@@ -184,7 +158,7 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 		// inspect the service image
 		image, err := c.Runtime.InspectImage(ctx, s)
 		if err != nil {
-			e = err
+			c.err = err
 			return fmt.Errorf("unable to inspect %s service: %w", s.Name, err)
 		}
 
@@ -196,17 +170,16 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	fmt.Fprintln(os.Stdout, _pattern, "> Pulling stage images...")
 
 	// create the stages for the pipeline
-	for _, s := range p.Stages {
+	for _, s := range c.pipeline.Stages {
 		// TODO: remove hardcoded reference
 		if s.Name == "init" {
 			continue
 		}
 
 		// create the stage
-		err := c.CreateStage(ctx, s)
-		if err != nil {
-			e = err
-			return fmt.Errorf("unable to create %s stage: %w", s.Name, err)
+		c.err = c.CreateStage(ctx, s)
+		if c.err != nil {
+			return fmt.Errorf("unable to create %s stage: %w", s.Name, c.err)
 		}
 	}
 
@@ -214,17 +187,16 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	fmt.Fprintln(os.Stdout, _pattern, "> Pulling step images...")
 
 	// create the steps for the pipeline
-	for _, s := range p.Steps {
+	for _, s := range c.pipeline.Steps {
 		// TODO: remove hardcoded reference
 		if s.Name == "init" {
 			continue
 		}
 
 		// create the step
-		err := c.CreateStep(ctx, s)
-		if err != nil {
-			e = err
-			return fmt.Errorf("unable to create %s step: %w", s.Name, err)
+		c.err = c.CreateStep(ctx, s)
+		if c.err != nil {
+			return fmt.Errorf("unable to create %s step: %w", s.Name, c.err)
 		}
 
 		// output the image command to stdout
@@ -233,7 +205,7 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 		// inspect the step image
 		image, err := c.Runtime.InspectImage(ctx, s)
 		if err != nil {
-			e = err
+			c.err = err
 			return fmt.Errorf("unable to inspect %s step: %w", s.Name, err)
 		}
 
@@ -244,58 +216,51 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	// output a new line for readability to stdout
 	fmt.Fprintln(os.Stdout, "")
 
-	return nil
+	return c.err
 }
 
 // ExecBuild runs a pipeline for a build.
 //
 // nolint: funlen // ignore function length - will be refactored at a later date
 func (c *client) ExecBuild(ctx context.Context) error {
-	b := c.build
-	p := c.pipeline
-	r := c.repo
-	e := c.err
-
 	defer func() {
 		// Overwrite with proper status and error only if build was not canceled
-		if !strings.EqualFold(b.GetStatus(), constants.StatusCanceled) {
+		if !strings.EqualFold(c.build.GetStatus(), constants.StatusCanceled) {
 			// NOTE: if the build is already in a failure state we do not
 			// want to update the state to be success
-			if !strings.EqualFold(b.GetStatus(), constants.StatusFailure) {
-				b.SetStatus(constants.StatusSuccess)
+			if !strings.EqualFold(c.build.GetStatus(), constants.StatusFailure) {
+				c.build.SetStatus(constants.StatusSuccess)
 			}
 
 			// NOTE: When an error occurs during a build that does not have to do
 			// with a pipeline we should set build status to "error" not "failed"
 			// because it is worker related and not build.
-			if e != nil {
-				b.SetError(e.Error())
-				b.SetStatus(constants.StatusError)
+			if c.err != nil {
+				c.build.SetError(c.err.Error())
+				c.build.SetStatus(constants.StatusError)
 			}
 		}
 		// update the build fields
-		b.SetFinished(time.Now().UTC().Unix())
+		c.build.SetFinished(time.Now().UTC().Unix())
 	}()
 
 	// execute the services for the pipeline
-	for _, s := range p.Services {
+	for _, s := range c.pipeline.Services {
 		// plan the service
-		err := c.PlanService(ctx, s)
-		if err != nil {
-			e = err
-			return fmt.Errorf("unable to plan service: %w", err)
+		c.err = c.PlanService(ctx, s)
+		if c.err != nil {
+			return fmt.Errorf("unable to plan service: %w", c.err)
 		}
 
 		// execute the service
-		err = c.ExecService(ctx, s)
-		if err != nil {
-			e = err
-			return fmt.Errorf("unable to execute service: %w", err)
+		c.err = c.ExecService(ctx, s)
+		if c.err != nil {
+			return fmt.Errorf("unable to execute service: %w", c.err)
 		}
 	}
 
 	// execute the steps for the pipeline
-	for _, s := range p.Steps {
+	for _, s := range c.pipeline.Steps {
 		// TODO: remove hardcoded reference
 		if s.Name == "init" {
 			continue
@@ -303,20 +268,20 @@ func (c *client) ExecBuild(ctx context.Context) error {
 
 		// extract rule data from build information
 		ruledata := &pipeline.RuleData{
-			Branch: b.GetBranch(),
-			Event:  b.GetEvent(),
-			Repo:   r.GetFullName(),
-			Status: b.GetStatus(),
+			Branch: c.build.GetBranch(),
+			Event:  c.build.GetEvent(),
+			Repo:   c.repo.GetFullName(),
+			Status: c.build.GetStatus(),
 		}
 
 		// when tag event add tag information into ruledata
-		if strings.EqualFold(b.GetEvent(), constants.EventTag) {
+		if strings.EqualFold(c.build.GetEvent(), constants.EventTag) {
 			ruledata.Tag = strings.TrimPrefix(c.build.GetRef(), "refs/tags/")
 		}
 
 		// when deployment event add deployment information into ruledata
-		if strings.EqualFold(b.GetEvent(), constants.EventDeploy) {
-			ruledata.Target = b.GetDeploy()
+		if strings.EqualFold(c.build.GetEvent(), constants.EventDeploy) {
+			ruledata.Target = c.build.GetDeploy()
 		}
 
 		// check if you need to excute this step
@@ -325,22 +290,21 @@ func (c *client) ExecBuild(ctx context.Context) error {
 		}
 
 		// plan the step
-		err := c.PlanStep(ctx, s)
-		if err != nil {
-			e = err
-			return fmt.Errorf("unable to plan step: %w", err)
+		c.err = c.PlanStep(ctx, s)
+		if c.err != nil {
+			return fmt.Errorf("unable to plan step: %w", c.err)
 		}
 
 		// execute the step
-		err = c.ExecStep(ctx, s)
-		if err != nil {
-			e = err
-			return fmt.Errorf("unable to execute step: %w", err)
+		c.err = c.ExecStep(ctx, s)
+		if c.err != nil {
+			return fmt.Errorf("unable to execute step: %w", c.err)
 		}
 
 		// load the init step from the client
 		cStep, err := step.Load(s, &c.steps)
 		if err != nil {
+			c.err = err
 			return err
 		}
 
@@ -349,7 +313,7 @@ func (c *client) ExecBuild(ctx context.Context) error {
 			// check if we ignore step failures
 			if !s.Ruleset.Continue {
 				// set build status to failure
-				b.SetStatus(constants.StatusFailure)
+				c.build.SetStatus(constants.StatusFailure)
 			}
 
 			// update the step fields
@@ -368,7 +332,7 @@ func (c *client) ExecBuild(ctx context.Context) error {
 	stageMap := make(map[string]chan error)
 
 	// iterate through each stage in the pipeline
-	for _, s := range p.Stages {
+	for _, s := range c.pipeline.Stages {
 		// TODO: remove hardcoded reference
 		if s.Name == "init" {
 			continue
@@ -385,17 +349,15 @@ func (c *client) ExecBuild(ctx context.Context) error {
 		// https://pkg.go.dev/golang.org/x/sync/errgroup?tab=doc#Group.Go
 		stages.Go(func() error {
 			// plan the stage
-			err := c.PlanStage(stageCtx, stage, stageMap)
-			if err != nil {
-				e = err
-				return fmt.Errorf("unable to plan stage: %w", err)
+			c.err = c.PlanStage(stageCtx, stage, stageMap)
+			if c.err != nil {
+				return fmt.Errorf("unable to plan stage: %w", c.err)
 			}
 
 			// execute the stage
-			err = c.ExecStage(stageCtx, stage, stageMap)
-			if err != nil {
-				e = err
-				return fmt.Errorf("unable to execute stage: %w", err)
+			c.err = c.ExecStage(stageCtx, stage, stageMap)
+			if c.err != nil {
+				return fmt.Errorf("unable to execute stage: %w", c.err)
 			}
 
 			return nil
@@ -405,13 +367,12 @@ func (c *client) ExecBuild(ctx context.Context) error {
 	// wait for the stages to complete or return an error
 	//
 	// https://pkg.go.dev/golang.org/x/sync/errgroup?tab=doc#Group.Wait
-	err := stages.Wait()
-	if err != nil {
-		e = err
-		return fmt.Errorf("unable to wait for stages: %v", err)
+	c.err = stages.Wait()
+	if c.err != nil {
+		return fmt.Errorf("unable to wait for stages: %v", c.err)
 	}
 
-	return nil
+	return c.err
 }
 
 // DestroyBuild cleans up the build after execution.
@@ -428,8 +389,8 @@ func (c *client) DestroyBuild(ctx context.Context) error {
 		// destroy the step
 		err = c.DestroyStep(ctx, s)
 		if err != nil {
-			// TODO: Should this be changed or removed?
-			fmt.Println(err)
+			// output the error information to stdout
+			fmt.Fprintln(os.Stdout, "unable to destroy step:", err)
 		}
 	}
 
@@ -443,8 +404,8 @@ func (c *client) DestroyBuild(ctx context.Context) error {
 		// destroy the stage
 		err = c.DestroyStage(ctx, s)
 		if err != nil {
-			// TODO: Should this be changed or removed?
-			fmt.Println(err)
+			// output the error information to stdout
+			fmt.Fprintln(os.Stdout, "unable to destroy stage:", err)
 		}
 	}
 
@@ -453,23 +414,23 @@ func (c *client) DestroyBuild(ctx context.Context) error {
 		// destroy the service
 		err = c.DestroyService(ctx, s)
 		if err != nil {
-			// TODO: Should this be changed or removed?
-			fmt.Println(err)
+			// output the error information to stdout
+			fmt.Fprintln(os.Stdout, "unable to destroy service:", err)
 		}
 	}
 
 	// remove the runtime volume for the pipeline
 	err = c.Runtime.RemoveVolume(ctx, c.pipeline)
 	if err != nil {
-		// TODO: Should this be changed or removed?
-		fmt.Println(err)
+		// output the error information to stdout
+		fmt.Fprintln(os.Stdout, "unable to destroy runtime volume:", err)
 	}
 
 	// remove the runtime network for the pipeline
 	err = c.Runtime.RemoveNetwork(ctx, c.pipeline)
 	if err != nil {
-		// TODO: Should this be changed or removed?
-		fmt.Println(err)
+		// output the error information to stdout
+		fmt.Fprintln(os.Stdout, "unable to destroy runtime network:", err)
 	}
 
 	return err

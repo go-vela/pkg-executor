@@ -47,30 +47,27 @@ func (c *client) CreateService(ctx context.Context, ctn *pipeline.Container) err
 
 // PlanService prepares the service for execution.
 func (c *client) PlanService(ctx context.Context, ctn *pipeline.Container) error {
-	b := c.build
-	r := c.repo
-
 	// update the engine service object
-	s := new(library.Service)
-	s.SetName(ctn.Name)
-	s.SetNumber(ctn.Number)
-	s.SetStatus(constants.StatusRunning)
-	s.SetStarted(time.Now().UTC().Unix())
-	s.SetHost(ctn.Environment["VELA_HOST"])
-	s.SetRuntime(ctn.Environment["VELA_RUNTIME"])
-	s.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
+	_service := new(library.Service)
+	_service.SetName(ctn.Name)
+	_service.SetNumber(ctn.Number)
+	_service.SetStatus(constants.StatusRunning)
+	_service.SetStarted(time.Now().UTC().Unix())
+	_service.SetHost(ctn.Environment["VELA_HOST"])
+	_service.SetRuntime(ctn.Environment["VELA_RUNTIME"])
+	_service.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 
 	// add a service to a map
-	c.services.Store(ctn.ID, s)
+	c.services.Store(ctn.ID, _service)
 
 	// update the engine service log object
-	l := new(library.Log)
-	l.SetBuildID(b.GetID())
-	l.SetRepoID(r.GetID())
-	l.SetServiceID(s.GetID())
+	_log := new(library.Log)
+	_log.SetBuildID(c.build.GetID())
+	_log.SetRepoID(c.repo.GetID())
+	_log.SetServiceID(_service.GetID())
 
 	// add a service log to a map
-	c.serviceLogs.Store(ctn.ID, l)
+	c.serviceLogs.Store(ctn.ID, _log)
 
 	return nil
 }
@@ -87,8 +84,7 @@ func (c *client) ExecService(ctx context.Context, ctn *pipeline.Container) error
 		// stream logs from container
 		err := c.StreamService(ctx, ctn)
 		if err != nil {
-			// TODO: Should this be changed or removed?
-			fmt.Println(err)
+			fmt.Fprintln(os.Stdout, "unable to stream logs for service:", err)
 		}
 	}()
 
@@ -122,33 +118,33 @@ func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) err
 // DestroyService cleans up services after execution.
 func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) error {
 	// load the service from the client
-	s, err := service.Load(ctn, &c.services)
+	_service, err := service.Load(ctn, &c.services)
 	if err != nil {
 		// create the service from the container
-		s = new(library.Service)
-		s.SetName(ctn.Name)
-		s.SetNumber(ctn.Number)
-		s.SetStatus(constants.StatusPending)
-		s.SetHost(ctn.Environment["VELA_HOST"])
-		s.SetRuntime(ctn.Environment["VELA_RUNTIME"])
-		s.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
+		_service = new(library.Service)
+		_service.SetName(ctn.Name)
+		_service.SetNumber(ctn.Number)
+		_service.SetStatus(constants.StatusPending)
+		_service.SetHost(ctn.Environment["VELA_HOST"])
+		_service.SetRuntime(ctn.Environment["VELA_RUNTIME"])
+		_service.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 	}
 
 	// check if the service is in a pending state
-	if s.GetStatus() == constants.StatusPending {
+	if _service.GetStatus() == constants.StatusPending {
 		// update the service fields
 		//
 		// TODO: consider making this a constant
 		//
 		// nolint: gomnd // ignore magic number 137
-		s.SetExitCode(137)
-		s.SetFinished(time.Now().UTC().Unix())
-		s.SetStatus(constants.StatusKilled)
+		_service.SetExitCode(137)
+		_service.SetFinished(time.Now().UTC().Unix())
+		_service.SetStatus(constants.StatusKilled)
 
 		// check if the service was not started
-		if s.GetStarted() == 0 {
+		if _service.GetStarted() == 0 {
 			// set the started time to the finished time
-			s.SetStarted(s.GetFinished())
+			_service.SetStarted(_service.GetFinished())
 		}
 	}
 
@@ -159,16 +155,16 @@ func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) er
 	}
 
 	// check if the service finished
-	if s.GetFinished() == 0 {
+	if _service.GetFinished() == 0 {
 		// update the service fields
-		s.SetFinished(time.Now().UTC().Unix())
-		s.SetStatus(constants.StatusSuccess)
+		_service.SetFinished(time.Now().UTC().Unix())
+		_service.SetStatus(constants.StatusSuccess)
 
 		// check the container for an unsuccessful exit code
 		if ctn.ExitCode > 0 {
 			// update the service fields
-			s.SetExitCode(ctn.ExitCode)
-			s.SetStatus(constants.StatusFailure)
+			_service.SetExitCode(ctn.ExitCode)
+			_service.SetStatus(constants.StatusFailure)
 		}
 	}
 

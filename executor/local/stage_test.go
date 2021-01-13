@@ -69,24 +69,6 @@ func TestLocal_CreateStage(t *testing.T) {
 		},
 		{
 			failure: true,
-			logs:    nil,
-			stage: &pipeline.Stage{
-				Name: "clone",
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "github_octocat_1_clone_clone",
-						Directory:   "/home/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/vela-git:v0.3.0",
-						Name:        "clone",
-						Number:      2,
-						Pull:        "always",
-					},
-				},
-			},
-		},
-		{
-			failure: true,
 			logs:    new(library.Log),
 			stage: &pipeline.Stage{
 				Name: "clone",
@@ -142,6 +124,12 @@ func TestLocal_CreateStage(t *testing.T) {
 		}
 
 		_engine.steps.Store(_stages.Stages[0].Steps[0].ID, new(library.Step))
+
+		// run create for init process to be created properly
+		err = _engine.CreateBuild(context.Background())
+		if err != nil {
+			t.Errorf("unable to create build: %v", err)
+		}
 
 		err = _engine.CreateStage(context.Background(), test.stage)
 

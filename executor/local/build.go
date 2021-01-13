@@ -51,8 +51,6 @@ func (c *client) CreateBuild(ctx context.Context) error {
 }
 
 // PlanBuild prepares the build for execution.
-//
-// nolint: funlen // ignore function length - will be refactored at a later date
 func (c *client) PlanBuild(ctx context.Context) error {
 	// defer taking snapshot of build
 	defer build.Snapshot(c.build, nil, c.err, nil, nil)
@@ -109,8 +107,6 @@ func (c *client) PlanBuild(ctx context.Context) error {
 }
 
 // AssembleBuild prepares the containers within a build for execution.
-//
-// nolint: funlen // ignore function length - will be refactored at a later date
 func (c *client) AssembleBuild(ctx context.Context) error {
 	// defer taking snapshot of build
 	defer build.Snapshot(c.build, nil, c.err, nil, nil)

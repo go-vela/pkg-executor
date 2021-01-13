@@ -16,7 +16,7 @@ func setupClient(c *cli.Context) (*vela.Client, error) {
 	logrus.Debug("creating Vela client from CLI configuration")
 
 	// create new Vela client from provided server address
-	vela, err := vela.NewClient(c.String("server.addr"), nil)
+	vela, err := vela.NewClient(c.String("server.addr"), "", nil)
 	if err != nil {
 		return nil, err
 	}

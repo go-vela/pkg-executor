@@ -61,17 +61,8 @@ func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
 	_step.SetRuntime(ctn.Environment["VELA_RUNTIME"])
 	_step.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 
-	// add a step to a map
+	// add the step to the client map
 	c.steps.Store(ctn.ID, _step)
-
-	// update the engine step log object
-	_log := new(library.Log)
-	_log.SetBuildID(c.build.GetID())
-	_log.SetRepoID(c.repo.GetID())
-	_log.SetStepID(_step.GetID())
-
-	// add a step log to a map
-	c.stepLogs.Store(ctn.ID, _log)
 
 	return nil
 }

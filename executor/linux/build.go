@@ -62,6 +62,8 @@ func (c *client) CreateBuild(ctx context.Context) error {
 }
 
 // PlanBuild prepares the build for execution.
+//
+// nolint: funlen // ignore function length due to comments and logging messages
 func (c *client) PlanBuild(ctx context.Context) error {
 	// defer taking snapshot of build
 	defer build.Snapshot(c.build, c.Vela, c.err, c.logger, c.repo)

@@ -380,7 +380,6 @@ func TestLocal_ExecBuild(t *testing.T) {
 			}
 
 			_engine.services.Store(service.ID, s)
-			_engine.serviceLogs.Store(service.ID, new(library.Log))
 		}
 
 		for _, stage := range p.Stages {
@@ -391,7 +390,6 @@ func TestLocal_ExecBuild(t *testing.T) {
 				}
 
 				_engine.steps.Store(step.ID, s)
-				_engine.stepLogs.Store(step.ID, new(library.Log))
 			}
 		}
 
@@ -402,7 +400,6 @@ func TestLocal_ExecBuild(t *testing.T) {
 			}
 
 			_engine.steps.Store(step.ID, s)
-			_engine.stepLogs.Store(step.ID, new(library.Log))
 		}
 
 		// run create to init steps to be created properly

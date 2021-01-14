@@ -244,7 +244,6 @@ func TestLocal_ExecService(t *testing.T) {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
 
-		_engine.serviceLogs.Store(test.container.ID, new(library.Log))
 		_engine.services.Store(test.container.ID, new(library.Service))
 
 		err = _engine.ExecService(context.Background(), test.container)

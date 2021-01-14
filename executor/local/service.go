@@ -60,15 +60,6 @@ func (c *client) PlanService(ctx context.Context, ctn *pipeline.Container) error
 	// add a service to a map
 	c.services.Store(ctn.ID, _service)
 
-	// update the engine service log object
-	_log := new(library.Log)
-	_log.SetBuildID(c.build.GetID())
-	_log.SetRepoID(c.repo.GetID())
-	_log.SetServiceID(_service.GetID())
-
-	// add a service log to a map
-	c.serviceLogs.Store(ctn.ID, _log)
-
 	return nil
 }
 

@@ -277,7 +277,6 @@ func TestLocal_ExecStep(t *testing.T) {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
 
-		_engine.stepLogs.Store(test.container.ID, new(library.Log))
 		_engine.steps.Store(test.container.ID, new(library.Step))
 
 		// create volume for runtime host config

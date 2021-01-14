@@ -18,7 +18,7 @@ import (
 // CreateStage prepares the stage for execution.
 func (c *client) CreateStage(ctx context.Context, s *pipeline.Stage) error {
 	// load the logs for the init step from the client
-	l, err := step.LoadLogs(c.init, &c.stepLogs)
+	_log, err := step.LoadLogs(c.init, &c.stepLogs)
 	if err != nil {
 		return err
 	}
@@ -31,26 +31,26 @@ func (c *client) CreateStage(ctx context.Context, s *pipeline.Stage) error {
 	// update the init log with progress
 	//
 	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	l.AppendData([]byte(fmt.Sprintf("> Pulling step images for stage %s...\n", s.Name)))
+	_log.AppendData([]byte(fmt.Sprintf("> Pulling step images for stage %s...\n", s.Name)))
 
 	// create the steps for the stage
-	for _, step := range s.Steps {
+	for _, _step := range s.Steps {
 		// TODO: make this not hardcoded
 		// update the init log with progress
 		//
 		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-		l.AppendData([]byte(fmt.Sprintf("$ docker image inspect %s\n", step.Image)))
+		_log.AppendData([]byte(fmt.Sprintf("$ docker image inspect %s\n", _step.Image)))
 
-		logger.Debugf("creating %s step", step.Name)
+		logger.Debugf("creating %s step", _step.Name)
 		// create the step
-		err := c.CreateStep(ctx, step)
+		err := c.CreateStep(ctx, _step)
 		if err != nil {
 			return err
 		}
 
-		logger.Infof("inspecting image for %s step", step.Name)
+		logger.Infof("inspecting image for %s step", _step.Name)
 		// inspect the step image
-		image, err := c.Runtime.InspectImage(ctx, step)
+		image, err := c.Runtime.InspectImage(ctx, _step)
 		if err != nil {
 			return err
 		}
@@ -58,7 +58,7 @@ func (c *client) CreateStage(ctx context.Context, s *pipeline.Stage) error {
 		// update the init log with step image info
 		//
 		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-		l.AppendData(image)
+		_log.AppendData(image)
 	}
 
 	return nil
@@ -190,10 +190,10 @@ func (c *client) DestroyStage(ctx context.Context, s *pipeline.Stage) error {
 	logger := c.logger.WithField("stage", s.Name)
 
 	// destroy the steps for the stage
-	for _, step := range s.Steps {
-		logger.Debugf("destroying %s step", step.Name)
+	for _, _step := range s.Steps {
+		logger.Debugf("destroying %s step", _step.Name)
 		// destroy the step
-		err := c.DestroyStep(ctx, step)
+		err := c.DestroyStep(ctx, _step)
 		if err != nil {
 			return err
 		}

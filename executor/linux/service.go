@@ -66,41 +66,41 @@ func (c *client) PlanService(ctx context.Context, ctn *pipeline.Container) error
 	logger := c.logger.WithField("service", ctn.Name)
 
 	// update the engine service object
-	s := new(library.Service)
-	s.SetName(ctn.Name)
-	s.SetNumber(ctn.Number)
-	s.SetStatus(constants.StatusRunning)
-	s.SetStarted(time.Now().UTC().Unix())
-	s.SetHost(ctn.Environment["VELA_HOST"])
-	s.SetRuntime(ctn.Environment["VELA_RUNTIME"])
-	s.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
+	_service := new(library.Service)
+	_service.SetName(ctn.Name)
+	_service.SetNumber(ctn.Number)
+	_service.SetStatus(constants.StatusRunning)
+	_service.SetStarted(time.Now().UTC().Unix())
+	_service.SetHost(ctn.Environment["VELA_HOST"])
+	_service.SetRuntime(ctn.Environment["VELA_RUNTIME"])
+	_service.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 
 	logger.Debug("uploading service state")
 	// send API call to update the service
 	//
 	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SvcService.Update
-	s, _, err = c.Vela.Svc.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), s)
+	_service, _, err = c.Vela.Svc.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), _service)
 	if err != nil {
 		return err
 	}
 
-	s.SetStatus(constants.StatusSuccess)
+	_service.SetStatus(constants.StatusSuccess)
 
 	// add a service to a map
-	c.services.Store(ctn.ID, s)
+	c.services.Store(ctn.ID, _service)
 
 	// get the service log here
 	logger.Debug("retrieve service log")
 	// send API call to capture the service log
 	//
 	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.GetService
-	l, _, err := c.Vela.Log.GetService(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), s.GetNumber())
+	_log, _, err := c.Vela.Log.GetService(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), _service.GetNumber())
 	if err != nil {
 		return err
 	}
 
 	// add a service log to a map
-	c.serviceLogs.Store(ctn.ID, l)
+	c.serviceLogs.Store(ctn.ID, _log)
 
 	return nil
 }
@@ -139,7 +139,7 @@ func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) err
 	logger := c.logger.WithField("service", ctn.Name)
 
 	// load the logs for the service from the client
-	l, err := service.LoadLogs(ctn, &c.serviceLogs)
+	_log, err := service.LoadLogs(ctn, &c.serviceLogs)
 	if err != nil {
 		return err
 	}
@@ -168,13 +168,13 @@ func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) err
 		// overwrite the existing log with all bytes
 		//
 		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.SetData
-		l.SetData(data)
+		_log.SetData(data)
 
 		logger.Debug("uploading logs")
 		// send API call to update the logs for the service
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateService
-		_, _, err = c.Vela.Log.UpdateService(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), ctn.Number, l)
+		_, _, err = c.Vela.Log.UpdateService(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), ctn.Number, _log)
 		if err != nil {
 			logger.Errorf("unable to upload container logs: %v", err)
 		}
@@ -203,13 +203,13 @@ func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) err
 			// update the existing log with the new bytes
 			//
 			// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-			l.AppendData(logs.Bytes())
+			_log.AppendData(logs.Bytes())
 
 			logger.Debug("appending logs")
 			// send API call to append the logs for the service
 			//
 			// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateService
-			l, _, err = c.Vela.Log.UpdateService(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), ctn.Number, l)
+			_log, _, err = c.Vela.Log.UpdateService(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), ctn.Number, _log)
 			if err != nil {
 				return err
 			}
@@ -230,16 +230,16 @@ func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) er
 	logger := c.logger.WithField("service", ctn.Name)
 
 	// load the service from the client
-	s, err := service.Load(ctn, &c.services)
+	_service, err := service.Load(ctn, &c.services)
 	if err != nil {
 		// create the service from the container
-		s = new(library.Service)
-		s.SetName(ctn.Name)
-		s.SetNumber(ctn.Number)
-		s.SetStatus(constants.StatusPending)
-		s.SetHost(ctn.Environment["VELA_HOST"])
-		s.SetRuntime(ctn.Environment["VELA_RUNTIME"])
-		s.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
+		_service = new(library.Service)
+		_service.SetName(ctn.Name)
+		_service.SetNumber(ctn.Number)
+		_service.SetStatus(constants.StatusPending)
+		_service.SetHost(ctn.Environment["VELA_HOST"])
+		_service.SetRuntime(ctn.Environment["VELA_RUNTIME"])
+		_service.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 	}
 
 	defer func() {
@@ -247,27 +247,27 @@ func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) er
 		// send API call to update the step
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SvcService.Update
-		_, _, err := c.Vela.Svc.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), s)
+		_, _, err := c.Vela.Svc.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), _service)
 		if err != nil {
 			logger.Errorf("unable to upload service snapshot: %v", err)
 		}
 	}()
 
 	// check if the service is in a pending state
-	if s.GetStatus() == constants.StatusPending {
+	if _service.GetStatus() == constants.StatusPending {
 		// update the service fields
 		//
 		// TODO: consider making this a constant
 		//
 		// nolint: gomnd // ignore magic number 137
-		s.SetExitCode(137)
-		s.SetFinished(time.Now().UTC().Unix())
-		s.SetStatus(constants.StatusKilled)
+		_service.SetExitCode(137)
+		_service.SetFinished(time.Now().UTC().Unix())
+		_service.SetStatus(constants.StatusKilled)
 
 		// check if the service was not started
-		if s.GetStarted() == 0 {
+		if _service.GetStarted() == 0 {
 			// set the started time to the finished time
-			s.SetStarted(s.GetFinished())
+			_service.SetStarted(_service.GetFinished())
 		}
 	}
 
@@ -279,16 +279,16 @@ func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) er
 	}
 
 	// check if the service finished
-	if s.GetFinished() == 0 {
+	if _service.GetFinished() == 0 {
 		// update the service fields
-		s.SetFinished(time.Now().UTC().Unix())
-		s.SetStatus(constants.StatusSuccess)
+		_service.SetFinished(time.Now().UTC().Unix())
+		_service.SetStatus(constants.StatusSuccess)
 
 		// check the container for an unsuccessful exit code
 		if ctn.ExitCode > 0 {
 			// update the service fields
-			s.SetExitCode(ctn.ExitCode)
-			s.SetStatus(constants.StatusFailure)
+			_service.SetExitCode(ctn.ExitCode)
+			_service.SetStatus(constants.StatusFailure)
 		}
 	}
 

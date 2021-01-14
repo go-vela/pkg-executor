@@ -18,7 +18,7 @@ import (
 // CreateStage prepares the stage for execution.
 func (c *client) CreateStage(ctx context.Context, s *pipeline.Stage) error {
 	// load the logs for the init step from the client
-	l, err := step.LoadLogs(c.pipeline.Stages[0].Steps[0], &c.stepLogs)
+	l, err := step.LoadLogs(c.init, &c.stepLogs)
 	if err != nil {
 		return err
 	}
@@ -48,7 +48,7 @@ func (c *client) CreateStage(ctx context.Context, s *pipeline.Stage) error {
 			return err
 		}
 
-		c.logger.Infof("inspecting image %s step", step.Name)
+		logger.Infof("inspecting image for %s step", step.Name)
 		// inspect the step image
 		image, err := c.Runtime.InspectImage(ctx, step)
 		if err != nil {
@@ -101,9 +101,6 @@ func (c *client) PlanStage(ctx context.Context, s *pipeline.Stage, m map[string]
 
 // ExecStage runs a stage.
 func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]chan error) error {
-	b := c.build
-	r := c.repo
-
 	// update engine logger with stage metadata
 	//
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
@@ -117,20 +114,20 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 	for _, _step := range s.Steps {
 		// extract rule data from build information
 		ruledata := &pipeline.RuleData{
-			Branch: b.GetBranch(),
-			Event:  b.GetEvent(),
-			Repo:   r.GetFullName(),
-			Status: b.GetStatus(),
+			Branch: c.build.GetBranch(),
+			Event:  c.build.GetEvent(),
+			Repo:   c.repo.GetFullName(),
+			Status: c.build.GetStatus(),
 		}
 
 		// when tag event add tag information into ruledata
-		if strings.EqualFold(b.GetEvent(), constants.EventTag) {
+		if strings.EqualFold(c.build.GetEvent(), constants.EventTag) {
 			ruledata.Tag = strings.TrimPrefix(c.build.GetRef(), "refs/tags/")
 		}
 
 		// when deployment event add deployment information into ruledata
-		if strings.EqualFold(b.GetEvent(), constants.EventDeploy) {
-			ruledata.Target = b.GetDeploy()
+		if strings.EqualFold(c.build.GetEvent(), constants.EventDeploy) {
+			ruledata.Target = c.build.GetDeploy()
 		}
 
 		// check if you need to excute this step
@@ -163,7 +160,7 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 			// check if we ignore step failures
 			if !_step.Ruleset.Continue {
 				// set build status to failure
-				b.SetStatus(constants.StatusFailure)
+				c.build.SetStatus(constants.StatusFailure)
 			}
 
 			// update the step fields
@@ -176,7 +173,7 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 		// send API call to update the build
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
-		_, _, err = c.Vela.Step.Update(r.GetOrg(), r.GetName(), b.GetNumber(), cStep)
+		_, _, err = c.Vela.Step.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), cStep)
 		if err != nil {
 			return fmt.Errorf("unable to upload step state: %v", err)
 		}

@@ -60,9 +60,6 @@ func (c *client) CreateService(ctx context.Context, ctn *pipeline.Container) err
 func (c *client) PlanService(ctx context.Context, ctn *pipeline.Container) error {
 	var err error
 
-	b := c.build
-	r := c.repo
-
 	// update engine logger with service metadata
 	//
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
@@ -82,7 +79,7 @@ func (c *client) PlanService(ctx context.Context, ctn *pipeline.Container) error
 	// send API call to update the service
 	//
 	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SvcService.Update
-	s, _, err = c.Vela.Svc.Update(r.GetOrg(), r.GetName(), b.GetNumber(), s)
+	s, _, err = c.Vela.Svc.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), s)
 	if err != nil {
 		return err
 	}
@@ -97,7 +94,7 @@ func (c *client) PlanService(ctx context.Context, ctn *pipeline.Container) error
 	// send API call to capture the service log
 	//
 	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.GetService
-	l, _, err := c.Vela.Log.GetService(r.GetOrg(), r.GetName(), b.GetNumber(), s.GetNumber())
+	l, _, err := c.Vela.Log.GetService(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), s.GetNumber())
 	if err != nil {
 		return err
 	}
@@ -136,9 +133,6 @@ func (c *client) ExecService(ctx context.Context, ctn *pipeline.Container) error
 
 // StreamService tails the output for a service.
 func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) error {
-	b := c.build
-	r := c.repo
-
 	// update engine logger with service metadata
 	//
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
@@ -180,7 +174,7 @@ func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) err
 		// send API call to update the logs for the service
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateService
-		_, _, err = c.Vela.Log.UpdateService(r.GetOrg(), r.GetName(), b.GetNumber(), ctn.Number, l)
+		_, _, err = c.Vela.Log.UpdateService(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), ctn.Number, l)
 		if err != nil {
 			logger.Errorf("unable to upload container logs: %v", err)
 		}
@@ -215,7 +209,7 @@ func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) err
 			// send API call to append the logs for the service
 			//
 			// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateService
-			l, _, err = c.Vela.Log.UpdateService(r.GetOrg(), r.GetName(), b.GetNumber(), ctn.Number, l)
+			l, _, err = c.Vela.Log.UpdateService(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), ctn.Number, l)
 			if err != nil {
 				return err
 			}

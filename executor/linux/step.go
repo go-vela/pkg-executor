@@ -65,9 +65,6 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
 	var err error
 
-	b := c.build
-	r := c.repo
-
 	// update engine logger with step metadata
 	//
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
@@ -87,7 +84,7 @@ func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
 	// send API call to update the step
 	//
 	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
-	s, _, err = c.Vela.Step.Update(r.GetOrg(), r.GetName(), b.GetNumber(), s)
+	s, _, err = c.Vela.Step.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), s)
 	if err != nil {
 		return err
 	}
@@ -102,7 +99,7 @@ func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
 	// send API call to capture the step log
 	//
 	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.GetStep
-	l, _, err := c.Vela.Log.GetStep(r.GetOrg(), r.GetName(), b.GetNumber(), s.GetNumber())
+	l, _, err := c.Vela.Log.GetStep(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), s.GetNumber())
 	if err != nil {
 		return err
 	}
@@ -170,9 +167,6 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 		return nil
 	}
 
-	b := c.build
-	r := c.repo
-
 	// update engine logger with step metadata
 	//
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
@@ -214,7 +208,7 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 		// send API call to update the logs for the step
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateStep
-		_, _, err = c.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), ctn.Number, l)
+		_, _, err = c.Vela.Log.UpdateStep(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), ctn.Number, l)
 		if err != nil {
 			logger.Errorf("unable to upload container logs: %v", err)
 		}
@@ -249,7 +243,7 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 			// send API call to append the logs for the step
 			//
 			// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateStep
-			l, _, err = c.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), ctn.Number, l)
+			l, _, err = c.Vela.Log.UpdateStep(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), ctn.Number, l)
 			if err != nil {
 				return err
 			}

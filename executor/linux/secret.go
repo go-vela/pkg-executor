@@ -8,13 +8,11 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/drone/envsubst"
 	"github.com/go-vela/pkg-executor/internal/step"
 	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/library"
@@ -65,37 +63,11 @@ func (s *secretSvc) create(ctx context.Context, ctn *pipeline.Container) error {
 		return err
 	}
 
-	logger.Debug("marshaling configuration")
-	// marshal container configuration
-	body, err := json.Marshal(ctn)
+	logger.Debug("substituting container configuration")
+	// substitute container configuration
+	err = ctn.Substitute()
 	if err != nil {
-		return fmt.Errorf("unable to marshal configuration: %v", err)
-	}
-
-	// create substitute function
-	subFunc := func(name string) string {
-		env := ctn.Environment[name]
-		if strings.Contains(env, "\n") {
-			env = fmt.Sprintf("%q", env)
-		}
-
-		return env
-	}
-
-	logger.Debug("substituting environment")
-	// substitute the environment variables
-	//
-	// https://pkg.go.dev/github.com/drone/envsubst?tab=doc#Eval
-	subStep, err := envsubst.Eval(string(body), subFunc)
-	if err != nil {
-		return fmt.Errorf("unable to substitute environment variables: %v", err)
-	}
-
-	logger.Debug("unmarshaling configuration")
-	// unmarshal container configuration
-	err = json.Unmarshal([]byte(subStep), ctn)
-	if err != nil {
-		return fmt.Errorf("unable to unmarshal configuration: %v", err)
+		return fmt.Errorf("unable to substitute container configuration")
 	}
 
 	return nil
@@ -197,7 +169,7 @@ func (s *secretSvc) exec(ctx context.Context, p *pipeline.SecretSlice) error {
 		// send API call to update the build
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
-		_, _, err = s.client.Vela.Step.Update(r.GetOrg(), r.GetName(), s.client.build.GetNumber(), init)
+		_, _, err = s.client.Vela.Step.Update(s.client.repo.GetOrg(), s.client.repo.GetName(), s.client.build.GetNumber(), init)
 		if err != nil {
 			s.client.logger.Errorf("unable to upload init state: %v", err)
 		}
@@ -337,9 +309,6 @@ func (s *secretSvc) pull(secret *pipeline.Secret) (*library.Secret, error) {
 
 // stream tails the output for a secret plugin.
 func (s *secretSvc) stream(ctx context.Context, ctn *pipeline.Container) error {
-	b := s.client.build
-	r := s.client.repo
-
 	// stream all the logs to the init step
 	l, err := step.LoadLogs(s.client.init, &s.client.stepLogs)
 	if err != nil {
@@ -369,7 +338,7 @@ func (s *secretSvc) stream(ctx context.Context, ctn *pipeline.Container) error {
 		// send API call to update the logs for the service
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateService
-		_, _, err = s.client.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), ctn.Number, l)
+		_, _, err = s.client.Vela.Log.UpdateStep(s.client.repo.GetOrg(), s.client.repo.GetName(), s.client.build.GetNumber(), ctn.Number, l)
 		if err != nil {
 			logger.Errorf("unable to upload container logs: %v", err)
 		}
@@ -404,7 +373,7 @@ func (s *secretSvc) stream(ctx context.Context, ctn *pipeline.Container) error {
 			// send API call to append the logs for the init step
 			//
 			// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateStep
-			l, _, err = s.client.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), s.client.init.Number, l)
+			l, _, err = s.client.Vela.Log.UpdateStep(s.client.repo.GetOrg(), s.client.repo.GetName(), s.client.build.GetNumber(), s.client.init.Number, l)
 			if err != nil {
 				return err
 			}

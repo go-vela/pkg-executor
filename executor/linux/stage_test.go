@@ -138,10 +138,9 @@ func TestLinux_CreateStage(t *testing.T) {
 		}
 
 		if test.logs != nil {
-			_engine.stepLogs.Store(_stages.Stages[0].Steps[0].ID, test.logs)
+			// run create to init steps to be created properly
+			err = _engine.CreateBuild(context.Background())
 		}
-
-		_engine.steps.Store(_stages.Stages[0].Steps[0].ID, new(library.Step))
 
 		err = _engine.CreateStage(context.Background(), test.stage)
 

@@ -23,15 +23,14 @@ const servicePattern = "[service: %s]"
 
 // CreateService configures the service for execution.
 func (c *client) CreateService(ctx context.Context, ctn *pipeline.Container) error {
-	ctn.Environment["BUILD_HOST"] = c.Hostname
-	ctn.Environment["VELA_HOST"] = c.Hostname
-	ctn.Environment["VELA_VERSION"] = "v0.6.0"
-	// TODO: remove hardcoded reference
-	ctn.Environment["VELA_RUNTIME"] = "docker"
-	ctn.Environment["VELA_DISTRIBUTION"] = "linux"
-
 	// setup the runtime container
 	err := c.Runtime.SetupContainer(ctx, ctn)
+	if err != nil {
+		return err
+	}
+
+	// update the service container environment
+	err = service.Environment(ctn, c.build, c.repo, nil)
 	if err != nil {
 		return err
 	}
@@ -56,6 +55,12 @@ func (c *client) PlanService(ctx context.Context, ctn *pipeline.Container) error
 	_service.SetHost(ctn.Environment["VELA_HOST"])
 	_service.SetRuntime(ctn.Environment["VELA_RUNTIME"])
 	_service.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
+
+	// update the service container environment
+	err := service.Environment(ctn, c.build, c.repo, _service)
+	if err != nil {
+		return err
+	}
 
 	// add a service to a map
 	c.services.Store(ctn.ID, _service)

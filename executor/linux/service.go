@@ -84,7 +84,7 @@ func (c *client) PlanService(ctx context.Context, ctn *pipeline.Container) error
 	}
 
 	// update the service container environment
-	err = service.Environment(ctn, c.build, c.repo, nil)
+	err = service.Environment(ctn, c.build, c.repo, _service)
 	if err != nil {
 		return err
 	}

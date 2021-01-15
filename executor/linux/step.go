@@ -65,50 +65,47 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
 	var err error
 
-	b := c.build
-	r := c.repo
-
 	// update engine logger with step metadata
 	//
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
 	logger := c.logger.WithField("step", ctn.Name)
 
 	// update the engine step object
-	s := new(library.Step)
-	s.SetName(ctn.Name)
-	s.SetNumber(ctn.Number)
-	s.SetStatus(constants.StatusRunning)
-	s.SetStarted(time.Now().UTC().Unix())
-	s.SetHost(ctn.Environment["VELA_HOST"])
-	s.SetRuntime(ctn.Environment["VELA_RUNTIME"])
-	s.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
+	_step := new(library.Step)
+	_step.SetName(ctn.Name)
+	_step.SetNumber(ctn.Number)
+	_step.SetStatus(constants.StatusRunning)
+	_step.SetStarted(time.Now().UTC().Unix())
+	_step.SetHost(ctn.Environment["VELA_HOST"])
+	_step.SetRuntime(ctn.Environment["VELA_RUNTIME"])
+	_step.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 
 	logger.Debug("uploading step state")
 	// send API call to update the step
 	//
 	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
-	s, _, err = c.Vela.Step.Update(r.GetOrg(), r.GetName(), b.GetNumber(), s)
+	_step, _, err = c.Vela.Step.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), _step)
 	if err != nil {
 		return err
 	}
 
-	s.SetStatus(constants.StatusSuccess)
+	_step.SetStatus(constants.StatusSuccess)
 
 	// add a step to a map
-	c.steps.Store(ctn.ID, s)
+	c.steps.Store(ctn.ID, _step)
 
 	// get the step log here
 	logger.Debug("retrieve step log")
 	// send API call to capture the step log
 	//
 	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.GetStep
-	l, _, err := c.Vela.Log.GetStep(r.GetOrg(), r.GetName(), b.GetNumber(), s.GetNumber())
+	_log, _, err := c.Vela.Log.GetStep(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), _step.GetNumber())
 	if err != nil {
 		return err
 	}
 
 	// add a step log to a map
-	c.stepLogs.Store(ctn.ID, l)
+	c.stepLogs.Store(ctn.ID, _log)
 
 	return nil
 }
@@ -170,16 +167,13 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 		return nil
 	}
 
-	b := c.build
-	r := c.repo
-
 	// update engine logger with step metadata
 	//
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
 	logger := c.logger.WithField("step", ctn.Name)
 
 	// load the logs for the step from the client
-	l, err := step.LoadLogs(ctn, &c.stepLogs)
+	_log, err := step.LoadLogs(ctn, &c.stepLogs)
 	if err != nil {
 		return err
 	}
@@ -208,13 +202,13 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 		// overwrite the existing log with all bytes
 		//
 		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.SetData
-		l.SetData(data)
+		_log.SetData(data)
 
 		logger.Debug("uploading logs")
 		// send API call to update the logs for the step
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateStep
-		_, _, err = c.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), ctn.Number, l)
+		_, _, err = c.Vela.Log.UpdateStep(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), ctn.Number, _log)
 		if err != nil {
 			logger.Errorf("unable to upload container logs: %v", err)
 		}
@@ -243,13 +237,13 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 			// update the existing log with the new bytes
 			//
 			// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-			l.AppendData(logs.Bytes())
+			_log.AppendData(logs.Bytes())
 
 			logger.Debug("appending logs")
 			// send API call to append the logs for the step
 			//
 			// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateStep
-			l, _, err = c.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), ctn.Number, l)
+			_log, _, err = c.Vela.Log.UpdateStep(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), ctn.Number, _log)
 			if err != nil {
 				return err
 			}
@@ -275,16 +269,16 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 	logger := c.logger.WithField("step", ctn.Name)
 
 	// load the step from the client
-	s, err := step.Load(ctn, &c.steps)
+	_step, err := step.Load(ctn, &c.steps)
 	if err != nil {
 		// create the step from the container
-		s = new(library.Step)
-		s.SetName(ctn.Name)
-		s.SetNumber(ctn.Number)
-		s.SetStatus(constants.StatusPending)
-		s.SetHost(ctn.Environment["VELA_HOST"])
-		s.SetRuntime(ctn.Environment["VELA_RUNTIME"])
-		s.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
+		_step = new(library.Step)
+		_step.SetName(ctn.Name)
+		_step.SetNumber(ctn.Number)
+		_step.SetStatus(constants.StatusPending)
+		_step.SetHost(ctn.Environment["VELA_HOST"])
+		_step.SetRuntime(ctn.Environment["VELA_RUNTIME"])
+		_step.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 	}
 
 	defer func() {
@@ -292,27 +286,27 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 		// send API call to update the step
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
-		_, _, err := c.Vela.Step.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), s)
+		_, _, err := c.Vela.Step.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), _step)
 		if err != nil {
 			logger.Errorf("unable to upload step snapshot: %v", err)
 		}
 	}()
 
 	// check if the step is in a pending state
-	if s.GetStatus() == constants.StatusPending {
+	if _step.GetStatus() == constants.StatusPending {
 		// update the step fields
 		//
 		// TODO: consider making this a constant
 		//
 		// nolint: gomnd // ignore magic number 137
-		s.SetExitCode(137)
-		s.SetFinished(time.Now().UTC().Unix())
-		s.SetStatus(constants.StatusKilled)
+		_step.SetExitCode(137)
+		_step.SetFinished(time.Now().UTC().Unix())
+		_step.SetStatus(constants.StatusKilled)
 
 		// check if the step was not started
-		if s.GetStarted() == 0 {
+		if _step.GetStarted() == 0 {
 			// set the started time to the finished time
-			s.SetStarted(s.GetFinished())
+			_step.SetStarted(_step.GetFinished())
 		}
 	}
 
@@ -324,16 +318,16 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 	}
 
 	// check if the step finished
-	if s.GetFinished() == 0 {
+	if _step.GetFinished() == 0 {
 		// update the step fields
-		s.SetFinished(time.Now().UTC().Unix())
-		s.SetStatus(constants.StatusSuccess)
+		_step.SetFinished(time.Now().UTC().Unix())
+		_step.SetStatus(constants.StatusSuccess)
 
 		// check the container for an unsuccessful exit code
 		if ctn.ExitCode > 0 {
 			// update the step fields
-			s.SetExitCode(ctn.ExitCode)
-			s.SetStatus(constants.StatusFailure)
+			_step.SetExitCode(ctn.ExitCode)
+			_step.SetStatus(constants.StatusFailure)
 		}
 	}
 

@@ -15,6 +15,11 @@ import (
 // Load attempts to capture the library service
 // representing the container from the map.
 func Load(c *pipeline.Container, m *sync.Map) (*library.Service, error) {
+	// check if the container provided is empty
+	if c == nil {
+		return nil, fmt.Errorf("empty container provided")
+	}
+
 	// load the container ID as the service key from the map
 	result, ok := m.Load(c.ID)
 	if !ok {
@@ -33,6 +38,11 @@ func Load(c *pipeline.Container, m *sync.Map) (*library.Service, error) {
 // LoadLogs attempts to capture the library service logs
 // representing the container from the map.
 func LoadLogs(c *pipeline.Container, m *sync.Map) (*library.Log, error) {
+	// check if the container provided is empty
+	if c == nil {
+		return nil, fmt.Errorf("empty container provided")
+	}
+
 	// load the container ID as the service log key from the map
 	result, ok := m.Load(c.ID)
 	if !ok {

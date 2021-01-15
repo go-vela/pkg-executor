@@ -78,21 +78,6 @@ func TestLinux_Secret_create(t *testing.T) {
 				Pull:        "not_present",
 			},
 		},
-		{
-			failure: true,
-			container: &pipeline.Container{
-				ID:        "secret_github_octocat_1_vault",
-				Directory: "/vela/src/vcs.company.com/github/octocat",
-				Environment: map[string]string{
-					"BAR": "1\n2\n",
-					"FOO": "!@#$%^&*()\\",
-				},
-				Image:  "target/secret-vault:latest",
-				Name:   "vault",
-				Number: 1,
-				Pull:   "not_present",
-			},
-		},
 	}
 
 	// run tests

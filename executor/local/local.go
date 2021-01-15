@@ -21,16 +21,14 @@ type (
 		Hostname string
 
 		// private fields
-		init        *pipeline.Container
-		build       *library.Build
-		pipeline    *pipeline.Build
-		repo        *library.Repo
-		services    sync.Map
-		serviceLogs sync.Map
-		steps       sync.Map
-		stepLogs    sync.Map
-		user        *library.User
-		err         error
+		init     *pipeline.Container
+		build    *library.Build
+		pipeline *pipeline.Build
+		repo     *library.Repo
+		services sync.Map
+		steps    sync.Map
+		user     *library.User
+		err      error
 	}
 )
 

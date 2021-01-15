@@ -51,7 +51,6 @@ func TestLocal_CreateStage(t *testing.T) {
 	}{
 		{
 			failure: false,
-			logs:    new(library.Log),
 			stage: &pipeline.Stage{
 				Name: "clone",
 				Steps: pipeline.ContainerSlice{
@@ -69,7 +68,6 @@ func TestLocal_CreateStage(t *testing.T) {
 		},
 		{
 			failure: true,
-			logs:    new(library.Log),
 			stage: &pipeline.Stage{
 				Name: "clone",
 				Steps: pipeline.ContainerSlice{
@@ -87,7 +85,6 @@ func TestLocal_CreateStage(t *testing.T) {
 		},
 		{
 			failure: true,
-			logs:    new(library.Log),
 			stage: &pipeline.Stage{
 				Name: "clone",
 				Steps: pipeline.ContainerSlice{
@@ -117,10 +114,6 @@ func TestLocal_CreateStage(t *testing.T) {
 		)
 		if err != nil {
 			t.Errorf("unable to create executor engine: %v", err)
-		}
-
-		if test.logs != nil {
-			_engine.stepLogs.Store(_stages.Stages[0].Steps[0].ID, test.logs)
 		}
 
 		_engine.steps.Store(_stages.Stages[0].Steps[0].ID, new(library.Step))
@@ -338,7 +331,6 @@ func TestLocal_ExecStage(t *testing.T) {
 		}
 
 		_engine.steps.Store(_stages.Stages[0].Steps[0].ID, new(library.Step))
-		_engine.stepLogs.Store(_stages.Stages[0].Steps[0].ID, new(library.Log))
 
 		err = _engine.CreateStep(context.Background(), test.stage.Steps[0])
 		if err != nil {

@@ -25,13 +25,6 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
 	logger := c.logger.WithField("step", ctn.Name)
 
-	ctn.Environment["BUILD_HOST"] = c.Hostname
-	ctn.Environment["VELA_HOST"] = c.Hostname
-	ctn.Environment["VELA_VERSION"] = "v0.6.0"
-	// TODO: remove hardcoded reference
-	ctn.Environment["VELA_RUNTIME"] = "docker"
-	ctn.Environment["VELA_DISTRIBUTION"] = "linux"
-
 	// TODO: remove hardcoded reference
 	if ctn.Name == "init" {
 		return nil
@@ -40,6 +33,12 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 	logger.Debug("setting up container")
 	// setup the runtime container
 	err := c.Runtime.SetupContainer(ctx, ctn)
+	if err != nil {
+		return err
+	}
+
+	// update the step container environment
+	err = step.Environment(ctn, c.build, c.repo, nil)
 	if err != nil {
 		return err
 	}
@@ -85,6 +84,12 @@ func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
 	//
 	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
 	_step, _, err = c.Vela.Step.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), _step)
+	if err != nil {
+		return err
+	}
+
+	// update the step container environment
+	err = step.Environment(ctn, c.build, c.repo, _step)
 	if err != nil {
 		return err
 	}

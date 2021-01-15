@@ -22,13 +22,6 @@ const stepPattern = "[step: %s]"
 
 // CreateStep configures the step for execution.
 func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error {
-	ctn.Environment["BUILD_HOST"] = c.Hostname
-	ctn.Environment["VELA_HOST"] = c.Hostname
-	ctn.Environment["VELA_VERSION"] = "v0.6.0"
-	// TODO: remove hardcoded reference
-	ctn.Environment["VELA_RUNTIME"] = "docker"
-	ctn.Environment["VELA_DISTRIBUTION"] = "linux"
-
 	// TODO: remove hardcoded reference
 	if ctn.Name == "init" {
 		return nil
@@ -36,6 +29,12 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 
 	// setup the runtime container
 	err := c.Runtime.SetupContainer(ctx, ctn)
+	if err != nil {
+		return err
+	}
+
+	// update the step container environment
+	err = step.Environment(ctn, c.build, c.repo, nil)
 	if err != nil {
 		return err
 	}
@@ -60,6 +59,12 @@ func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
 	_step.SetHost(ctn.Environment["VELA_HOST"])
 	_step.SetRuntime(ctn.Environment["VELA_RUNTIME"])
 	_step.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
+
+	// update the step container environment
+	err := step.Environment(ctn, c.build, c.repo, _step)
+	if err != nil {
+		return err
+	}
 
 	// add the step to the client map
 	c.steps.Store(ctn.ID, _step)

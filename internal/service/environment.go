@@ -38,6 +38,14 @@ func Environment(c *pipeline.Container, b *library.Build, r *library.Repo, s *li
 			workspace = "/vela"
 		}
 
+		// update environment variables
+		c.Environment["VELA_DISTRIBUTION"] = b.GetDistribution()
+		c.Environment["VELA_HOST"] = b.GetHost()
+		c.Environment["VELA_RUNTIME"] = b.GetRuntime()
+
+		// TODO: remove hardcoded reference
+		c.Environment["VELA_VERSION"] = "v0.7.0"
+
 		// populate environment variables from build library
 		c.Environment = appendMap(c.Environment, b.Environment(workspace, channel))
 	}

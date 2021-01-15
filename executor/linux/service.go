@@ -25,16 +25,15 @@ func (c *client) CreateService(ctx context.Context, ctn *pipeline.Container) err
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
 	logger := c.logger.WithField("service", ctn.Name)
 
-	ctn.Environment["BUILD_HOST"] = c.Hostname
-	ctn.Environment["VELA_HOST"] = c.Hostname
-	ctn.Environment["VELA_VERSION"] = "v0.6.0"
-	// TODO: remove hardcoded reference
-	ctn.Environment["VELA_RUNTIME"] = "docker"
-	ctn.Environment["VELA_DISTRIBUTION"] = "linux"
-
 	logger.Debug("setting up container")
 	// setup the runtime container
 	err := c.Runtime.SetupContainer(ctx, ctn)
+	if err != nil {
+		return err
+	}
+
+	// update the service container environment
+	err = service.Environment(ctn, c.build, c.repo, nil)
 	if err != nil {
 		return err
 	}
@@ -80,6 +79,12 @@ func (c *client) PlanService(ctx context.Context, ctn *pipeline.Container) error
 	//
 	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SvcService.Update
 	_service, _, err = c.Vela.Svc.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), _service)
+	if err != nil {
+		return err
+	}
+
+	// update the service container environment
+	err = service.Environment(ctn, c.build, c.repo, nil)
 	if err != nil {
 		return err
 	}

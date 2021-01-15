@@ -89,7 +89,7 @@ func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
 	}
 
 	// update the step container environment
-	err = step.Environment(ctn, c.build, c.repo, nil)
+	err = step.Environment(ctn, c.build, c.repo, _step)
 	if err != nil {
 		return err
 	}

@@ -56,6 +56,12 @@ func TestStep_Load(t *testing.T) {
 			want:      nil,
 			_map:      new(sync.Map),
 		},
+		{
+			failure:   true,
+			container: nil,
+			want:      nil,
+			_map:      nil,
+		},
 	}
 
 	// run tests
@@ -122,6 +128,12 @@ func TestStep_LoadLogs(t *testing.T) {
 			container: new(pipeline.Container),
 			want:      nil,
 			_map:      new(sync.Map),
+		},
+		{
+			failure:   true,
+			container: nil,
+			want:      nil,
+			_map:      nil,
 		},
 	}
 

@@ -8,13 +8,11 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/drone/envsubst"
 	"github.com/go-vela/pkg-executor/internal/step"
 	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/library"
@@ -65,37 +63,11 @@ func (s *secretSvc) create(ctx context.Context, ctn *pipeline.Container) error {
 		return err
 	}
 
-	logger.Debug("marshaling configuration")
-	// marshal container configuration
-	body, err := json.Marshal(ctn)
+	logger.Debug("substituting container configuration")
+	// substitute container configuration
+	err = ctn.Substitute()
 	if err != nil {
-		return fmt.Errorf("unable to marshal configuration: %v", err)
-	}
-
-	// create substitute function
-	subFunc := func(name string) string {
-		env := ctn.Environment[name]
-		if strings.Contains(env, "\n") {
-			env = fmt.Sprintf("%q", env)
-		}
-
-		return env
-	}
-
-	logger.Debug("substituting environment")
-	// substitute the environment variables
-	//
-	// https://pkg.go.dev/github.com/drone/envsubst?tab=doc#Eval
-	subStep, err := envsubst.Eval(string(body), subFunc)
-	if err != nil {
-		return fmt.Errorf("unable to substitute environment variables: %v", err)
-	}
-
-	logger.Debug("unmarshaling configuration")
-	// unmarshal container configuration
-	err = json.Unmarshal([]byte(subStep), ctn)
-	if err != nil {
-		return fmt.Errorf("unable to unmarshal configuration: %v", err)
+		return fmt.Errorf("unable to substitute container configuration")
 	}
 
 	return nil
@@ -109,44 +81,47 @@ func (s *secretSvc) destroy(ctx context.Context, ctn *pipeline.Container) error 
 	logger := s.client.logger.WithField("secret", ctn.Name)
 
 	// load the step from the client
-	secret, err := step.Load(s.client.init, &s.client.steps)
+	_secret, err := step.Load(s.client.init, &s.client.steps)
 	if err != nil {
 		// create the step from the container
-		secret = new(library.Step)
-		secret.SetName(ctn.Name)
-		secret.SetNumber(ctn.Number)
-		secret.SetStatus(constants.StatusPending)
-		secret.SetHost(ctn.Environment["VELA_HOST"])
-		secret.SetRuntime(ctn.Environment["VELA_RUNTIME"])
-		secret.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
+		_secret = new(library.Step)
+		_secret.SetName(ctn.Name)
+		_secret.SetNumber(ctn.Number)
+		_secret.SetStatus(constants.StatusPending)
+		_secret.SetHost(ctn.Environment["VELA_HOST"])
+		_secret.SetRuntime(ctn.Environment["VELA_RUNTIME"])
+		_secret.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 	}
 
+	// TODO: evaluate if we need this
+	//
+	// Do we upload external secret container results to Vela API?
 	defer func() {
 		logger.Info("uploading step snapshot")
 		// send API call to update the step
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
-		_, _, err := s.client.Vela.Step.Update(s.client.repo.GetOrg(), s.client.repo.GetName(), s.client.build.GetNumber(), secret)
+		_, _, err := s.client.Vela.Step.Update(s.client.repo.GetOrg(), s.client.repo.GetName(), s.client.build.GetNumber(), _secret)
 		if err != nil {
 			logger.Errorf("unable to upload step snapshot: %v", err)
 		}
 	}()
 
 	// check if the step is in a pending state
-	if secret.GetStatus() == constants.StatusPending {
+	if _secret.GetStatus() == constants.StatusPending {
 		// update the step fields
 		//
 		// TODO: consider making this a constant
 		//
 		// nolint: gomnd // ignore magic number 137
-		secret.SetExitCode(137)
-		secret.SetFinished(time.Now().UTC().Unix())
-		secret.SetStatus(constants.StatusKilled)
+		_secret.SetExitCode(137)
+		_secret.SetFinished(time.Now().UTC().Unix())
+		_secret.SetStatus(constants.StatusKilled)
 
 		// check if the step was not started
-		if secret.GetStarted() == 0 {
+		if _secret.GetStarted() == 0 {
 			// set the started time to the finished time
-			secret.SetStarted(secret.GetFinished())
+			_secret.SetStarted(_secret.GetFinished())
 		}
 	}
 
@@ -158,16 +133,16 @@ func (s *secretSvc) destroy(ctx context.Context, ctn *pipeline.Container) error 
 	}
 
 	// check if the step finished
-	if secret.GetFinished() == 0 {
+	if _secret.GetFinished() == 0 {
 		// update the step fields
-		secret.SetFinished(time.Now().UTC().Unix())
-		secret.SetStatus(constants.StatusSuccess)
+		_secret.SetFinished(time.Now().UTC().Unix())
+		_secret.SetStatus(constants.StatusSuccess)
 
 		// check the container for an unsuccessful exit code
 		if ctn.ExitCode > 0 {
 			// update the step fields
-			secret.SetExitCode(ctn.ExitCode)
-			secret.SetStatus(constants.StatusFailure)
+			_secret.SetExitCode(ctn.ExitCode)
+			_secret.SetStatus(constants.StatusFailure)
 		}
 	}
 
@@ -183,41 +158,40 @@ func (s *secretSvc) destroy(ctx context.Context, ctn *pipeline.Container) error 
 
 // exec runs a secret plugins for a pipeline.
 func (s *secretSvc) exec(ctx context.Context, p *pipeline.SecretSlice) error {
-	r := s.client.repo
-
 	// stream all the logs to the init step
-	init, err := step.Load(s.client.init, &s.client.steps)
+	_init, err := step.Load(s.client.init, &s.client.steps)
 	if err != nil {
 		return err
 	}
 
 	defer func() {
-		init.SetFinished(time.Now().UTC().Unix())
-		s.client.logger.Infof("uploading %s step state", init.GetName())
+		_init.SetFinished(time.Now().UTC().Unix())
+
+		s.client.logger.Infof("uploading %s step state", _init.GetName())
 		// send API call to update the build
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
-		_, _, err = s.client.Vela.Step.Update(r.GetOrg(), r.GetName(), s.client.build.GetNumber(), init)
+		_, _, err = s.client.Vela.Step.Update(s.client.repo.GetOrg(), s.client.repo.GetName(), s.client.build.GetNumber(), _init)
 		if err != nil {
 			s.client.logger.Errorf("unable to upload init state: %v", err)
 		}
 	}()
 
 	// execute the secrets for the pipeline
-	for _, secret := range *p {
+	for _, _secret := range *p {
 		// skip over non-plugin secrets
-		if secret.Origin.Empty() {
+		if _secret.Origin.Empty() {
 			continue
 		}
 
 		// update engine logger with secret metadata
 		//
 		// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
-		logger := s.client.logger.WithField("secret", secret.Origin.Name)
+		logger := s.client.logger.WithField("secret", _secret.Origin.Name)
 
 		logger.Debug("running container")
 		// run the runtime container
-		err := s.client.Runtime.RunContainer(ctx, secret.Origin, s.client.pipeline)
+		err := s.client.Runtime.RunContainer(ctx, _secret.Origin, s.client.pipeline)
 		if err != nil {
 			return err
 		}
@@ -225,7 +199,7 @@ func (s *secretSvc) exec(ctx context.Context, p *pipeline.SecretSlice) error {
 		go func() {
 			logger.Debug("stream logs for container")
 			// stream logs from container
-			err = s.client.secret.stream(ctx, secret.Origin)
+			err = s.client.secret.stream(ctx, _secret.Origin)
 			if err != nil {
 				logger.Error(err)
 			}
@@ -233,37 +207,37 @@ func (s *secretSvc) exec(ctx context.Context, p *pipeline.SecretSlice) error {
 
 		logger.Debug("waiting for container")
 		// wait for the runtime container
-		err = s.client.Runtime.WaitContainer(ctx, secret.Origin)
+		err = s.client.Runtime.WaitContainer(ctx, _secret.Origin)
 		if err != nil {
 			return err
 		}
 
 		logger.Debug("inspecting container")
 		// inspect the runtime container
-		err = s.client.Runtime.InspectContainer(ctx, secret.Origin)
+		err = s.client.Runtime.InspectContainer(ctx, _secret.Origin)
 		if err != nil {
 			return err
 		}
 
 		// check the step exit code
-		if secret.Origin.ExitCode != 0 {
+		if _secret.Origin.ExitCode != 0 {
 			// check if we ignore step failures
-			if !secret.Origin.Ruleset.Continue {
+			if !_secret.Origin.Ruleset.Continue {
 				// set build status to failure
 				s.client.build.SetStatus(constants.StatusFailure)
 			}
 
 			// update the step fields
-			init.SetExitCode(secret.Origin.ExitCode)
-			init.SetStatus(constants.StatusFailure)
+			_init.SetExitCode(_secret.Origin.ExitCode)
+			_init.SetStatus(constants.StatusFailure)
 
-			return fmt.Errorf("%s container exited with non-zero code", secret.Origin.Name)
+			return fmt.Errorf("%s container exited with non-zero code", _secret.Origin.Name)
 		}
 
 		// send API call to update the build
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
-		_, _, err = s.client.Vela.Step.Update(r.GetOrg(), r.GetName(), s.client.build.GetNumber(), init)
+		_, _, err = s.client.Vela.Step.Update(s.client.repo.GetOrg(), s.client.repo.GetName(), s.client.build.GetNumber(), _init)
 		if err != nil {
 			s.client.logger.Errorf("unable to upload init state: %v", err)
 		}
@@ -274,7 +248,8 @@ func (s *secretSvc) exec(ctx context.Context, p *pipeline.SecretSlice) error {
 
 // pull defines a function that pulls the secrets from the server for a given pipeline.
 func (s *secretSvc) pull(secret *pipeline.Secret) (*library.Secret, error) {
-	sec := new(library.Secret)
+	// nolint: staticheck // reports the value is never used but we return it
+	_secret := new(library.Secret)
 
 	switch secret.Type {
 	// handle repo secrets
@@ -287,12 +262,12 @@ func (s *secretSvc) pull(secret *pipeline.Secret) (*library.Secret, error) {
 		// send API call to capture the org secret
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SecretService.Get
-		sec, _, err = s.client.Vela.Secret.Get(secret.Engine, secret.Type, org, "*", key)
+		_secret, _, err = s.client.Vela.Secret.Get(secret.Engine, secret.Type, org, "*", key)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", ErrUnableToRetrieve, err)
 		}
 
-		secret.Value = sec.GetValue()
+		secret.Value = _secret.GetValue()
 
 	// handle repo secrets
 	case constants.SecretRepo:
@@ -304,12 +279,12 @@ func (s *secretSvc) pull(secret *pipeline.Secret) (*library.Secret, error) {
 		// send API call to capture the repo secret
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SecretService.Get
-		sec, _, err = s.client.Vela.Secret.Get(secret.Engine, secret.Type, org, repo, key)
+		_secret, _, err = s.client.Vela.Secret.Get(secret.Engine, secret.Type, org, repo, key)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", ErrUnableToRetrieve, err)
 		}
 
-		secret.Value = sec.GetValue()
+		secret.Value = _secret.GetValue()
 
 	// handle shared secrets
 	case constants.SecretShared:
@@ -321,27 +296,24 @@ func (s *secretSvc) pull(secret *pipeline.Secret) (*library.Secret, error) {
 		// send API call to capture the repo secret
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SecretService.Get
-		sec, _, err = s.client.Vela.Secret.Get(secret.Engine, secret.Type, org, team, key)
+		_secret, _, err = s.client.Vela.Secret.Get(secret.Engine, secret.Type, org, team, key)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", ErrUnableToRetrieve, err)
 		}
 
-		secret.Value = sec.GetValue()
+		secret.Value = _secret.GetValue()
 
 	default:
 		return nil, fmt.Errorf("%s: %s", ErrUnrecognizedSecretType, secret.Type)
 	}
 
-	return sec, nil
+	return _secret, nil
 }
 
 // stream tails the output for a secret plugin.
 func (s *secretSvc) stream(ctx context.Context, ctn *pipeline.Container) error {
-	b := s.client.build
-	r := s.client.repo
-
 	// stream all the logs to the init step
-	l, err := step.LoadLogs(s.client.init, &s.client.stepLogs)
+	_log, err := step.LoadLogs(s.client.init, &s.client.stepLogs)
 	if err != nil {
 		return err
 	}
@@ -363,13 +335,13 @@ func (s *secretSvc) stream(ctx context.Context, ctn *pipeline.Container) error {
 		// update the existing log with the last bytes
 		//
 		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-		l.AppendData(logs.Bytes())
+		_log.AppendData(logs.Bytes())
 
 		logger.Debug("uploading logs")
 		// send API call to update the logs for the service
 		//
 		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateService
-		_, _, err = s.client.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), ctn.Number, l)
+		_log, _, err = s.client.Vela.Log.UpdateStep(s.client.repo.GetOrg(), s.client.repo.GetName(), s.client.build.GetNumber(), ctn.Number, _log)
 		if err != nil {
 			logger.Errorf("unable to upload container logs: %v", err)
 		}
@@ -398,13 +370,14 @@ func (s *secretSvc) stream(ctx context.Context, ctn *pipeline.Container) error {
 			// update the existing log with the new bytes
 			//
 			// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-			l.AppendData(logs.Bytes())
+			_log.AppendData(logs.Bytes())
 
 			logger.Debug("appending logs")
 			// send API call to append the logs for the init step
 			//
 			// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateStep
-			l, _, err = s.client.Vela.Log.UpdateStep(r.GetOrg(), r.GetName(), b.GetNumber(), s.client.init.Number, l)
+			// nolint: lll // skip line length due to variable names
+			_log, _, err = s.client.Vela.Log.UpdateStep(s.client.repo.GetOrg(), s.client.repo.GetName(), s.client.build.GetNumber(), s.client.init.Number, _log)
 			if err != nil {
 				return err
 			}
@@ -417,22 +390,23 @@ func (s *secretSvc) stream(ctx context.Context, ctn *pipeline.Container) error {
 	return scanner.Err()
 }
 
-// helper function to check secret whitelist before setting value
 // TODO: Evaluate pulling this into a "bool" types function for injecting
+//
+// helper function to check secret whitelist before setting value.
 func injectSecrets(ctn *pipeline.Container, m map[string]*library.Secret) error {
 	// inject secrets for step
-	for _, secret := range ctn.Secrets {
-		logrus.Tracef("looking up secret %s from pipeline secrets", secret.Source)
+	for _, _secret := range ctn.Secrets {
+		logrus.Tracef("looking up secret %s from pipeline secrets", _secret.Source)
 		// lookup container secret in map
-		s, ok := m[secret.Source]
+		s, ok := m[_secret.Source]
 		if !ok {
 			continue
 		}
 
-		logrus.Tracef("matching secret %s to container %s", secret.Source, ctn.Name)
+		logrus.Tracef("matching secret %s to container %s", _secret.Source, ctn.Name)
 		// ensure the secret matches with the container
 		if s.Match(ctn) {
-			ctn.Environment[strings.ToUpper(secret.Target)] = s.GetValue()
+			ctn.Environment[strings.ToUpper(_secret.Target)] = s.GetValue()
 		}
 	}
 

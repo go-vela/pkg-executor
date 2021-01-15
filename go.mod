@@ -3,7 +3,6 @@ module github.com/go-vela/pkg-executor
 go 1.15
 
 require (
-	github.com/drone/envsubst v1.0.2
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-vela/compiler v0.7.0-rc1
 	github.com/go-vela/mock v0.7.0-rc1

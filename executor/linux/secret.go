@@ -41,13 +41,13 @@ func (s *secretSvc) create(ctx context.Context, ctn *pipeline.Container) error {
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
 	logger := s.client.logger.WithField("secret", ctn.Name)
 
-	ctn.Environment["BUILD_HOST"] = s.client.Hostname
-	ctn.Environment["VELA_HOST"] = s.client.Hostname
+	ctn.Environment["VELA_DISTRIBUTION"] = s.client.build.GetDistribution()
+	ctn.Environment["BUILD_HOST"] = s.client.build.GetHost()
+	ctn.Environment["VELA_HOST"] = s.client.build.GetHost()
+	ctn.Environment["VELA_RUNTIME"] = s.client.build.GetRuntime()
 
 	// TODO: remove hardcoded reference
-	ctn.Environment["VELA_VERSION"] = "v0.6.0"
-	ctn.Environment["VELA_RUNTIME"] = "docker"
-	ctn.Environment["VELA_DISTRIBUTION"] = "linux"
+	ctn.Environment["VELA_VERSION"] = "v0.7.0"
 
 	logger.Debug("setting up container")
 	// setup the runtime container

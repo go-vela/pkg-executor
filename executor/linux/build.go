@@ -28,9 +28,8 @@ func (c *client) CreateBuild(ctx context.Context) error {
 	c.build.SetStatus(constants.StatusRunning)
 	c.build.SetStarted(time.Now().UTC().Unix())
 	c.build.SetHost(c.Hostname)
-	// TODO: This should not be hardcoded
-	c.build.SetDistribution("linux")
-	c.build.SetRuntime("docker")
+	c.build.SetDistribution(constants.DriverLinux)
+	c.build.SetRuntime(c.Runtime.Driver())
 
 	c.logger.Info("uploading build state")
 	// send API call to update the build
@@ -119,10 +118,9 @@ func (c *client) PlanBuild(ctx context.Context) error {
 		return fmt.Errorf("unable to inspect network: %w", err)
 	}
 
-	// update the init log with network command
+	// update the init log with network information
 	//
 	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	_log.AppendData([]byte(fmt.Sprintf("$ docker network inspect %s \n", c.pipeline.ID)))
 	_log.AppendData(network)
 
 	c.logger.Info("creating volume")
@@ -144,10 +142,9 @@ func (c *client) PlanBuild(ctx context.Context) error {
 		return fmt.Errorf("unable to inspect volume: %w", err)
 	}
 
-	// update the init log with volume command
+	// update the init log with volume information
 	//
 	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-	_log.AppendData([]byte(fmt.Sprintf("$ docker volume inspect %s \n", c.pipeline.ID)))
 	_log.AppendData(volume)
 
 	// update the init log with progress
@@ -238,12 +235,6 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 		// TODO: remove this; but we need it for tests
 		s.Detach = true
 
-		// TODO: remove hardcoded reference
-		// update the init log with progress
-		//
-		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-		_log.AppendData([]byte(fmt.Sprintf("$ docker image inspect %s\n", s.Image)))
-
 		c.logger.Infof("creating %s service", s.Name)
 		// create the service
 		c.err = c.CreateService(ctx, s)
@@ -297,11 +288,6 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 			continue
 		}
 
-		// update the init log with progress
-		//
-		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-		_log.AppendData([]byte(fmt.Sprintf("$ docker image inspect %s\n", s.Image)))
-
 		c.logger.Infof("creating %s step", s.Name)
 		// create the step
 		c.err = c.CreateStep(ctx, s)
@@ -334,11 +320,6 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 		if s.Origin.Empty() {
 			continue
 		}
-
-		// update the init log with progress
-		//
-		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-		_log.AppendData([]byte(fmt.Sprintf("$ docker image inspect %s\n", s.Origin.Name)))
 
 		c.logger.Infof("creating %s secret", s.Origin.Name)
 		// create the service

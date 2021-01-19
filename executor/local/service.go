@@ -126,42 +126,13 @@ func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) er
 		_service.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 	}
 
-	// check if the service is in a pending state
-	if _service.GetStatus() == constants.StatusPending {
-		// update the service fields
-		//
-		// TODO: consider making this a constant
-		//
-		// nolint: gomnd // ignore magic number 137
-		_service.SetExitCode(137)
-		_service.SetFinished(time.Now().UTC().Unix())
-		_service.SetStatus(constants.StatusKilled)
-
-		// check if the service was not started
-		if _service.GetStarted() == 0 {
-			// set the started time to the finished time
-			_service.SetStarted(_service.GetFinished())
-		}
-	}
+	// defer taking a snapshot of the service
+	defer service.Snapshot(ctn, c.build, nil, nil, nil, _service)
 
 	// inspect the runtime container
 	err = c.Runtime.InspectContainer(ctx, ctn)
 	if err != nil {
 		return err
-	}
-
-	// check if the service finished
-	if _service.GetFinished() == 0 {
-		// update the service fields
-		_service.SetFinished(time.Now().UTC().Unix())
-		_service.SetStatus(constants.StatusSuccess)
-
-		// check the container for an unsuccessful exit code
-		if ctn.ExitCode > 0 {
-			// update the service fields
-			_service.SetExitCode(ctn.ExitCode)
-			_service.SetStatus(constants.StatusFailure)
-		}
 	}
 
 	// remove the runtime container

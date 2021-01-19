@@ -41,13 +41,13 @@ func (s *secretSvc) create(ctx context.Context, ctn *pipeline.Container) error {
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
 	logger := s.client.logger.WithField("secret", ctn.Name)
 
-	ctn.Environment["BUILD_HOST"] = s.client.Hostname
-	ctn.Environment["VELA_HOST"] = s.client.Hostname
+	ctn.Environment["VELA_DISTRIBUTION"] = s.client.build.GetDistribution()
+	ctn.Environment["BUILD_HOST"] = s.client.build.GetHost()
+	ctn.Environment["VELA_HOST"] = s.client.build.GetHost()
+	ctn.Environment["VELA_RUNTIME"] = s.client.build.GetRuntime()
 
 	// TODO: remove hardcoded reference
-	ctn.Environment["VELA_VERSION"] = "v0.6.0"
-	ctn.Environment["VELA_RUNTIME"] = "docker"
-	ctn.Environment["VELA_DISTRIBUTION"] = "linux"
+	ctn.Environment["VELA_VERSION"] = "v0.7.0"
 
 	logger.Debug("setting up container")
 	// setup the runtime container
@@ -93,57 +93,14 @@ func (s *secretSvc) destroy(ctx context.Context, ctn *pipeline.Container) error 
 		_secret.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 	}
 
-	// TODO: evaluate if we need this
-	//
-	// Do we upload external secret container results to Vela API?
-	defer func() {
-		logger.Info("uploading step snapshot")
-		// send API call to update the step
-		//
-		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
-		_, _, err := s.client.Vela.Step.Update(s.client.repo.GetOrg(), s.client.repo.GetName(), s.client.build.GetNumber(), _secret)
-		if err != nil {
-			logger.Errorf("unable to upload step snapshot: %v", err)
-		}
-	}()
-
-	// check if the step is in a pending state
-	if _secret.GetStatus() == constants.StatusPending {
-		// update the step fields
-		//
-		// TODO: consider making this a constant
-		//
-		// nolint: gomnd // ignore magic number 137
-		_secret.SetExitCode(137)
-		_secret.SetFinished(time.Now().UTC().Unix())
-		_secret.SetStatus(constants.StatusKilled)
-
-		// check if the step was not started
-		if _secret.GetStarted() == 0 {
-			// set the started time to the finished time
-			_secret.SetStarted(_secret.GetFinished())
-		}
-	}
+	// defer taking a snapshot of the step
+	defer step.Snapshot(ctn, s.client.build, nil, logger, s.client.repo, _secret)
 
 	logger.Debug("inspecting container")
 	// inspect the runtime container
 	err = s.client.Runtime.InspectContainer(ctx, ctn)
 	if err != nil {
 		return err
-	}
-
-	// check if the step finished
-	if _secret.GetFinished() == 0 {
-		// update the step fields
-		_secret.SetFinished(time.Now().UTC().Unix())
-		_secret.SetStatus(constants.StatusSuccess)
-
-		// check the container for an unsuccessful exit code
-		if ctn.ExitCode > 0 {
-			// update the step fields
-			_secret.SetExitCode(ctn.ExitCode)
-			_secret.SetStatus(constants.StatusFailure)
-		}
 	}
 
 	logger.Debug("removing container")

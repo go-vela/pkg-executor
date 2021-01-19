@@ -16,47 +16,40 @@ import (
 
 // GetBuild gets the current build in execution.
 func (c *client) GetBuild() (*library.Build, error) {
-	b := c.build
-
 	// check if the build resource is available
-	if b == nil {
+	if c.build == nil {
 		return nil, fmt.Errorf("build resource not found")
 	}
 
-	return b, nil
+	return c.build, nil
 }
 
 // GetPipeline gets the current pipeline in execution.
 func (c *client) GetPipeline() (*pipeline.Build, error) {
-	p := c.pipeline
-
 	// check if the pipeline resource is available
-	if p == nil {
+	if c.pipeline == nil {
 		return nil, fmt.Errorf("pipeline resource not found")
 	}
 
-	return p, nil
+	return c.pipeline, nil
 }
 
 // GetRepo gets the current repo in execution.
 func (c *client) GetRepo() (*library.Repo, error) {
-	r := c.repo
-
 	// check if the repo resource is available
-	if r == nil {
+	if c.repo == nil {
 		return nil, fmt.Errorf("repo resource not found")
 	}
 
-	return r, nil
+	return c.repo, nil
 }
 
 // CancelBuild cancels the current build in execution.
 func (c *client) CancelBuild() (*library.Build, error) {
-	b := c.build
-
-	// check if the build resource is available
-	if b == nil {
-		return nil, fmt.Errorf("build resource not found")
+	// get the current build from the client
+	b, err := c.GetBuild()
+	if err != nil {
+		return nil, err
 	}
 
 	// set the build status to killed

@@ -187,6 +187,8 @@ func (c *client) PlanBuild(ctx context.Context) error {
 }
 
 // AssembleBuild prepares the containers within a build for execution.
+//
+// nolint: funlen // ignore function length due to comments and logging messages
 func (c *client) AssembleBuild(ctx context.Context) error {
 	// defer taking a snapshot of the build
 	defer build.Snapshot(c.build, c.Vela, c.err, c.logger, c.repo)

@@ -21,16 +21,15 @@ import (
 
 // CreateBuild configures the build for execution.
 func (c *client) CreateBuild(ctx context.Context) error {
-	// defer taking snapshot of build
+	// defer taking a snapshot of the build
 	defer build.Snapshot(c.build, nil, c.err, nil, nil)
 
 	// update the build fields
 	c.build.SetStatus(constants.StatusRunning)
 	c.build.SetStarted(time.Now().UTC().Unix())
 	c.build.SetHost(c.Hostname)
-	// TODO: This should not be hardcoded
 	c.build.SetDistribution(constants.DriverLocal)
-	c.build.SetRuntime("docker")
+	c.build.SetRuntime(c.Runtime.Driver())
 
 	// load the init container from the pipeline
 	c.init = c.loadInitContainer(c.pipeline)
@@ -52,7 +51,7 @@ func (c *client) CreateBuild(ctx context.Context) error {
 
 // PlanBuild prepares the build for execution.
 func (c *client) PlanBuild(ctx context.Context) error {
-	// defer taking snapshot of build
+	// defer taking a snapshot of the build
 	defer build.Snapshot(c.build, nil, c.err, nil, nil)
 
 	// create a step pattern for log output
@@ -66,9 +65,6 @@ func (c *client) PlanBuild(ctx context.Context) error {
 
 	// output init progress to stdout
 	fmt.Fprintln(os.Stdout, _pattern, "> Inspecting runtime network...")
-
-	// output the network command to stdout
-	fmt.Fprintln(os.Stdout, _pattern, "$ docker network inspect", c.pipeline.ID)
 
 	// inspect the runtime network for the pipeline
 	network, err := c.Runtime.InspectNetwork(ctx, c.pipeline)
@@ -90,9 +86,6 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	// output init progress to stdout
 	fmt.Fprintln(os.Stdout, _pattern, "> Inspecting runtime volume...")
 
-	// output the volume command to stdout
-	fmt.Fprintln(os.Stdout, _pattern, "$ docker volume inspect", c.pipeline.ID)
-
 	// inspect the runtime volume for the pipeline
 	volume, err := c.Runtime.InspectVolume(ctx, c.pipeline)
 	if err != nil {
@@ -108,7 +101,7 @@ func (c *client) PlanBuild(ctx context.Context) error {
 
 // AssembleBuild prepares the containers within a build for execution.
 func (c *client) AssembleBuild(ctx context.Context) error {
-	// defer taking snapshot of build
+	// defer taking a snapshot of the build
 	defer build.Snapshot(c.build, nil, c.err, nil, nil)
 
 	// load the init step from the client
@@ -137,9 +130,6 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 		if c.err != nil {
 			return fmt.Errorf("unable to create %s service: %w", _service.Name, c.err)
 		}
-
-		// output the image command to stdout
-		fmt.Fprintln(os.Stdout, _pattern, "$ docker image inspect", _service.Image)
 
 		// inspect the service image
 		image, err := c.Runtime.InspectImage(ctx, _service)
@@ -184,9 +174,6 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 		if c.err != nil {
 			return fmt.Errorf("unable to create %s step: %w", _step.Name, c.err)
 		}
-
-		// output the image command to stdout
-		fmt.Fprintln(os.Stdout, _pattern, "$ docker image inspect", _step.Image)
 
 		// inspect the step image
 		image, err := c.Runtime.InspectImage(ctx, _step)

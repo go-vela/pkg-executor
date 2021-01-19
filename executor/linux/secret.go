@@ -93,57 +93,14 @@ func (s *secretSvc) destroy(ctx context.Context, ctn *pipeline.Container) error 
 		_secret.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 	}
 
-	// TODO: evaluate if we need this
-	//
-	// Do we upload external secret container results to Vela API?
-	defer func() {
-		logger.Info("uploading step snapshot")
-		// send API call to update the step
-		//
-		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
-		_, _, err := s.client.Vela.Step.Update(s.client.repo.GetOrg(), s.client.repo.GetName(), s.client.build.GetNumber(), _secret)
-		if err != nil {
-			logger.Errorf("unable to upload step snapshot: %v", err)
-		}
-	}()
-
-	// check if the step is in a pending state
-	if _secret.GetStatus() == constants.StatusPending {
-		// update the step fields
-		//
-		// TODO: consider making this a constant
-		//
-		// nolint: gomnd // ignore magic number 137
-		_secret.SetExitCode(137)
-		_secret.SetFinished(time.Now().UTC().Unix())
-		_secret.SetStatus(constants.StatusKilled)
-
-		// check if the step was not started
-		if _secret.GetStarted() == 0 {
-			// set the started time to the finished time
-			_secret.SetStarted(_secret.GetFinished())
-		}
-	}
+	// defer taking a snapshot of the step
+	defer step.Snapshot(ctn, s.client.build, nil, logger, s.client.repo, _secret)
 
 	logger.Debug("inspecting container")
 	// inspect the runtime container
 	err = s.client.Runtime.InspectContainer(ctx, ctn)
 	if err != nil {
 		return err
-	}
-
-	// check if the step finished
-	if _secret.GetFinished() == 0 {
-		// update the step fields
-		_secret.SetFinished(time.Now().UTC().Unix())
-		_secret.SetStatus(constants.StatusSuccess)
-
-		// check the container for an unsuccessful exit code
-		if ctn.ExitCode > 0 {
-			// update the step fields
-			_secret.SetExitCode(ctn.ExitCode)
-			_secret.SetStatus(constants.StatusFailure)
-		}
 	}
 
 	logger.Debug("removing container")

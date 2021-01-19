@@ -247,54 +247,14 @@ func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) er
 		_service.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 	}
 
-	defer func() {
-		logger.Info("uploading service snapshot")
-		// send API call to update the step
-		//
-		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SvcService.Update
-		_, _, err := c.Vela.Svc.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), _service)
-		if err != nil {
-			logger.Errorf("unable to upload service snapshot: %v", err)
-		}
-	}()
-
-	// check if the service is in a pending state
-	if _service.GetStatus() == constants.StatusPending {
-		// update the service fields
-		//
-		// TODO: consider making this a constant
-		//
-		// nolint: gomnd // ignore magic number 137
-		_service.SetExitCode(137)
-		_service.SetFinished(time.Now().UTC().Unix())
-		_service.SetStatus(constants.StatusKilled)
-
-		// check if the service was not started
-		if _service.GetStarted() == 0 {
-			// set the started time to the finished time
-			_service.SetStarted(_service.GetFinished())
-		}
-	}
+	// defer taking a snapshot of the service
+	defer service.Snapshot(ctn, c.build, c.Vela, logger, c.repo, _service)
 
 	logger.Debug("inspecting container")
 	// inspect the runtime container
 	err = c.Runtime.InspectContainer(ctx, ctn)
 	if err != nil {
 		return err
-	}
-
-	// check if the service finished
-	if _service.GetFinished() == 0 {
-		// update the service fields
-		_service.SetFinished(time.Now().UTC().Unix())
-		_service.SetStatus(constants.StatusSuccess)
-
-		// check the container for an unsuccessful exit code
-		if ctn.ExitCode > 0 {
-			// update the service fields
-			_service.SetExitCode(ctn.ExitCode)
-			_service.SetStatus(constants.StatusFailure)
-		}
 	}
 
 	logger.Debug("removing container")

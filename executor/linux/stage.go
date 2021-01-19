@@ -35,12 +35,6 @@ func (c *client) CreateStage(ctx context.Context, s *pipeline.Stage) error {
 
 	// create the steps for the stage
 	for _, _step := range s.Steps {
-		// TODO: make this not hardcoded
-		// update the init log with progress
-		//
-		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-		_log.AppendData([]byte(fmt.Sprintf("$ docker image inspect %s\n", _step.Image)))
-
 		logger.Debugf("creating %s step", _step.Name)
 		// create the step
 		err := c.CreateStep(ctx, _step)

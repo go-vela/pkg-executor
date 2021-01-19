@@ -32,9 +32,6 @@ func (c *client) CreateStage(ctx context.Context, s *pipeline.Stage) error {
 			return err
 		}
 
-		// output image command to stdout
-		fmt.Fprintln(os.Stdout, _pattern, "$ docker image inspect", _step.Image)
-
 		// inspect the step image
 		image, err := c.Runtime.InspectImage(ctx, _step)
 		if err != nil {

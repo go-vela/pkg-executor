@@ -163,42 +163,13 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 		_step.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
 	}
 
-	// check if the step is in a pending state
-	if _step.GetStatus() == constants.StatusPending {
-		// update the step fields
-		//
-		// TODO: consider making this a constant
-		//
-		// nolint: gomnd // ignore magic number 137
-		_step.SetExitCode(137)
-		_step.SetFinished(time.Now().UTC().Unix())
-		_step.SetStatus(constants.StatusKilled)
-
-		// check if the step was not started
-		if _step.GetStarted() == 0 {
-			// set the started time to the finished time
-			_step.SetStarted(_step.GetFinished())
-		}
-	}
+	// defer taking a snapshot of the step
+	defer step.Snapshot(ctn, c.build, nil, nil, nil, _step)
 
 	// inspect the runtime container
 	err = c.Runtime.InspectContainer(ctx, ctn)
 	if err != nil {
 		return err
-	}
-
-	// check if the step finished
-	if _step.GetFinished() == 0 {
-		// update the step fields
-		_step.SetFinished(time.Now().UTC().Unix())
-		_step.SetStatus(constants.StatusSuccess)
-
-		// check the container for an unsuccessful exit code
-		if ctn.ExitCode > 0 {
-			// update the step fields
-			_step.SetExitCode(ctn.ExitCode)
-			_step.SetStatus(constants.StatusFailure)
-		}
 	}
 
 	// remove the runtime container

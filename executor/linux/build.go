@@ -21,7 +21,7 @@ import (
 
 // CreateBuild configures the build for execution.
 func (c *client) CreateBuild(ctx context.Context) error {
-	// defer taking snapshot of build
+	// defer taking a snapshot of the build
 	defer build.Snapshot(c.build, c.Vela, c.err, c.logger, c.repo)
 
 	// update the build fields
@@ -64,7 +64,7 @@ func (c *client) CreateBuild(ctx context.Context) error {
 //
 // nolint: funlen // ignore function length due to comments and logging messages
 func (c *client) PlanBuild(ctx context.Context) error {
-	// defer taking snapshot of build
+	// defer taking a snapshot of the build
 	defer build.Snapshot(c.build, c.Vela, c.err, c.logger, c.repo)
 
 	// load the init step from the client
@@ -188,7 +188,7 @@ func (c *client) PlanBuild(ctx context.Context) error {
 
 // AssembleBuild prepares the containers within a build for execution.
 func (c *client) AssembleBuild(ctx context.Context) error {
-	// defer taking snapshot of build
+	// defer taking a snapshot of the build
 	defer build.Snapshot(c.build, c.Vela, c.err, c.logger, c.repo)
 
 	// load the init step from the client

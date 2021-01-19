@@ -21,7 +21,7 @@ import (
 
 // CreateBuild configures the build for execution.
 func (c *client) CreateBuild(ctx context.Context) error {
-	// defer taking snapshot of build
+	// defer taking a snapshot of the build
 	defer build.Snapshot(c.build, nil, c.err, nil, nil)
 
 	// update the build fields
@@ -51,7 +51,7 @@ func (c *client) CreateBuild(ctx context.Context) error {
 
 // PlanBuild prepares the build for execution.
 func (c *client) PlanBuild(ctx context.Context) error {
-	// defer taking snapshot of build
+	// defer taking a snapshot of the build
 	defer build.Snapshot(c.build, nil, c.err, nil, nil)
 
 	// create a step pattern for log output
@@ -101,7 +101,7 @@ func (c *client) PlanBuild(ctx context.Context) error {
 
 // AssembleBuild prepares the containers within a build for execution.
 func (c *client) AssembleBuild(ctx context.Context) error {
-	// defer taking snapshot of build
+	// defer taking a snapshot of the build
 	defer build.Snapshot(c.build, nil, c.err, nil, nil)
 
 	// load the init step from the client

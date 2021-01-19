@@ -10,7 +10,7 @@ require (
 	github.com/go-vela/mock v0.7.0-rc1
 	github.com/go-vela/pkg-runtime v0.7.0-rc1.0.20210115210301-627230eab176
 	github.com/go-vela/sdk-go v0.7.0-rc1
-	github.com/go-vela/types v0.7.0-rc1
+	github.com/go-vela/types v0.7.0-rc1.0.20210115155442-682d1037e16d
 	github.com/google/go-cmp v0.5.4
 	github.com/joho/godotenv v1.3.0
 	github.com/sirupsen/logrus v1.7.0

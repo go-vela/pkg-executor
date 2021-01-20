@@ -16,7 +16,6 @@ import (
 	"github.com/go-vela/pkg-executor/internal/build"
 	"github.com/go-vela/pkg-executor/internal/step"
 	"github.com/go-vela/types/constants"
-	"github.com/go-vela/types/pipeline"
 )
 
 // CreateBuild configures the build for execution.
@@ -239,26 +238,8 @@ func (c *client) ExecBuild(ctx context.Context) error {
 			continue
 		}
 
-		// extract rule data from build information
-		ruledata := &pipeline.RuleData{
-			Branch: c.build.GetBranch(),
-			Event:  c.build.GetEvent(),
-			Repo:   c.repo.GetFullName(),
-			Status: c.build.GetStatus(),
-		}
-
-		// when tag event add tag information into ruledata
-		if strings.EqualFold(c.build.GetEvent(), constants.EventTag) {
-			ruledata.Tag = strings.TrimPrefix(c.build.GetRef(), "refs/tags/")
-		}
-
-		// when deployment event add deployment information into ruledata
-		if strings.EqualFold(c.build.GetEvent(), constants.EventDeploy) {
-			ruledata.Target = c.build.GetDeploy()
-		}
-
-		// check if you need to excute this step
-		if !_step.Execute(ruledata) {
+		// check if you need to skip executing this step
+		if step.Skip(_step, c.build, c.repo) {
 			continue
 		}
 

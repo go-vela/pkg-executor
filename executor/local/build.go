@@ -56,6 +56,12 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	// create a step pattern for log output
 	_pattern := fmt.Sprintf(stepPattern, c.init.Name)
 
+	// check if the pipeline provided has stages
+	if len(c.pipeline.Stages) > 0 {
+		// create a stage pattern for log output
+		_pattern = fmt.Sprintf(stagePattern, c.init.Name, c.init.Name)
+	}
+
 	// create the runtime network for the pipeline
 	c.err = c.Runtime.CreateNetwork(ctx, c.pipeline)
 	if c.err != nil {
@@ -111,6 +117,12 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 
 	// create a step pattern for log output
 	_pattern := fmt.Sprintf(stepPattern, c.init.Name)
+
+	// check if the pipeline provided has stages
+	if len(c.pipeline.Stages) > 0 {
+		// create a stage pattern for log output
+		_pattern = fmt.Sprintf(stagePattern, c.init.Name, c.init.Name)
+	}
 
 	defer func() {
 		_init.SetFinished(time.Now().UTC().Unix())

@@ -131,6 +131,13 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 	// create a step pattern for log output
 	_pattern := fmt.Sprintf(stepPattern, ctn.Name)
 
+	// check if the container provided is for stages
+	_stage, ok := ctn.Environment["VELA_STEP_STAGE"]
+	if ok {
+		// create a stage pattern for log output
+		_pattern = fmt.Sprintf(stagePattern, _stage, ctn.Name)
+	}
+
 	// create new scanner from the container output
 	scanner := bufio.NewScanner(rc)
 

@@ -15,16 +15,22 @@ import (
 	"github.com/go-vela/types/pipeline"
 )
 
+// create a stage logging pattern.
+const stagePattern = "[stage: %s][step: %s]"
+
 // CreateStage prepares the stage for execution.
 func (c *client) CreateStage(ctx context.Context, s *pipeline.Stage) error {
-	// create a step pattern for log output
-	_pattern := fmt.Sprintf(stepPattern, c.init.Name)
+	// create a stage pattern for log output
+	_pattern := fmt.Sprintf(stagePattern, c.init.Name, c.init.Name)
 
 	// output init progress to stdout
 	fmt.Fprintln(os.Stdout, _pattern, "> Pulling step images for stage", s.Name, "...")
 
 	// create the steps for the stage
 	for _, _step := range s.Steps {
+		// update the container environment with stage name
+		_step.Environment["VELA_STEP_STAGE"] = s.Name
+
 		// create the step
 		err := c.CreateStep(ctx, _step)
 		if err != nil {

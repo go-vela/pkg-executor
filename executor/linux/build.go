@@ -358,6 +358,8 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 }
 
 // ExecBuild runs a pipeline for a build.
+//
+// nolint: funlen // ignore function length due to comments and log messages
 func (c *client) ExecBuild(ctx context.Context) error {
 	// defer an upload of the build
 	defer build.Upload(c.build, c.Vela, c.err, c.logger, c.repo)

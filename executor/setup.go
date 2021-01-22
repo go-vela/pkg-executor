@@ -32,6 +32,8 @@ type Setup struct {
 	Driver string
 	// specifies the executor hostname
 	Hostname string
+	// specifies the executor version
+	Version string
 	// API client for sending requests to Vela
 	Client *vela.Client
 	// engine used for creating runtime resources
@@ -73,6 +75,7 @@ func (s *Setup) Linux() (Engine, error) {
 		linux.WithRuntime(s.Runtime),
 		linux.WithUser(s.User),
 		linux.WithVelaClient(s.Client),
+		linux.WithVersion(s.Version),
 	)
 }
 
@@ -92,6 +95,7 @@ func (s *Setup) Local() (Engine, error) {
 		local.WithRuntime(s.Runtime),
 		local.WithUser(s.User),
 		local.WithVelaClient(s.Client),
+		local.WithVersion(s.Version),
 	)
 }
 

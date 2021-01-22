@@ -73,7 +73,7 @@ func TestLocal_Opt_WithHostname(t *testing.T) {
 			WithHostname(test.hostname),
 		)
 		if err != nil {
-			t.Errorf("unable to create Local engine: %v", err)
+			t.Errorf("unable to create local engine: %v", err)
 		}
 
 		if !reflect.DeepEqual(_engine.Hostname, test.want) {
@@ -261,6 +261,37 @@ func TestLocal_Opt_WithVelaClient(t *testing.T) {
 
 		if !reflect.DeepEqual(_engine.Vela, _client) {
 			t.Errorf("WithVelaClient is %v, want %v", _engine.Vela, _client)
+		}
+	}
+}
+
+func TestLocal_Opt_WithVersion(t *testing.T) {
+	// setup tests
+	tests := []struct {
+		version string
+		want    string
+	}{
+		{
+			version: "v1.0.0",
+			want:    "v1.0.0",
+		},
+		{
+			version: "",
+			want:    "v0.0.0",
+		},
+	}
+
+	// run tests
+	for _, test := range tests {
+		_engine, err := New(
+			WithVersion(test.version),
+		)
+		if err != nil {
+			t.Errorf("unable to create local engine: %v", err)
+		}
+
+		if !reflect.DeepEqual(_engine.Version, test.want) {
+			t.Errorf("WithVersion is %v, want %v", _engine.Version, test.want)
 		}
 	}
 }

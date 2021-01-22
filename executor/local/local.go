@@ -19,6 +19,7 @@ type (
 		Vela     *vela.Client
 		Runtime  runtime.Engine
 		Hostname string
+		Version  string
 
 		// private fields
 		init     *pipeline.Container

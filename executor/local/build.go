@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -195,26 +194,8 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 //
 // nolint: funlen // ignore function length - will be refactored at a later date
 func (c *client) ExecBuild(ctx context.Context) error {
-	defer func() {
-		// Overwrite with proper status and error only if build was not canceled
-		if !strings.EqualFold(c.build.GetStatus(), constants.StatusCanceled) {
-			// NOTE: if the build is already in a failure state we do not
-			// want to update the state to be success
-			if !strings.EqualFold(c.build.GetStatus(), constants.StatusFailure) {
-				c.build.SetStatus(constants.StatusSuccess)
-			}
-
-			// NOTE: When an error occurs during a build that does not have to do
-			// with a pipeline we should set build status to "error" not "failed"
-			// because it is worker related and not build.
-			if c.err != nil {
-				c.build.SetError(c.err.Error())
-				c.build.SetStatus(constants.StatusError)
-			}
-		}
-		// update the build fields
-		c.build.SetFinished(time.Now().UTC().Unix())
-	}()
+	// defer an upload of the build
+	defer build.Upload(c.build, c.Vela, c.err, nil, nil)
 
 	// execute the services for the pipeline
 	for _, _service := range c.pipeline.Services {

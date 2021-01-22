@@ -37,6 +37,10 @@ func Upload(ctn *pipeline.Container, b *library.Build, c *vela.Client, l *logrus
 		// then something must have gone
 		// drastically wrong because this
 		// SHOULD NOT happen
+		//
+		// TODO: consider making this a constant
+		//
+		// nolint: gomnd // ignore magic number 137
 		s.SetExitCode(137)
 		s.SetFinished(time.Now().UTC().Unix())
 		s.SetStatus(constants.StatusKilled)

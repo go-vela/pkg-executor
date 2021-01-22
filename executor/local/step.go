@@ -50,15 +50,17 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 
 // PlanStep prepares the step for execution.
 func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
-	// update the engine step object
+	// create the library step object
 	_step := new(library.Step)
 	_step.SetName(ctn.Name)
 	_step.SetNumber(ctn.Number)
+	_step.SetImage(ctn.Image)
+	_step.SetStage(ctn.Environment["VELA_STEP_STAGE"])
 	_step.SetStatus(constants.StatusRunning)
 	_step.SetStarted(time.Now().UTC().Unix())
-	_step.SetHost(ctn.Environment["VELA_HOST"])
-	_step.SetRuntime(ctn.Environment["VELA_RUNTIME"])
-	_step.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
+	_step.SetHost(c.build.GetHost())
+	_step.SetRuntime(c.build.GetRuntime())
+	_step.SetDistribution(c.build.GetDistribution())
 
 	// update the step container environment
 	err := step.Environment(ctn, c.build, c.repo, _step)
@@ -131,6 +133,13 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 	// create a step pattern for log output
 	_pattern := fmt.Sprintf(stepPattern, ctn.Name)
 
+	// check if the container provided is for stages
+	_stage, ok := ctn.Environment["VELA_STEP_STAGE"]
+	if ok {
+		// create a stage pattern for log output
+		_pattern = fmt.Sprintf(stagePattern, _stage, ctn.Name)
+	}
+
 	// create new scanner from the container output
 	scanner := bufio.NewScanner(rc)
 
@@ -154,13 +163,7 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 	_step, err := step.Load(ctn, &c.steps)
 	if err != nil {
 		// create the step from the container
-		_step = new(library.Step)
-		_step.SetName(ctn.Name)
-		_step.SetNumber(ctn.Number)
-		_step.SetStatus(constants.StatusPending)
-		_step.SetHost(ctn.Environment["VELA_HOST"])
-		_step.SetRuntime(ctn.Environment["VELA_RUNTIME"])
-		_step.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
+		_step = library.StepFromContainer(ctn)
 	}
 
 	// defer taking a snapshot of the step

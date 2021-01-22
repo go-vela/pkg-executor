@@ -68,11 +68,12 @@ func (c *client) PlanService(ctx context.Context, ctn *pipeline.Container) error
 	_service := new(library.Service)
 	_service.SetName(ctn.Name)
 	_service.SetNumber(ctn.Number)
+	_service.SetImage(ctn.Image)
 	_service.SetStatus(constants.StatusRunning)
 	_service.SetStarted(time.Now().UTC().Unix())
-	_service.SetHost(ctn.Environment["VELA_HOST"])
-	_service.SetRuntime(ctn.Environment["VELA_RUNTIME"])
-	_service.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
+	_service.SetHost(c.build.GetHost())
+	_service.SetRuntime(c.build.GetRuntime())
+	_service.SetDistribution(c.build.GetDistribution())
 
 	logger.Debug("uploading service state")
 	// send API call to update the service
@@ -238,13 +239,7 @@ func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) er
 	_service, err := service.Load(ctn, &c.services)
 	if err != nil {
 		// create the service from the container
-		_service = new(library.Service)
-		_service.SetName(ctn.Name)
-		_service.SetNumber(ctn.Number)
-		_service.SetStatus(constants.StatusPending)
-		_service.SetHost(ctn.Environment["VELA_HOST"])
-		_service.SetRuntime(ctn.Environment["VELA_RUNTIME"])
-		_service.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
+		_service = library.ServiceFromContainer(ctn)
 	}
 
 	// defer taking a snapshot of the service

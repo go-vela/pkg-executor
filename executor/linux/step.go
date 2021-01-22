@@ -69,15 +69,17 @@ func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
 	logger := c.logger.WithField("step", ctn.Name)
 
-	// update the engine step object
+	// create the library step object
 	_step := new(library.Step)
 	_step.SetName(ctn.Name)
 	_step.SetNumber(ctn.Number)
+	_step.SetImage(ctn.Image)
+	_step.SetStage(ctn.Environment["VELA_STEP_STAGE"])
 	_step.SetStatus(constants.StatusRunning)
 	_step.SetStarted(time.Now().UTC().Unix())
-	_step.SetHost(ctn.Environment["VELA_HOST"])
-	_step.SetRuntime(ctn.Environment["VELA_RUNTIME"])
-	_step.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
+	_step.SetHost(c.build.GetHost())
+	_step.SetRuntime(c.build.GetRuntime())
+	_step.SetDistribution(c.build.GetDistribution())
 
 	logger.Debug("uploading step state")
 	// send API call to update the step
@@ -277,13 +279,7 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 	_step, err := step.Load(ctn, &c.steps)
 	if err != nil {
 		// create the step from the container
-		_step = new(library.Step)
-		_step.SetName(ctn.Name)
-		_step.SetNumber(ctn.Number)
-		_step.SetStatus(constants.StatusPending)
-		_step.SetHost(ctn.Environment["VELA_HOST"])
-		_step.SetRuntime(ctn.Environment["VELA_RUNTIME"])
-		_step.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
+		_step = library.StepFromContainer(ctn)
 	}
 
 	// defer taking a snapshot of the step

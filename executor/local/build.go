@@ -247,28 +247,6 @@ func (c *client) ExecBuild(ctx context.Context) error {
 		if c.err != nil {
 			return fmt.Errorf("unable to execute step: %w", c.err)
 		}
-
-		// load the init step from the client
-		s, err := step.Load(_step, &c.steps)
-		if err != nil {
-			c.err = err
-			return err
-		}
-
-		// check the step exit code
-		if _step.ExitCode != 0 {
-			// check if we ignore step failures
-			if !_step.Ruleset.Continue {
-				// set build status to failure
-				c.build.SetStatus(constants.StatusFailure)
-			}
-
-			// update the step fields
-			s.SetExitCode(_step.ExitCode)
-			s.SetStatus(constants.StatusFailure)
-		}
-
-		s.SetFinished(time.Now().UTC().Unix())
 	}
 
 	// create an error group with the context for each stage

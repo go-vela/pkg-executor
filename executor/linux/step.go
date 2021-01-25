@@ -129,9 +129,18 @@ func (c *client) ExecStep(ctx context.Context, ctn *pipeline.Container) error {
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
 	logger := c.logger.WithField("step", ctn.Name)
 
+	// load the step from the client
+	_step, err := step.Load(ctn, &c.steps)
+	if err != nil {
+		return err
+	}
+
+	// defer taking a snapshot of the step
+	defer step.Snapshot(ctn, c.build, c.Vela, c.logger, c.repo, _step)
+
 	logger.Debug("running container")
 	// run the runtime container
-	err := c.Runtime.RunContainer(ctx, ctn, c.pipeline)
+	err = c.Runtime.RunContainer(ctx, ctn, c.pipeline)
 	if err != nil {
 		return err
 	}

@@ -81,8 +81,17 @@ func (c *client) ExecStep(ctx context.Context, ctn *pipeline.Container) error {
 		return nil
 	}
 
+	// load the step from the client
+	_step, err := step.Load(ctn, &c.steps)
+	if err != nil {
+		return err
+	}
+
+	// defer taking a snapshot of the step
+	defer step.Snapshot(ctn, c.build, nil, nil, nil, _step)
+
 	// run the runtime container
-	err := c.Runtime.RunContainer(ctx, ctn, c.pipeline)
+	err = c.Runtime.RunContainer(ctx, ctn, c.pipeline)
 	if err != nil {
 		return err
 	}

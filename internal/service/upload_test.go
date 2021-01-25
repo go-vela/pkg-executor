@@ -2,7 +2,7 @@
 //
 // Use of this source code is governed by the LICENSE file in this repository.
 
-package step
+package service
 
 import (
 	"net/http/httptest"
@@ -15,7 +15,7 @@ import (
 	"github.com/go-vela/types/pipeline"
 )
 
-func TestStep_Snapshot(t *testing.T) {
+func TestService_Upload(t *testing.T) {
 	// setup types
 	_build := &library.Build{
 		ID:           vela.Int64(1),
@@ -84,14 +84,14 @@ func TestStep_Snapshot(t *testing.T) {
 		AllowTag:    vela.Bool(false),
 	}
 
-	_step := &library.Step{
+	_service := &library.Service{
 		ID:           vela.Int64(1),
 		BuildID:      vela.Int64(1),
 		RepoID:       vela.Int64(1),
 		Number:       vela.Int(1),
-		Name:         vela.String("clone"),
-		Image:        vela.String("target/vela-git:v0.3.0"),
-		Status:       vela.String("pending"),
+		Name:         vela.String("postgres"),
+		Image:        vela.String("postgres:12-alpine"),
+		Status:       vela.String("running"),
 		ExitCode:     vela.Int(0),
 		Created:      vela.Int64(1563474076),
 		Started:      vela.Int64(0),
@@ -100,6 +100,15 @@ func TestStep_Snapshot(t *testing.T) {
 		Runtime:      vela.String("docker"),
 		Distribution: vela.String("linux"),
 	}
+
+	_canceled := *_service
+	_canceled.SetStatus("canceled")
+
+	_error := *_service
+	_error.SetStatus("error")
+
+	_pending := *_service
+	_pending.SetStatus("pending")
 
 	gin.SetMode(gin.TestMode)
 
@@ -115,26 +124,47 @@ func TestStep_Snapshot(t *testing.T) {
 		client    *vela.Client
 		container *pipeline.Container
 		repo      *library.Repo
-		step      *library.Step
+		service   *library.Service
 	}{
 		{
 			build:     _build,
 			client:    _client,
 			container: _container,
 			repo:      _repo,
-			step:      _step,
+			service:   _service,
+		},
+		{
+			build:     _build,
+			client:    _client,
+			container: _container,
+			repo:      _repo,
+			service:   &_canceled,
+		},
+		{
+			build:     _build,
+			client:    _client,
+			container: _container,
+			repo:      _repo,
+			service:   &_error,
+		},
+		{
+			build:     _build,
+			client:    _client,
+			container: _container,
+			repo:      _repo,
+			service:   &_pending,
 		},
 		{
 			build:     _build,
 			client:    _client,
 			container: _exitCode,
 			repo:      _repo,
-			step:      nil,
+			service:   nil,
 		},
 	}
 
 	// run test
 	for _, test := range tests {
-		Snapshot(test.container, test.build, test.client, nil, test.repo, test.step)
+		Upload(test.container, test.build, test.client, nil, test.repo, test.service)
 	}
 }

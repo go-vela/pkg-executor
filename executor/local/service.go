@@ -121,8 +121,8 @@ func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) er
 		_service = library.ServiceFromContainer(ctn)
 	}
 
-	// defer taking a snapshot of the service
-	defer service.Snapshot(ctn, c.build, nil, nil, nil, _service)
+	// defer an upload of the service
+	defer service.Upload(ctn, c.build, nil, nil, nil, _service)
 
 	// inspect the runtime container
 	err = c.Runtime.InspectContainer(ctx, ctn)

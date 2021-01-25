@@ -166,8 +166,8 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 		_step = library.StepFromContainer(ctn)
 	}
 
-	// defer taking a snapshot of the step
-	defer step.Snapshot(ctn, c.build, nil, nil, nil, _step)
+	// defer an upload of the step
+	defer step.Upload(ctn, c.build, nil, nil, nil, _step)
 
 	// inspect the runtime container
 	err = c.Runtime.InspectContainer(ctx, ctn)

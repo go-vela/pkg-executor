@@ -7,10 +7,8 @@ package linux
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/go-vela/pkg-executor/internal/step"
-	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/pipeline"
 )
 
@@ -124,36 +122,7 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 		// execute the step
 		err = c.ExecStep(ctx, _step)
 		if err != nil {
-			return err
-		}
-
-		// load the step from the client
-		cStep, err := step.Load(_step, &c.steps)
-		if err != nil {
-			return err
-		}
-
-		// check the step exit code
-		if _step.ExitCode != 0 {
-			// check if we ignore step failures
-			if !_step.Ruleset.Continue {
-				// set build status to failure
-				c.build.SetStatus(constants.StatusFailure)
-			}
-
-			// update the step fields
-			cStep.SetExitCode(_step.ExitCode)
-			cStep.SetStatus(constants.StatusFailure)
-		}
-
-		cStep.SetFinished(time.Now().UTC().Unix())
-		logger.Infof("uploading %s step state", _step.Name)
-		// send API call to update the build
-		//
-		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
-		_, _, err = c.Vela.Step.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), cStep)
-		if err != nil {
-			return fmt.Errorf("unable to upload step state: %v", err)
+			return fmt.Errorf("unable to exec step %s: %w", _step.Name, err)
 		}
 	}
 

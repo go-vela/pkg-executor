@@ -406,35 +406,6 @@ func (c *client) ExecBuild(ctx context.Context) error {
 		if c.err != nil {
 			return fmt.Errorf("unable to execute step: %w", c.err)
 		}
-
-		// load the step from the client
-		cStep, err := step.Load(_step, &c.steps)
-		if err != nil {
-			return err
-		}
-
-		// check the step exit code
-		if _step.ExitCode != 0 {
-			// check if we ignore step failures
-			if !_step.Ruleset.Continue {
-				// set build status to failure
-				c.build.SetStatus(constants.StatusFailure)
-			}
-
-			// update the step fields
-			cStep.SetExitCode(_step.ExitCode)
-			cStep.SetStatus(constants.StatusFailure)
-		}
-
-		cStep.SetFinished(time.Now().UTC().Unix())
-		c.logger.Infof("uploading %s step state", _step.Name)
-		// send API call to update the build
-		//
-		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
-		_, _, c.err = c.Vela.Step.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), cStep)
-		if c.err != nil {
-			return fmt.Errorf("unable to upload step state: %v", c.err)
-		}
 	}
 
 	// create an error group with the context for each stage

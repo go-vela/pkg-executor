@@ -80,25 +80,9 @@ func (s *secretSvc) destroy(ctx context.Context, ctn *pipeline.Container) error 
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
 	logger := s.client.logger.WithField("secret", ctn.Name)
 
-	// load the step from the client
-	_secret, err := step.Load(s.client.init, &s.client.steps)
-	if err != nil {
-		// create the step from the container
-		_secret = new(library.Step)
-		_secret.SetName(ctn.Name)
-		_secret.SetNumber(ctn.Number)
-		_secret.SetStatus(constants.StatusPending)
-		_secret.SetHost(ctn.Environment["VELA_HOST"])
-		_secret.SetRuntime(ctn.Environment["VELA_RUNTIME"])
-		_secret.SetDistribution(ctn.Environment["VELA_DISTRIBUTION"])
-	}
-
-	// defer taking a snapshot of the step
-	defer step.Snapshot(ctn, s.client.build, nil, logger, s.client.repo, _secret)
-
 	logger.Debug("inspecting container")
 	// inspect the runtime container
-	err = s.client.Runtime.InspectContainer(ctx, ctn)
+	err := s.client.Runtime.InspectContainer(ctx, ctn)
 	if err != nil {
 		return err
 	}

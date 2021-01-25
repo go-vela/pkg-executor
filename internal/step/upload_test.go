@@ -15,7 +15,7 @@ import (
 	"github.com/go-vela/types/pipeline"
 )
 
-func TestStep_Snapshot(t *testing.T) {
+func TestStep_Upload(t *testing.T) {
 	// setup types
 	_build := &library.Build{
 		ID:           vela.Int64(1),
@@ -91,7 +91,7 @@ func TestStep_Snapshot(t *testing.T) {
 		Number:       vela.Int(1),
 		Name:         vela.String("clone"),
 		Image:        vela.String("target/vela-git:v0.3.0"),
-		Status:       vela.String("pending"),
+		Status:       vela.String("running"),
 		ExitCode:     vela.Int(0),
 		Created:      vela.Int64(1563474076),
 		Started:      vela.Int64(0),
@@ -100,6 +100,15 @@ func TestStep_Snapshot(t *testing.T) {
 		Runtime:      vela.String("docker"),
 		Distribution: vela.String("linux"),
 	}
+
+	_canceled := *_step
+	_canceled.SetStatus("canceled")
+
+	_error := *_step
+	_error.SetStatus("error")
+
+	_pending := *_step
+	_pending.SetStatus("pending")
 
 	gin.SetMode(gin.TestMode)
 
@@ -127,6 +136,27 @@ func TestStep_Snapshot(t *testing.T) {
 		{
 			build:     _build,
 			client:    _client,
+			container: _container,
+			repo:      _repo,
+			step:      &_canceled,
+		},
+		{
+			build:     _build,
+			client:    _client,
+			container: _container,
+			repo:      _repo,
+			step:      &_error,
+		},
+		{
+			build:     _build,
+			client:    _client,
+			container: _container,
+			repo:      _repo,
+			step:      &_pending,
+		},
+		{
+			build:     _build,
+			client:    _client,
 			container: _exitCode,
 			repo:      _repo,
 			step:      nil,
@@ -135,6 +165,6 @@ func TestStep_Snapshot(t *testing.T) {
 
 	// run test
 	for _, test := range tests {
-		Snapshot(test.container, test.build, test.client, nil, test.repo, test.step)
+		Upload(test.container, test.build, test.client, nil, test.repo, test.step)
 	}
 }

@@ -320,3 +320,34 @@ func TestLinux_Opt_WithVelaClient(t *testing.T) {
 		}
 	}
 }
+
+func TestLinux_Opt_WithVersion(t *testing.T) {
+	// setup tests
+	tests := []struct {
+		version string
+		want    string
+	}{
+		{
+			version: "v1.0.0",
+			want:    "v1.0.0",
+		},
+		{
+			version: "",
+			want:    "v0.0.0",
+		},
+	}
+
+	// run tests
+	for _, test := range tests {
+		_engine, err := New(
+			WithVersion(test.version),
+		)
+		if err != nil {
+			t.Errorf("unable to create linux engine: %v", err)
+		}
+
+		if !reflect.DeepEqual(_engine.Version, test.want) {
+			t.Errorf("WithVersion is %v, want %v", _engine.Version, test.want)
+		}
+	}
+}

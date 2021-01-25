@@ -45,9 +45,7 @@ func (s *secretSvc) create(ctx context.Context, ctn *pipeline.Container) error {
 	ctn.Environment["BUILD_HOST"] = s.client.build.GetHost()
 	ctn.Environment["VELA_HOST"] = s.client.build.GetHost()
 	ctn.Environment["VELA_RUNTIME"] = s.client.build.GetRuntime()
-
-	// TODO: remove hardcoded reference
-	ctn.Environment["VELA_VERSION"] = "v0.7.0"
+	ctn.Environment["VELA_VERSION"] = s.client.Version
 
 	logger.Debug("setting up container")
 	// setup the runtime container

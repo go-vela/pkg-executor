@@ -38,7 +38,7 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 	}
 
 	// update the step container environment
-	err = step.Environment(ctn, c.build, c.repo, nil)
+	err = step.Environment(ctn, c.build, c.repo, nil, c.Version)
 	if err != nil {
 		return err
 	}
@@ -91,7 +91,7 @@ func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
 	}
 
 	// update the step container environment
-	err = step.Environment(ctn, c.build, c.repo, _step)
+	err = step.Environment(ctn, c.build, c.repo, _step, c.Version)
 	if err != nil {
 		return err
 	}

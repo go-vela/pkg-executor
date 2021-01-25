@@ -49,6 +49,7 @@ func TestExecutor_New(t *testing.T) {
 		linux.WithRuntime(_runtime),
 		linux.WithUser(_user),
 		linux.WithVelaClient(_client),
+		linux.WithVersion("v1.0.0"),
 	)
 	if err != nil {
 		t.Errorf("unable to create linux engine: %v", err)
@@ -62,6 +63,7 @@ func TestExecutor_New(t *testing.T) {
 		local.WithRuntime(_runtime),
 		local.WithUser(_user),
 		local.WithVelaClient(_client),
+		local.WithVersion("v1.0.0"),
 	)
 	if err != nil {
 		t.Errorf("unable to create local engine: %v", err)
@@ -83,6 +85,7 @@ func TestExecutor_New(t *testing.T) {
 				Repo:     _repo,
 				Runtime:  _runtime,
 				User:     _user,
+				Version:  "v1.0.0",
 			},
 			want: nil,
 		},
@@ -96,6 +99,7 @@ func TestExecutor_New(t *testing.T) {
 				Repo:     _repo,
 				Runtime:  _runtime,
 				User:     _user,
+				Version:  "v1.0.0",
 			},
 			want: _linux,
 		},
@@ -109,6 +113,7 @@ func TestExecutor_New(t *testing.T) {
 				Repo:     _repo,
 				Runtime:  _runtime,
 				User:     _user,
+				Version:  "v1.0.0",
 			},
 			want: _local,
 		},
@@ -122,6 +127,7 @@ func TestExecutor_New(t *testing.T) {
 				Repo:     _repo,
 				Runtime:  _runtime,
 				User:     _user,
+				Version:  "v1.0.0",
 			},
 			want: nil,
 		},
@@ -135,6 +141,7 @@ func TestExecutor_New(t *testing.T) {
 				Repo:     _repo,
 				Runtime:  _runtime,
 				User:     _user,
+				Version:  "v1.0.0",
 			},
 			want: nil,
 		},
@@ -148,6 +155,7 @@ func TestExecutor_New(t *testing.T) {
 				Repo:     _repo,
 				Runtime:  _runtime,
 				User:     _user,
+				Version:  "v1.0.0",
 			},
 			want: nil,
 		},

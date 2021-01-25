@@ -159,3 +159,21 @@ func WithVelaClient(cli *vela.Client) Opt {
 		return nil
 	}
 }
+
+// WithVersion sets the version in the client.
+func WithVersion(version string) Opt {
+	logrus.Trace("configuring version in linux client")
+
+	return func(c *client) error {
+		// check if a version is provided
+		if len(version) == 0 {
+			// default the version to localhost
+			version = "v0.0.0"
+		}
+
+		// set the version in the client
+		c.Version = version
+
+		return nil
+	}
+}

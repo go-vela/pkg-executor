@@ -14,7 +14,7 @@ import (
 
 // Environment attempts to update the environment variables
 // for the container based off the library resources.
-func Environment(c *pipeline.Container, b *library.Build, r *library.Repo, s *library.Step) error {
+func Environment(c *pipeline.Container, b *library.Build, r *library.Repo, s *library.Step, version string) error {
 	// check if container or container environment are empty
 	if c == nil || c.Environment == nil {
 		return fmt.Errorf("empty container provided for environment")
@@ -33,18 +33,14 @@ func Environment(c *pipeline.Container, b *library.Build, r *library.Repo, s *li
 		workspace, ok := c.Environment["VELA_WORKSPACE"]
 		if !ok {
 			// set default for workspace
-			//
-			// TODO: consider making this a constant
-			workspace = "/vela"
+			workspace = constants.WorkspaceDefault
 		}
 
 		// update environment variables
 		c.Environment["VELA_DISTRIBUTION"] = b.GetDistribution()
 		c.Environment["VELA_HOST"] = b.GetHost()
 		c.Environment["VELA_RUNTIME"] = b.GetRuntime()
-
-		// TODO: remove hardcoded reference
-		c.Environment["VELA_VERSION"] = "v0.7.0"
+		c.Environment["VELA_VERSION"] = version
 
 		// populate environment variables from build library
 		c.Environment = appendMap(c.Environment, b.Environment(workspace, channel))

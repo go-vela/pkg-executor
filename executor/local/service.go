@@ -30,7 +30,7 @@ func (c *client) CreateService(ctx context.Context, ctn *pipeline.Container) err
 	}
 
 	// update the service container environment
-	err = service.Environment(ctn, c.build, c.repo, nil)
+	err = service.Environment(ctn, c.build, c.repo, nil, c.Version)
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func (c *client) PlanService(ctx context.Context, ctn *pipeline.Container) error
 	_service.SetDistribution(c.build.GetDistribution())
 
 	// update the service container environment
-	err := service.Environment(ctn, c.build, c.repo, _service)
+	err := service.Environment(ctn, c.build, c.repo, _service, c.Version)
 	if err != nil {
 		return err
 	}

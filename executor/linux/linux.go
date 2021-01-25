@@ -24,6 +24,7 @@ type (
 		Runtime  runtime.Engine
 		Secrets  map[string]*library.Secret
 		Hostname string
+		Version  string
 
 		// clients for build actions
 		secret *secretSvc

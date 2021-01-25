@@ -118,9 +118,18 @@ func (c *client) ExecService(ctx context.Context, ctn *pipeline.Container) error
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
 	logger := c.logger.WithField("service", ctn.Name)
 
+	// load the service from the client
+	_service, err := service.Load(ctn, &c.services)
+	if err != nil {
+		return err
+	}
+
+	// defer taking a snapshot of the service
+	defer service.Snapshot(ctn, c.build, c.Vela, c.logger, c.repo, _service)
+
 	logger.Debug("running container")
 	// run the runtime container
-	err := c.Runtime.RunContainer(ctx, ctn, c.pipeline)
+	err = c.Runtime.RunContainer(ctx, ctn, c.pipeline)
 	if err != nil {
 		return err
 	}

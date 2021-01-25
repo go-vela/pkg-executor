@@ -71,8 +71,17 @@ func (c *client) PlanService(ctx context.Context, ctn *pipeline.Container) error
 
 // ExecService runs a service.
 func (c *client) ExecService(ctx context.Context, ctn *pipeline.Container) error {
+	// load the service from the client
+	_service, err := service.Load(ctn, &c.services)
+	if err != nil {
+		return err
+	}
+
+	// defer taking a snapshot of the service
+	defer service.Snapshot(ctn, c.build, nil, nil, nil, _service)
+
 	// run the runtime container
-	err := c.Runtime.RunContainer(ctx, ctn, c.pipeline)
+	err = c.Runtime.RunContainer(ctx, ctn, c.pipeline)
 	if err != nil {
 		return err
 	}

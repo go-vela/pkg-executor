@@ -33,6 +33,8 @@ func (c *client) CreateService(ctx context.Context, ctn *pipeline.Container) err
 	}
 
 	// update the service container environment
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/service#Environment
 	err = service.Environment(ctn, c.build, c.repo, nil, c.Version)
 	if err != nil {
 		return err
@@ -47,6 +49,8 @@ func (c *client) CreateService(ctx context.Context, ctn *pipeline.Container) err
 
 	logger.Debug("substituting container configuration")
 	// substitute container configuration
+	//
+	// https://pkg.go.dev/github.com/go-vela/types/pipeline#Container.Substitute
 	err = ctn.Substitute()
 	if err != nil {
 		return fmt.Errorf("unable to substitute container configuration")
@@ -85,12 +89,12 @@ func (c *client) PlanService(ctx context.Context, ctn *pipeline.Container) error
 	}
 
 	// update the service container environment
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/service#Environment
 	err = service.Environment(ctn, c.build, c.repo, _service, c.Version)
 	if err != nil {
 		return err
 	}
-
-	_service.SetStatus(constants.StatusSuccess)
 
 	// add a service to a map
 	c.services.Store(ctn.ID, _service)
@@ -119,12 +123,16 @@ func (c *client) ExecService(ctx context.Context, ctn *pipeline.Container) error
 	logger := c.logger.WithField("service", ctn.Name)
 
 	// load the service from the client
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/service#Load
 	_service, err := service.Load(ctn, &c.services)
 	if err != nil {
 		return err
 	}
 
 	// defer taking a snapshot of the service
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/service#Snapshot
 	defer service.Snapshot(ctn, c.build, c.Vela, c.logger, c.repo, _service)
 
 	logger.Debug("running container")
@@ -154,6 +162,8 @@ func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) err
 	logger := c.logger.WithField("service", ctn.Name)
 
 	// load the logs for the service from the client
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/service#LoadLogs
 	_log, err := service.LoadLogs(ctn, &c.serviceLogs)
 	if err != nil {
 		return err
@@ -245,13 +255,19 @@ func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) er
 	logger := c.logger.WithField("service", ctn.Name)
 
 	// load the service from the client
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/service#Load
 	_service, err := service.Load(ctn, &c.services)
 	if err != nil {
 		// create the service from the container
+		//
+		// https://pkg.go.dev/github.com/go-vela/types/library#ServiceFromContainer
 		_service = library.ServiceFromContainer(ctn)
 	}
 
 	// defer an upload of the service
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/service#LoaUploadd
 	defer service.Upload(ctn, c.build, c.Vela, logger, c.repo, _service)
 
 	logger.Debug("inspecting container")

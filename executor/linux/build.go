@@ -20,6 +20,8 @@ import (
 // CreateBuild configures the build for execution.
 func (c *client) CreateBuild(ctx context.Context) error {
 	// defer taking a snapshot of the build
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/build#Snapshot
 	defer build.Snapshot(c.build, c.Vela, c.err, c.logger, c.repo)
 
 	// update the build fields
@@ -63,15 +65,21 @@ func (c *client) CreateBuild(ctx context.Context) error {
 // nolint: funlen // ignore function length due to comments and logging messages
 func (c *client) PlanBuild(ctx context.Context) error {
 	// defer taking a snapshot of the build
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/build#Snapshot
 	defer build.Snapshot(c.build, c.Vela, c.err, c.logger, c.repo)
 
 	// load the init step from the client
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Load
 	_init, err := step.Load(c.init, &c.steps)
 	if err != nil {
 		return err
 	}
 
 	// load the logs for the init step from the client
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#LoadLogs
 	_log, err := step.LoadLogs(c.init, &c.stepLogs)
 	if err != nil {
 		return err
@@ -189,15 +197,21 @@ func (c *client) PlanBuild(ctx context.Context) error {
 // nolint: funlen // ignore function length due to comments and logging messages
 func (c *client) AssembleBuild(ctx context.Context) error {
 	// defer taking a snapshot of the build
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/build#Snapshot
 	defer build.Snapshot(c.build, c.Vela, c.err, c.logger, c.repo)
 
 	// load the init step from the client
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Load
 	_init, err := step.Load(c.init, &c.steps)
 	if err != nil {
 		return err
 	}
 
 	// load the logs for the init step from the client
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#LoadLogs
 	_log, err := step.LoadLogs(c.init, &c.stepLogs)
 	if err != nil {
 		return err
@@ -362,6 +376,8 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 // nolint: funlen // ignore function length due to comments and log messages
 func (c *client) ExecBuild(ctx context.Context) error {
 	// defer an upload of the build
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/build#Upload
 	defer build.Upload(c.build, c.Vela, c.err, c.logger, c.repo)
 
 	// execute the services for the pipeline
@@ -388,7 +404,9 @@ func (c *client) ExecBuild(ctx context.Context) error {
 			continue
 		}
 
-		// check if you need to skip executing this step
+		// check if the step should be skipped
+		//
+		// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Skip
 		if step.Skip(_step, c.build, c.repo) {
 			continue
 		}

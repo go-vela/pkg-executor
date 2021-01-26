@@ -39,6 +39,9 @@ func Snapshot(ctn *pipeline.Container, b *library.Build, c *vela.Client, l *logr
 
 	// check if the logger provided is empty
 	if l == nil {
+		// create new logger
+		//
+		// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#NewEntry
 		l = logrus.NewEntry(logrus.StandardLogger())
 	}
 

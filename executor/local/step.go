@@ -34,12 +34,16 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 	}
 
 	// update the step container environment
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Environment
 	err = step.Environment(ctn, c.build, c.repo, nil, c.Version)
 	if err != nil {
 		return err
 	}
 
 	// substitute container configuration
+	//
+	// https://pkg.go.dev/github.com/go-vela/types/pipeline#Container.Substitute
 	err = ctn.Substitute()
 	if err != nil {
 		return err
@@ -63,6 +67,8 @@ func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
 	_step.SetDistribution(c.build.GetDistribution())
 
 	// update the step container environment
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Environment
 	err := step.Environment(ctn, c.build, c.repo, _step, c.Version)
 	if err != nil {
 		return err
@@ -82,12 +88,16 @@ func (c *client) ExecStep(ctx context.Context, ctn *pipeline.Container) error {
 	}
 
 	// load the step from the client
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Load
 	_step, err := step.Load(ctn, &c.steps)
 	if err != nil {
 		return err
 	}
 
 	// defer taking a snapshot of the step
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Snapshot
 	defer step.Snapshot(ctn, c.build, nil, nil, nil, _step)
 
 	// run the runtime container
@@ -169,13 +179,19 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 	}
 
 	// load the step from the client
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Load
 	_step, err := step.Load(ctn, &c.steps)
 	if err != nil {
 		// create the step from the container
+		//
+		// https://pkg.go.dev/github.com/go-vela/types/library#StepFromContainer
 		_step = library.StepFromContainer(ctn)
 	}
 
 	// defer an upload of the step
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Upload
 	defer step.Upload(ctn, c.build, nil, nil, nil, _step)
 
 	// inspect the runtime container

@@ -15,6 +15,8 @@ import (
 // CreateStage prepares the stage for execution.
 func (c *client) CreateStage(ctx context.Context, s *pipeline.Stage) error {
 	// load the logs for the init step from the client
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#LoadLogs
 	_log, err := step.LoadLogs(c.init, &c.stepLogs)
 	if err != nil {
 		return err
@@ -106,7 +108,9 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 	logger.Debug("starting execution of stage")
 	// execute the steps for the stage
 	for _, _step := range s.Steps {
-		// check if you need to skip executing this step
+		// check if the step should be skipped
+		//
+		// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Skip
 		if step.Skip(_step, c.build, c.repo) {
 			continue
 		}

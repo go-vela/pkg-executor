@@ -38,6 +38,8 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 	}
 
 	// update the step container environment
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Environment
 	err = step.Environment(ctn, c.build, c.repo, nil, c.Version)
 	if err != nil {
 		return err
@@ -52,6 +54,8 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 
 	logger.Debug("substituting container configuration")
 	// substitute container configuration
+	//
+	// https://pkg.go.dev/github.com/go-vela/types/pipeline#Container.Substitute
 	err = ctn.Substitute()
 	if err != nil {
 		return fmt.Errorf("unable to substitute container configuration")
@@ -91,12 +95,12 @@ func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
 	}
 
 	// update the step container environment
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Environment
 	err = step.Environment(ctn, c.build, c.repo, _step, c.Version)
 	if err != nil {
 		return err
 	}
-
-	_step.SetStatus(constants.StatusSuccess)
 
 	// add a step to a map
 	c.steps.Store(ctn.ID, _step)
@@ -130,12 +134,16 @@ func (c *client) ExecStep(ctx context.Context, ctn *pipeline.Container) error {
 	logger := c.logger.WithField("step", ctn.Name)
 
 	// load the step from the client
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Load
 	_step, err := step.Load(ctn, &c.steps)
 	if err != nil {
 		return err
 	}
 
 	// defer taking a snapshot of the step
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Snapshot
 	defer step.Snapshot(ctn, c.build, c.Vela, c.logger, c.repo, _step)
 
 	logger.Debug("running container")
@@ -189,6 +197,8 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 	logger := c.logger.WithField("step", ctn.Name)
 
 	// load the logs for the step from the client
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#LoadLogs
 	_log, err := step.LoadLogs(ctn, &c.stepLogs)
 	if err != nil {
 		return err
@@ -285,13 +295,19 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 	logger := c.logger.WithField("step", ctn.Name)
 
 	// load the step from the client
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Load
 	_step, err := step.Load(ctn, &c.steps)
 	if err != nil {
 		// create the step from the container
+		//
+		// https://pkg.go.dev/github.com/go-vela/types/library#StepFromContainer
 		_step = library.StepFromContainer(ctn)
 	}
 
 	// defer an upload of the step
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Upload
 	defer step.Upload(ctn, c.build, c.Vela, logger, c.repo, _step)
 
 	logger.Debug("inspecting container")

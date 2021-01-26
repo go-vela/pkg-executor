@@ -22,6 +22,8 @@ func Skip(c *pipeline.Container, b *library.Build, r *library.Repo) bool {
 	}
 
 	// create ruledata from build and repository information
+	//
+	// https://pkg.go.dev/github.com/go-vela/types/pipeline#RuleData
 	ruledata := &pipeline.RuleData{
 		Branch: b.GetBranch(),
 		Event:  b.GetEvent(),
@@ -42,5 +44,7 @@ func Skip(c *pipeline.Container, b *library.Build, r *library.Repo) bool {
 	}
 
 	// return the inverse of container execute
+	//
+	// https://pkg.go.dev/github.com/go-vela/types/pipeline#Container.Execute
 	return !c.Execute(ruledata)
 }

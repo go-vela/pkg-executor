@@ -122,6 +122,11 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 		return err
 	}
 
+	// defer an upload of the init step
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Upload
+	defer step.Upload(c.init, c.build, nil, nil, nil, _init)
+
 	// create a step pattern for log output
 	_pattern := fmt.Sprintf(stepPattern, c.init.Name)
 
@@ -130,10 +135,6 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 		// create a stage pattern for log output
 		_pattern = fmt.Sprintf(stagePattern, c.init.Name, c.init.Name)
 	}
-
-	defer func() {
-		_init.SetFinished(time.Now().UTC().Unix())
-	}()
 
 	// output init progress to stdout
 	fmt.Fprintln(os.Stdout, _pattern, "> Pulling service images...")

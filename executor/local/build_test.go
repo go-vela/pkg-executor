@@ -7,21 +7,12 @@ package local
 import (
 	"context"
 	"flag"
-	"io/ioutil"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/go-vela/compiler/compiler/native"
-	"github.com/go-vela/mock/server"
 	"github.com/urfave/cli/v2"
 
 	"github.com/go-vela/pkg-runtime/runtime/docker"
-
-	"github.com/go-vela/sdk-go/vela"
-
-	"github.com/go-vela/types/library"
-
-	"github.com/gin-gonic/gin"
 )
 
 func TestLocal_CreateBuild(t *testing.T) {
@@ -31,16 +22,6 @@ func TestLocal_CreateBuild(t *testing.T) {
 	_build := testBuild()
 	_repo := testRepo()
 	_user := testUser()
-	_metadata := testMetadata()
-
-	gin.SetMode(gin.TestMode)
-
-	s := httptest.NewServer(server.FakeHandler())
-
-	_client, err := vela.NewClient(s.URL, "", nil)
-	if err != nil {
-		t.Errorf("unable to create Vela API client: %v", err)
-	}
 
 	_runtime, err := docker.NewMock()
 	if err != nil {
@@ -49,39 +30,40 @@ func TestLocal_CreateBuild(t *testing.T) {
 
 	tests := []struct {
 		failure  bool
-		build    *library.Build
 		pipeline string
 	}{
+		{ // basic services pipeline
+			failure:  false,
+			pipeline: "testdata/build/services/basic.yml",
+		},
 		{ // basic steps pipeline
 			failure:  false,
-			build:    _build,
 			pipeline: "testdata/build/steps/basic.yml",
 		},
 		{ // basic stages pipeline
 			failure:  false,
-			build:    _build,
 			pipeline: "testdata/build/stages/basic.yml",
 		},
 	}
 
 	// run test
 	for _, test := range tests {
-		file, _ := ioutil.ReadFile(test.pipeline)
-
-		p, _ := compiler.
+		_pipeline, err := compiler.
 			WithBuild(_build).
 			WithRepo(_repo).
+			WithLocal(true).
 			WithUser(_user).
-			WithMetadata(_metadata).
-			Compile(file)
+			Compile(test.pipeline)
+		if err != nil {
+			t.Errorf("unable to compile pipeline %s: %v", test.pipeline, err)
+		}
 
 		_engine, err := New(
-			WithBuild(test.build),
-			WithPipeline(p),
+			WithBuild(_build),
+			WithPipeline(_pipeline),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
-			WithVelaClient(_client),
 		)
 		if err != nil {
 			t.Errorf("unable to create executor engine: %v", err)
@@ -110,16 +92,6 @@ func TestLocal_PlanBuild(t *testing.T) {
 	_build := testBuild()
 	_repo := testRepo()
 	_user := testUser()
-	_metadata := testMetadata()
-
-	gin.SetMode(gin.TestMode)
-
-	s := httptest.NewServer(server.FakeHandler())
-
-	_client, err := vela.NewClient(s.URL, "", nil)
-	if err != nil {
-		t.Errorf("unable to create Vela API client: %v", err)
-	}
 
 	_runtime, err := docker.NewMock()
 	if err != nil {
@@ -130,6 +102,10 @@ func TestLocal_PlanBuild(t *testing.T) {
 		failure  bool
 		pipeline string
 	}{
+		{ // basic services pipeline
+			failure:  false,
+			pipeline: "testdata/build/services/basic.yml",
+		},
 		{ // basic steps pipeline
 			failure:  false,
 			pipeline: "testdata/build/steps/basic.yml",
@@ -142,22 +118,22 @@ func TestLocal_PlanBuild(t *testing.T) {
 
 	// run test
 	for _, test := range tests {
-		file, _ := ioutil.ReadFile(test.pipeline)
-
-		p, _ := compiler.
+		_pipeline, err := compiler.
 			WithBuild(_build).
 			WithRepo(_repo).
+			WithLocal(true).
 			WithUser(_user).
-			WithMetadata(_metadata).
-			Compile(file)
+			Compile(test.pipeline)
+		if err != nil {
+			t.Errorf("unable to compile pipeline %s: %v", test.pipeline, err)
+		}
 
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(p),
+			WithPipeline(_pipeline),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
-			WithVelaClient(_client),
 		)
 		if err != nil {
 			t.Errorf("unable to create executor engine: %v", err)
@@ -165,6 +141,9 @@ func TestLocal_PlanBuild(t *testing.T) {
 
 		// run create to init steps to be created properly
 		err = _engine.CreateBuild(context.Background())
+		if err != nil {
+			t.Errorf("unable to create build: %v", err)
+		}
 
 		err = _engine.PlanBuild(context.Background())
 
@@ -189,16 +168,6 @@ func TestLocal_AssembleBuild(t *testing.T) {
 	_build := testBuild()
 	_repo := testRepo()
 	_user := testUser()
-	_metadata := testMetadata()
-
-	gin.SetMode(gin.TestMode)
-
-	s := httptest.NewServer(server.FakeHandler())
-
-	_client, err := vela.NewClient(s.URL, "", nil)
-	if err != nil {
-		t.Errorf("unable to create Vela API client: %v", err)
-	}
 
 	_runtime, err := docker.NewMock()
 	if err != nil {
@@ -209,15 +178,27 @@ func TestLocal_AssembleBuild(t *testing.T) {
 		failure  bool
 		pipeline string
 	}{
+		{ // basic services pipeline
+			failure:  false,
+			pipeline: "testdata/build/services/basic.yml",
+		},
+		{ // services pipeline with image not found
+			failure:  true,
+			pipeline: "testdata/build/services/img_notfound.yml",
+		},
+		{ // services pipeline with ignoring image not found
+			failure:  true,
+			pipeline: "testdata/build/services/img_ignorenotfound.yml",
+		},
 		{ // basic steps pipeline
 			failure:  false,
 			pipeline: "testdata/build/steps/basic.yml",
 		},
-		{ // pipeline with steps image tag not found
+		{ // steps pipeline with image not found
 			failure:  true,
 			pipeline: "testdata/build/steps/img_notfound.yml",
 		},
-		{ // pipeline with steps image tag ignoring not found
+		{ // steps pipeline with ignoring image not found
 			failure:  true,
 			pipeline: "testdata/build/steps/img_ignorenotfound.yml",
 		},
@@ -225,42 +206,34 @@ func TestLocal_AssembleBuild(t *testing.T) {
 			failure:  false,
 			pipeline: "testdata/build/stages/basic.yml",
 		},
-		{ // pipeline with stages image tag not found
+		{ // stages pipeline with image not found
 			failure:  true,
 			pipeline: "testdata/build/stages/img_notfound.yml",
 		},
-		{ // pipeline with stages image tag ignoring not found
+		{ // stages pipeline with ignoring image not found
 			failure:  true,
 			pipeline: "testdata/build/stages/img_ignorenotfound.yml",
-		},
-		{ // pipeline with service image tag not found
-			failure:  true,
-			pipeline: "testdata/build/services/img_notfound.yml",
-		},
-		{ // pipeline with service image tag ignoring not found
-			failure:  true,
-			pipeline: "testdata/build/services/img_ignorenotfound.yml",
 		},
 	}
 
 	// run test
 	for _, test := range tests {
-		file, _ := ioutil.ReadFile(test.pipeline)
-
-		p, _ := compiler.
+		_pipeline, err := compiler.
 			WithBuild(_build).
 			WithRepo(_repo).
+			WithLocal(true).
 			WithUser(_user).
-			WithMetadata(_metadata).
-			Compile(file)
+			Compile(test.pipeline)
+		if err != nil {
+			t.Errorf("unable to compile pipeline %s: %v", test.pipeline, err)
+		}
 
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(p),
+			WithPipeline(_pipeline),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
-			WithVelaClient(_client),
 		)
 		if err != nil {
 			t.Errorf("unable to create executor engine: %v", err)
@@ -268,6 +241,9 @@ func TestLocal_AssembleBuild(t *testing.T) {
 
 		// run create to init steps to be created properly
 		err = _engine.CreateBuild(context.Background())
+		if err != nil {
+			t.Errorf("unable to create build: %v", err)
+		}
 
 		err = _engine.AssembleBuild(context.Background())
 
@@ -292,16 +268,6 @@ func TestLocal_ExecBuild(t *testing.T) {
 	_build := testBuild()
 	_repo := testRepo()
 	_user := testUser()
-	_metadata := testMetadata()
-
-	gin.SetMode(gin.TestMode)
-
-	s := httptest.NewServer(server.FakeHandler())
-
-	_client, err := vela.NewClient(s.URL, "", nil)
-	if err != nil {
-		t.Errorf("unable to create Vela API client: %v", err)
-	}
 
 	_runtime, err := docker.NewMock()
 	if err != nil {
@@ -312,94 +278,53 @@ func TestLocal_ExecBuild(t *testing.T) {
 		failure  bool
 		pipeline string
 	}{
+		{ // basic services pipeline
+			failure:  false,
+			pipeline: "testdata/build/services/basic.yml",
+		},
+		{ // services pipeline with image not found
+			failure:  true,
+			pipeline: "testdata/build/services/img_notfound.yml",
+		},
 		{ // basic steps pipeline
 			failure:  false,
 			pipeline: "testdata/build/steps/basic.yml",
 		},
-		{ // pipeline with step image tag not found
+		{ // steps pipeline with image not found
 			failure:  true,
 			pipeline: "testdata/build/steps/img_notfound.yml",
-		},
-		{ // pipeline with step name not found
-			failure:  true,
-			pipeline: "testdata/build/steps/name_notfound.yml",
 		},
 		{ // basic stages pipeline
 			failure:  false,
 			pipeline: "testdata/build/stages/basic.yml",
 		},
-		{ // pipeline with stage step image tag not found
+		{ // stages pipeline with image not found
 			failure:  true,
 			pipeline: "testdata/build/stages/img_notfound.yml",
-		},
-		{ // pipeline with stage step name not found
-			failure:  true,
-			pipeline: "testdata/build/stages/name_notfound.yml",
-		},
-		{ // basic services pipeline
-			failure:  false,
-			pipeline: "testdata/build/services/basic.yml",
-		},
-		{ // pipeline with service image tag not found
-			failure:  true,
-			pipeline: "testdata/build/services/img_notfound.yml",
-		},
-		{ // pipeline with service name not found
-			failure:  true,
-			pipeline: "testdata/build/services/name_notfound.yml",
 		},
 	}
 
 	// run test
 	for _, test := range tests {
-		file, _ := ioutil.ReadFile(test.pipeline)
-
-		p, _ := compiler.
+		_pipeline, err := compiler.
 			WithBuild(_build).
 			WithRepo(_repo).
+			WithLocal(true).
 			WithUser(_user).
-			WithMetadata(_metadata).
-			Compile(file)
+			Compile(test.pipeline)
+		if err != nil {
+			t.Errorf("unable to compile pipeline %s: %v", test.pipeline, err)
+		}
 
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(p),
+			WithPipeline(_pipeline),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
-			WithVelaClient(_client),
 		)
 		if err != nil {
 			t.Errorf("unable to create executor engine: %v", err)
-		}
-
-		for _, service := range p.Services {
-			s := &library.Service{
-				Name:   &service.Name,
-				Number: &service.Number,
-			}
-
-			_engine.services.Store(service.ID, s)
-		}
-
-		for _, stage := range p.Stages {
-			for _, step := range stage.Steps {
-				s := &library.Step{
-					Name:   &step.Name,
-					Number: &step.Number,
-				}
-
-				_engine.steps.Store(step.ID, s)
-			}
-		}
-
-		for _, step := range p.Steps {
-			s := &library.Step{
-				Name:   &step.Name,
-				Number: &step.Number,
-			}
-
-			_engine.steps.Store(step.ID, s)
 		}
 
 		// run create to init steps to be created properly
@@ -407,27 +332,6 @@ func TestLocal_ExecBuild(t *testing.T) {
 		if err != nil {
 			t.Errorf("unable to create build: %v", err)
 		}
-
-		// create volume for runtime host config
-		err = _runtime.CreateVolume(context.Background(), p)
-		if err != nil {
-			t.Errorf("unable to create runtime volume: %w", err)
-		}
-
-		// TODO: hack - remove this
-		//
-		// When calling CreateBuild(), it will automatically set the
-		// test build object to a status of `created`. This happens
-		// because we use a mock for the go-vela/server in our tests
-		// which only returns dummy based responses.
-		//
-		// The problem this causes is that our container.Execute()
-		// function isn't setup to handle builds in a `created` state.
-		//
-		// In a real world scenario, we never would have a build
-		// in this state when we call ExecBuild() because the
-		// go-vela/server has logic to set it to an expected state.
-		_engine.build.SetStatus("running")
 
 		err = _engine.ExecBuild(context.Background())
 
@@ -452,16 +356,6 @@ func TestLocal_DestroyBuild(t *testing.T) {
 	_build := testBuild()
 	_repo := testRepo()
 	_user := testUser()
-	_metadata := testMetadata()
-
-	gin.SetMode(gin.TestMode)
-
-	s := httptest.NewServer(server.FakeHandler())
-
-	_client, err := vela.NewClient(s.URL, "", nil)
-	if err != nil {
-		t.Errorf("unable to create Vela API client: %v", err)
-	}
 
 	_runtime, err := docker.NewMock()
 	if err != nil {
@@ -472,54 +366,50 @@ func TestLocal_DestroyBuild(t *testing.T) {
 		failure  bool
 		pipeline string
 	}{
-		// { // pipeline empty
-		// 	failure:  true,
-		// 	pipeline:     "testdata/build/empty.yml",
-		// },
+		{ // basic services pipeline
+			failure:  false,
+			pipeline: "testdata/build/services/basic.yml",
+		},
+		{ // services pipeline with name not found
+			failure:  false,
+			pipeline: "testdata/build/services/name_notfound.yml",
+		},
 		{ // basic steps pipeline
 			failure:  false,
 			pipeline: "testdata/build/steps/basic.yml",
 		},
-		{ // pipeline with step image tag not found
+		{ // steps pipeline with name not found
 			failure:  false,
-			pipeline: "testdata/build/steps/img_notfound.yml",
+			pipeline: "testdata/build/steps/name_notfound.yml",
 		},
 		{ // basic stages pipeline
 			failure:  false,
 			pipeline: "testdata/build/stages/basic.yml",
 		},
-		{ // pipeline with stage step image tag not found
+		{ // stages pipeline with name not found
 			failure:  false,
-			pipeline: "testdata/build/stages/img_notfound.yml",
-		},
-		{ // basic services pipeline
-			failure:  false,
-			pipeline: "testdata/build/services/basic.yml",
-		},
-		{ // pipeline with service image tag not found
-			failure:  false,
-			pipeline: "testdata/build/services/img_notfound.yml",
+			pipeline: "testdata/build/stages/name_notfound.yml",
 		},
 	}
 
 	// run test
 	for _, test := range tests {
-		file, _ := ioutil.ReadFile(test.pipeline)
-
-		p, _ := compiler.
+		_pipeline, err := compiler.
 			WithBuild(_build).
 			WithRepo(_repo).
+			WithLocal(true).
 			WithUser(_user).
-			WithMetadata(_metadata).
-			Compile(file)
+			Compile(test.pipeline)
+		if err != nil {
+			t.Errorf("unable to compile pipeline %s: %v", test.pipeline, err)
+		}
 
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(p),
+			WithPipeline(_pipeline),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
-			WithVelaClient(_client),
 		)
 		if err != nil {
 			t.Errorf("unable to create executor engine: %v", err)
@@ -527,6 +417,9 @@ func TestLocal_DestroyBuild(t *testing.T) {
 
 		// run create to init steps to be created properly
 		err = _engine.CreateBuild(context.Background())
+		if err != nil {
+			t.Errorf("unable to create build: %v", err)
+		}
 
 		err = _engine.DestroyBuild(context.Background())
 

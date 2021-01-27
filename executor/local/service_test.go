@@ -6,18 +6,10 @@ package local
 
 import (
 	"context"
-	"net/http/httptest"
 	"testing"
-
-	"github.com/gin-gonic/gin"
-
-	"github.com/go-vela/mock/server"
 
 	"github.com/go-vela/pkg-runtime/runtime/docker"
 
-	"github.com/go-vela/sdk-go/vela"
-
-	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/library"
 	"github.com/go-vela/types/pipeline"
 )
@@ -27,16 +19,6 @@ func TestLocal_CreateService(t *testing.T) {
 	_build := testBuild()
 	_repo := testRepo()
 	_user := testUser()
-	_steps := testSteps()
-
-	gin.SetMode(gin.TestMode)
-
-	s := httptest.NewServer(server.FakeHandler())
-
-	_client, err := vela.NewClient(s.URL, "", nil)
-	if err != nil {
-		t.Errorf("unable to create Vela API client: %v", err)
-	}
 
 	_runtime, err := docker.NewMock()
 	if err != nil {
@@ -48,11 +30,12 @@ func TestLocal_CreateService(t *testing.T) {
 		failure   bool
 		container *pipeline.Container
 	}{
-		{
+		{ // basic service container
 			failure: false,
 			container: &pipeline.Container{
 				ID:          "service_github_octocat_1_postgres",
-				Directory:   "/home/github/octocat",
+				Detach:      true,
+				Directory:   "/vela/src/github.com/github/octocat",
 				Environment: map[string]string{"FOO": "bar"},
 				Image:       "postgres:12-alpine",
 				Name:        "postgres",
@@ -61,11 +44,12 @@ func TestLocal_CreateService(t *testing.T) {
 				Pull:        "not_present",
 			},
 		},
-		{
+		{ // service container with image not found
 			failure: true,
 			container: &pipeline.Container{
 				ID:          "service_github_octocat_1_postgres",
-				Directory:   "/home/github/octocat",
+				Detach:      true,
+				Directory:   "/vela/src/github.com/github/octocat",
 				Environment: map[string]string{"FOO": "bar"},
 				Image:       "postgres:notfound",
 				Name:        "postgres",
@@ -74,17 +58,20 @@ func TestLocal_CreateService(t *testing.T) {
 				Pull:        "not_present",
 			},
 		},
+		{ // empty service container
+			failure:   true,
+			container: new(pipeline.Container),
+		},
 	}
 
 	// run tests
 	for _, test := range tests {
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(_steps),
+			WithPipeline(new(pipeline.Build)),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
-			WithVelaClient(_client),
 		)
 		if err != nil {
 			t.Errorf("unable to create executor engine: %v", err)
@@ -111,16 +98,6 @@ func TestLocal_PlanService(t *testing.T) {
 	_build := testBuild()
 	_repo := testRepo()
 	_user := testUser()
-	_steps := testSteps()
-
-	gin.SetMode(gin.TestMode)
-
-	s := httptest.NewServer(server.FakeHandler())
-
-	_client, err := vela.NewClient(s.URL, "", nil)
-	if err != nil {
-		t.Errorf("unable to create Vela API client: %v", err)
-	}
 
 	_runtime, err := docker.NewMock()
 	if err != nil {
@@ -132,11 +109,12 @@ func TestLocal_PlanService(t *testing.T) {
 		failure   bool
 		container *pipeline.Container
 	}{
-		{
+		{ // basic service container
 			failure: false,
 			container: &pipeline.Container{
 				ID:          "service_github_octocat_1_postgres",
-				Directory:   "/home/github/octocat",
+				Detach:      true,
+				Directory:   "/vela/src/github.com/github/octocat",
 				Environment: map[string]string{"FOO": "bar"},
 				Image:       "postgres:12-alpine",
 				Name:        "postgres",
@@ -145,17 +123,20 @@ func TestLocal_PlanService(t *testing.T) {
 				Pull:        "not_present",
 			},
 		},
+		{ // empty service container
+			failure:   true,
+			container: new(pipeline.Container),
+		},
 	}
 
 	// run tests
 	for _, test := range tests {
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(_steps),
+			WithPipeline(new(pipeline.Build)),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
-			WithVelaClient(_client),
 		)
 		if err != nil {
 			t.Errorf("unable to create executor engine: %v", err)
@@ -182,16 +163,6 @@ func TestLocal_ExecService(t *testing.T) {
 	_build := testBuild()
 	_repo := testRepo()
 	_user := testUser()
-	_steps := testSteps()
-
-	gin.SetMode(gin.TestMode)
-
-	s := httptest.NewServer(server.FakeHandler())
-
-	_client, err := vela.NewClient(s.URL, "", nil)
-	if err != nil {
-		t.Errorf("unable to create Vela API client: %v", err)
-	}
 
 	_runtime, err := docker.NewMock()
 	if err != nil {
@@ -203,11 +174,12 @@ func TestLocal_ExecService(t *testing.T) {
 		failure   bool
 		container *pipeline.Container
 	}{
-		{
+		{ // basic service container
 			failure: false,
 			container: &pipeline.Container{
 				ID:          "service_github_octocat_1_postgres",
-				Directory:   "/home/github/octocat",
+				Detach:      true,
+				Directory:   "/vela/src/github.com/github/octocat",
 				Environment: map[string]string{"FOO": "bar"},
 				Image:       "postgres:12-alpine",
 				Name:        "postgres",
@@ -216,17 +188,23 @@ func TestLocal_ExecService(t *testing.T) {
 				Pull:        "not_present",
 			},
 		},
-		{
+		{ // service container with image not found
 			failure: true,
 			container: &pipeline.Container{
-				ID:          "service_github_octocat_1_notfound",
-				Directory:   "/home/github/octocat",
+				ID:          "service_github_octocat_1_postgres",
+				Detach:      true,
+				Directory:   "/vela/src/github.com/github/octocat",
 				Environment: map[string]string{"FOO": "bar"},
-				Image:       "postgres:12-alpine",
-				Name:        "notfound",
-				Number:      2,
-				Pull:        "always",
+				Image:       "postgres:notfound",
+				Name:        "postgres",
+				Number:      1,
+				Ports:       []string{"5432:5432"},
+				Pull:        "not_present",
 			},
+		},
+		{ // empty service container
+			failure:   true,
+			container: new(pipeline.Container),
 		},
 	}
 
@@ -234,17 +212,18 @@ func TestLocal_ExecService(t *testing.T) {
 	for _, test := range tests {
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(_steps),
+			WithPipeline(new(pipeline.Build)),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
-			WithVelaClient(_client),
 		)
 		if err != nil {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
 
-		_engine.services.Store(test.container.ID, new(library.Service))
+		if !test.container.Empty() {
+			_engine.services.Store(test.container.ID, new(library.Service))
+		}
 
 		err = _engine.ExecService(context.Background(), test.container)
 
@@ -267,7 +246,6 @@ func TestLocal_StreamService(t *testing.T) {
 	_build := testBuild()
 	_repo := testRepo()
 	_user := testUser()
-	_steps := testSteps()
 
 	_runtime, err := docker.NewMock()
 	if err != nil {
@@ -279,11 +257,12 @@ func TestLocal_StreamService(t *testing.T) {
 		failure   bool
 		container *pipeline.Container
 	}{
-		{ // container step succeeds
+		{ // basic service container
 			failure: false,
 			container: &pipeline.Container{
 				ID:          "service_github_octocat_1_postgres",
-				Directory:   "/vela/src/vcs.company.com/github/octocat",
+				Detach:      true,
+				Directory:   "/vela/src/github.com/github/octocat",
 				Environment: map[string]string{"FOO": "bar"},
 				Image:       "postgres:12-alpine",
 				Name:        "postgres",
@@ -292,18 +271,9 @@ func TestLocal_StreamService(t *testing.T) {
 				Pull:        "not_present",
 			},
 		},
-		{ // container step fails because of invalid container id
-			failure: true,
-			container: &pipeline.Container{
-				ID:          "service_github_octocat_1_notfound",
-				Directory:   "/vela/src/vcs.company.com/github/octocat",
-				Environment: map[string]string{"FOO": "bar"},
-				Image:       "postgres:12-alpine",
-				Name:        "notfound",
-				Number:      1,
-				Ports:       []string{"5432:5432"},
-				Pull:        "not_present",
-			},
+		{ // empty service container
+			failure:   true,
+			container: new(pipeline.Container),
 		},
 	}
 
@@ -311,7 +281,7 @@ func TestLocal_StreamService(t *testing.T) {
 	for _, test := range tests {
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(_steps),
+			WithPipeline(new(pipeline.Build)),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
@@ -341,38 +311,23 @@ func TestLocal_DestroyService(t *testing.T) {
 	_build := testBuild()
 	_repo := testRepo()
 	_user := testUser()
-	_steps := testSteps()
-
-	gin.SetMode(gin.TestMode)
-
-	s := httptest.NewServer(server.FakeHandler())
-
-	_client, err := vela.NewClient(s.URL, "", nil)
-	if err != nil {
-		t.Errorf("unable to create Vela API client: %v", err)
-	}
 
 	_runtime, err := docker.NewMock()
 	if err != nil {
 		t.Errorf("unable to create runtime engine: %v", err)
 	}
 
-	_service := new(library.Service)
-	_service.SetName("postgres")
-	_service.SetNumber(1)
-	_service.SetStatus(constants.StatusPending)
-
 	// setup tests
 	tests := []struct {
 		failure   bool
 		container *pipeline.Container
-		service   *library.Service
 	}{
-		{
+		{ // basic service container
 			failure: false,
 			container: &pipeline.Container{
 				ID:          "service_github_octocat_1_postgres",
-				Directory:   "/home/github/octocat",
+				Detach:      true,
+				Directory:   "/vela/src/github.com/github/octocat",
 				Environment: map[string]string{"FOO": "bar"},
 				Image:       "postgres:12-alpine",
 				Name:        "postgres",
@@ -380,35 +335,6 @@ func TestLocal_DestroyService(t *testing.T) {
 				Ports:       []string{"5432:5432"},
 				Pull:        "not_present",
 			},
-			service: _service,
-		},
-		{
-			failure: true,
-			container: &pipeline.Container{
-				ID:          "service_github_octocat_1_notfound",
-				Directory:   "/home/github/octocat",
-				Environment: map[string]string{"FOO": "bar"},
-				Image:       "postgres:12-alpine",
-				Name:        "notfound",
-				Number:      1,
-				Ports:       []string{"5432:5432"},
-				Pull:        "not_present",
-			},
-			service: new(library.Service),
-		},
-		{
-			failure: true,
-			container: &pipeline.Container{
-				ID:          "service_github_octocat_1_ignorenotfound",
-				Directory:   "/home/github/octocat",
-				Environment: map[string]string{"FOO": "bar"},
-				Image:       "postgres:12-alpine",
-				Name:        "ignorenotfound",
-				Number:      1,
-				Ports:       []string{"5432:5432"},
-				Pull:        "not_present",
-			},
-			service: new(library.Service),
 		},
 	}
 
@@ -416,17 +342,14 @@ func TestLocal_DestroyService(t *testing.T) {
 	for _, test := range tests {
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(_steps),
+			WithPipeline(new(pipeline.Build)),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
-			WithVelaClient(_client),
 		)
 		if err != nil {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
-
-		_engine.services.Store(test.container.ID, test.service)
 
 		err = _engine.DestroyService(context.Background(), test.container)
 

@@ -308,6 +308,18 @@ func TestLocal_StreamStep(t *testing.T) {
 				Pull:        "not_present",
 			},
 		},
+		{ // basic stage container
+			failure: false,
+			container: &pipeline.Container{
+				ID:          "github_octocat_1_echo_echo",
+				Directory:   "/vela/src/github.com/github/octocat",
+				Environment: map[string]string{"VELA_STEP_STAGE": "foo"},
+				Image:       "alpine:latest",
+				Name:        "echo",
+				Number:      1,
+				Pull:        "not_present",
+			},
+		},
 		{ // empty step container
 			failure:   true,
 			container: new(pipeline.Container),

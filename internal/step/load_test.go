@@ -86,6 +86,101 @@ func TestStep_Load(t *testing.T) {
 	}
 }
 
+func TestStep_LoadInit(t *testing.T) {
+	// setup tests
+	tests := []struct {
+		failure  bool
+		pipeline *pipeline.Build
+		want     *pipeline.Container
+	}{
+		{
+			failure: false,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "github_octocat_1",
+				Stages: pipeline.StageSlice{
+					{
+						Name: "init",
+						Steps: pipeline.ContainerSlice{
+							{
+								ID:          "github_octocat_1_init_init",
+								Directory:   "/vela/src/github.com/github/octocat",
+								Environment: map[string]string{"FOO": "bar"},
+								Image:       "#init",
+								Name:        "init",
+								Number:      1,
+								Pull:        "always",
+							},
+						},
+					},
+				},
+			},
+			want: &pipeline.Container{
+				ID:          "github_octocat_1_init_init",
+				Directory:   "/vela/src/github.com/github/octocat",
+				Environment: map[string]string{"FOO": "bar"},
+				Image:       "#init",
+				Name:        "init",
+				Number:      1,
+				Pull:        "always",
+			},
+		},
+		{
+			failure: false,
+			pipeline: &pipeline.Build{
+				Version: "1",
+				ID:      "github_octocat_1",
+				Steps: pipeline.ContainerSlice{
+					{
+						ID:          "step_github_octocat_1_init",
+						Directory:   "/vela/src/github.com/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "#init",
+						Name:        "init",
+						Number:      1,
+						Pull:        "always",
+					},
+				},
+			},
+			want: &pipeline.Container{
+				ID:          "step_github_octocat_1_init",
+				Directory:   "/vela/src/github.com/github/octocat",
+				Environment: map[string]string{"FOO": "bar"},
+				Image:       "#init",
+				Name:        "init",
+				Number:      1,
+				Pull:        "always",
+			},
+		},
+		{
+			failure:  true,
+			pipeline: nil,
+			want:     nil,
+		},
+	}
+
+	// run tests
+	for _, test := range tests {
+		got, err := LoadInit(test.pipeline)
+
+		if test.failure {
+			if err == nil {
+				t.Errorf("LoadInit should have returned err")
+			}
+
+			continue
+		}
+
+		if err != nil {
+			t.Errorf("LoadInit returned err: %v", err)
+		}
+
+		if !reflect.DeepEqual(got, test.want) {
+			t.Errorf("LoadInit is %v, want %v", got, test.want)
+		}
+	}
+}
+
 func TestStep_LoadLogs(t *testing.T) {
 	// setup types
 	c := &pipeline.Container{

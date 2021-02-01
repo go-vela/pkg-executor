@@ -22,7 +22,7 @@ func (c *client) CreateBuild(ctx context.Context) error {
 	// defer taking a snapshot of the build
 	//
 	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/build#Snapshot
-	defer build.Snapshot(c.build, c.Vela, c.err, c.logger, c.repo)
+	defer func() { build.Snapshot(c.build, c.Vela, c.err, c.logger, c.repo) }()
 
 	// update the build fields
 	c.build.SetStatus(constants.StatusRunning)
@@ -67,7 +67,7 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	// defer taking a snapshot of the build
 	//
 	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/build#Snapshot
-	defer build.Snapshot(c.build, c.Vela, c.err, c.logger, c.repo)
+	defer func() { build.Snapshot(c.build, c.Vela, c.err, c.logger, c.repo) }()
 
 	// load the init step from the client
 	//
@@ -85,16 +85,12 @@ func (c *client) PlanBuild(ctx context.Context) error {
 		return err
 	}
 
-	defer func() {
-		c.logger.Infof("uploading %s step state", c.init.Name)
-		// send API call to update the step
-		//
-		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#StepService.Update
-		_, _, err := c.Vela.Step.Update(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), _init)
-		if err != nil {
-			c.logger.Errorf("unable to upload %s state: %v", c.init.Name, err)
-		}
+	// defer taking a snapshot of the init step
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Upload
+	defer func() { step.Snapshot(c.init, c.build, c.Vela, c.logger, c.repo, _init) }()
 
+	defer func() {
 		c.logger.Infof("uploading %s step logs", c.init.Name)
 		// send API call to update the logs for the step
 		//
@@ -199,7 +195,7 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	// defer taking a snapshot of the build
 	//
 	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/build#Snapshot
-	defer build.Snapshot(c.build, c.Vela, c.err, c.logger, c.repo)
+	defer func() { build.Snapshot(c.build, c.Vela, c.err, c.logger, c.repo) }()
 
 	// load the init step from the client
 	//
@@ -220,7 +216,7 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	// defer an upload of the init step
 	//
 	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Upload
-	defer step.Upload(c.init, c.build, c.Vela, c.logger, c.repo, _init)
+	defer func() { step.Upload(c.init, c.build, c.Vela, c.logger, c.repo, _init) }()
 
 	defer func() {
 		c.logger.Infof("uploading %s step logs", c.init.Name)
@@ -372,7 +368,7 @@ func (c *client) ExecBuild(ctx context.Context) error {
 	// defer an upload of the build
 	//
 	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/build#Upload
-	defer build.Upload(c.build, c.Vela, c.err, c.logger, c.repo)
+	defer func() { build.Upload(c.build, c.Vela, c.err, c.logger, c.repo) }()
 
 	// execute the services for the pipeline
 	for _, _service := range c.pipeline.Services {

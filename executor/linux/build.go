@@ -40,8 +40,13 @@ func (c *client) CreateBuild(ctx context.Context) error {
 		return fmt.Errorf("unable to upload build state: %v", c.err)
 	}
 
-	// load the init container from the pipeline
-	c.init = c.loadInitContainer(c.pipeline)
+	// load the init step from the pipeline
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#LoadInit
+	c.init, c.err = step.LoadInit(c.pipeline)
+	if c.err != nil {
+		return fmt.Errorf("unable to load init step from pipeline: %w", c.err)
+	}
 
 	c.logger.Infof("creating %s step", c.init.Name)
 	// create the step

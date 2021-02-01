@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/gin-gonic/gin v1.6.3
-	github.com/go-vela/compiler v0.7.0-rc3
+	github.com/go-vela/compiler v0.7.0-rc4
 	github.com/go-vela/mock v0.7.0-rc4
 	github.com/go-vela/pkg-runtime v0.7.0-rc3
 	github.com/go-vela/sdk-go v0.7.0-rc3

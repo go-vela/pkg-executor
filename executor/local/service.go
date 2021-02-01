@@ -88,7 +88,7 @@ func (c *client) ExecService(ctx context.Context, ctn *pipeline.Container) error
 	// defer taking a snapshot of the service
 	//
 	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/service#Snapshot
-	defer service.Snapshot(ctn, c.build, nil, nil, nil, _service)
+	defer func() { service.Snapshot(ctn, c.build, nil, nil, nil, _service) }()
 
 	// run the runtime container
 	err = c.Runtime.RunContainer(ctx, ctn, c.pipeline)
@@ -147,7 +147,7 @@ func (c *client) DestroyService(ctx context.Context, ctn *pipeline.Container) er
 	// defer an upload of the service
 	//
 	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/service#Upload
-	defer service.Upload(ctn, c.build, nil, nil, nil, _service)
+	defer func() { service.Upload(ctn, c.build, nil, nil, nil, _service) }()
 
 	// inspect the runtime container
 	err = c.Runtime.InspectContainer(ctx, ctn)

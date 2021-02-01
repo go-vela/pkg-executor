@@ -22,7 +22,7 @@ func (c *client) CreateBuild(ctx context.Context) error {
 	// defer taking a snapshot of the build
 	//
 	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/build#Snapshot
-	defer build.Snapshot(c.build, nil, c.err, nil, nil)
+	defer func() { build.Snapshot(c.build, nil, c.err, nil, nil) }()
 
 	// update the build fields
 	c.build.SetStatus(constants.StatusRunning)
@@ -54,7 +54,7 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	// defer taking a snapshot of the build
 	//
 	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/build#Snapshot
-	defer build.Snapshot(c.build, nil, c.err, nil, nil)
+	defer func() { build.Snapshot(c.build, nil, c.err, nil, nil) }()
 
 	// create a step pattern for log output
 	_pattern := fmt.Sprintf(stepPattern, c.init.Name)
@@ -112,7 +112,7 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	// defer taking a snapshot of the build
 	//
 	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/build#Snapshot
-	defer build.Snapshot(c.build, nil, c.err, nil, nil)
+	defer func() { build.Snapshot(c.build, nil, c.err, nil, nil) }()
 
 	// load the init step from the client
 	//
@@ -125,7 +125,7 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 	// defer an upload of the init step
 	//
 	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Upload
-	defer step.Upload(c.init, c.build, nil, nil, nil, _init)
+	defer func() { step.Upload(c.init, c.build, nil, nil, nil, _init) }()
 
 	// create a step pattern for log output
 	_pattern := fmt.Sprintf(stepPattern, c.init.Name)
@@ -216,7 +216,7 @@ func (c *client) ExecBuild(ctx context.Context) error {
 	// defer an upload of the build
 	//
 	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/build#Upload
-	defer build.Upload(c.build, c.Vela, c.err, nil, nil)
+	defer func() { build.Upload(c.build, c.Vela, c.err, nil, nil) }()
 
 	// execute the services for the pipeline
 	for _, _service := range c.pipeline.Services {

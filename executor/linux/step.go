@@ -144,7 +144,7 @@ func (c *client) ExecStep(ctx context.Context, ctn *pipeline.Container) error {
 	// defer taking a snapshot of the step
 	//
 	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Snapshot
-	defer step.Snapshot(ctn, c.build, c.Vela, c.logger, c.repo, _step)
+	defer func() { step.Snapshot(ctn, c.build, c.Vela, c.logger, c.repo, _step) }()
 
 	logger.Debug("running container")
 	// run the runtime container
@@ -308,7 +308,7 @@ func (c *client) DestroyStep(ctx context.Context, ctn *pipeline.Container) error
 	// defer an upload of the step
 	//
 	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Upload
-	defer step.Upload(ctn, c.build, c.Vela, logger, c.repo, _step)
+	defer func() { step.Upload(ctn, c.build, c.Vela, logger, c.repo, _step) }()
 
 	logger.Debug("inspecting container")
 	// inspect the runtime container

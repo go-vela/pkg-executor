@@ -172,6 +172,7 @@ func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) err
 	// create new buffer for uploading logs
 	logs := new(bytes.Buffer)
 
+	// nolint: dupl // ignore similar code
 	defer func() {
 		// tail the runtime container
 		rc, err := c.Runtime.TailContainer(ctx, ctn)
@@ -222,6 +223,8 @@ func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) err
 		logs.Write(append(scanner.Bytes(), []byte("\n")...))
 
 		// if we have at least 1000 bytes in our buffer
+		//
+		// nolint: gomnd // ignore magic number
 		if logs.Len() > 1000 {
 			logger.Trace(logs.String())
 

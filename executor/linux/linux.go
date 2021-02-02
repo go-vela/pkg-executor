@@ -30,11 +30,12 @@ type (
 		secret *secretSvc
 
 		// private fields
-		init        *pipeline.Container
-		logger      *logrus.Entry
-		build       *library.Build
-		pipeline    *pipeline.Build
-		repo        *library.Repo
+		init     *pipeline.Container
+		logger   *logrus.Entry
+		build    *library.Build
+		pipeline *pipeline.Build
+		repo     *library.Repo
+		// nolint: structcheck,unused // ignore false positives
 		secrets     sync.Map
 		services    sync.Map
 		serviceLogs sync.Map
@@ -44,6 +45,7 @@ type (
 		err         error
 	}
 
+	// nolint: structcheck // ignore false positive
 	svc struct {
 		client *client
 	}

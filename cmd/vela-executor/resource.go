@@ -58,6 +58,7 @@ func setupRepo() *library.Repo {
 	r.SetLink("https://github.com/go-vela/pkg-runtime")
 	r.SetClone("https://github.com/go-vela/pkg-runtime.git")
 	r.SetBranch("master")
+	// nolint: gomnd // ignore magic number
 	r.SetTimeout(30)
 	r.SetVisibility("public")
 	r.SetPrivate(false)

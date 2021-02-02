@@ -11,7 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/go-vela/mock/server"
-	"github.com/go-vela/types"
 
 	"github.com/go-vela/pkg-runtime/runtime/docker"
 
@@ -143,121 +142,6 @@ func testUser() *library.User {
 		Favorites: vela.Strings([]string{"github/octocat"}),
 		Active:    vela.Bool(true),
 		Admin:     vela.Bool(false),
-	}
-}
-
-// testUser is a test helper function to create a metadata
-// type with all fields set to a fake value.
-func testMetadata() *types.Metadata {
-	return &types.Metadata{
-		Database: &types.Database{
-			Driver: "foo",
-			Host:   "foo",
-		},
-		Queue: &types.Queue{
-			Channel: "foo",
-			Driver:  "foo",
-			Host:    "foo",
-		},
-		Source: &types.Source{
-			Driver: "foo",
-			Host:   "foo",
-		},
-		Vela: &types.Vela{
-			Address:    "foo",
-			WebAddress: "foo",
-		},
-	}
-}
-
-// testStages is a test helper function to create a stages
-// pipeline with fake steps.
-func testStages() *pipeline.Build {
-	return &pipeline.Build{
-		Version: "1",
-		ID:      "github_octocat_1",
-		Services: pipeline.ContainerSlice{
-			{
-				ID:          "service_github_octocat_1_postgres",
-				Directory:   "/home/github/octocat",
-				Environment: map[string]string{"FOO": "bar"},
-				Image:       "postgres:12-alpine",
-				Name:        "postgres",
-				Number:      1,
-				Ports:       []string{"5432:5432"},
-				Pull:        "not_present",
-			},
-		},
-		Stages: pipeline.StageSlice{
-			{
-				Name: "init",
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "github_octocat_1_init_init",
-						Directory:   "/home/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "#init",
-						Name:        "init",
-						Number:      1,
-						Pull:        "always",
-					},
-				},
-			},
-			{
-				Name:  "clone",
-				Needs: []string{"init"},
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "github_octocat_1_clone_clone",
-						Directory:   "/home/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/vela-git:v0.3.0",
-						Name:        "clone",
-						Number:      2,
-						Pull:        "always",
-					},
-				},
-			},
-			{
-				Name:  "echo",
-				Needs: []string{"clone"},
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "github_octocat_1_echo_echo",
-						Commands:    []string{"echo hello"},
-						Directory:   "/home/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "alpine:latest",
-						Name:        "echo",
-						Number:      3,
-						Pull:        "always",
-					},
-				},
-			},
-		},
-		Secrets: pipeline.SecretSlice{
-			{
-				Name:   "foo",
-				Key:    "github/octocat/foo",
-				Engine: "native",
-				Type:   "repo",
-				Origin: &pipeline.Container{},
-			},
-			{
-				Name:   "foo",
-				Key:    "github/foo",
-				Engine: "native",
-				Type:   "org",
-				Origin: &pipeline.Container{},
-			},
-			{
-				Name:   "foo",
-				Key:    "github/octokitties/foo",
-				Engine: "native",
-				Type:   "shared",
-				Origin: &pipeline.Container{},
-			},
-		},
 	}
 }
 

@@ -9,7 +9,8 @@ Vela package designed for supporting the ability to run a [go-vela/worker](https
 
 The following executors are supported:
 
-* [Linux](https://www.linux.org/)
+* [Linux](https://www.linux.org/) - used to execute pipelines on a Linux distribution
+* Local - used to execute pipelines with the Vela CLI
 
 ## Documentation
 

@@ -31,8 +31,13 @@ func (c *client) CreateBuild(ctx context.Context) error {
 	c.build.SetDistribution(constants.DriverLocal)
 	c.build.SetRuntime(c.Runtime.Driver())
 
-	// load the init container from the pipeline
-	c.init = c.loadInitContainer(c.pipeline)
+	// load the init step from the pipeline
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#LoadInit
+	c.init, c.err = step.LoadInit(c.pipeline)
+	if c.err != nil {
+		return fmt.Errorf("unable to load init step from pipeline: %w", c.err)
+	}
 
 	// create the step
 	c.err = c.CreateStep(ctx, c.init)
@@ -220,7 +225,7 @@ func (c *client) ExecBuild(ctx context.Context) error {
 	// defer an upload of the build
 	//
 	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/build#Upload
-	defer func() { build.Upload(c.build, c.Vela, c.err, nil, nil) }()
+	defer func() { build.Upload(c.build, nil, c.err, nil, nil) }()
 
 	// execute the services for the pipeline
 	for _, _service := range c.pipeline.Services {

@@ -35,6 +35,32 @@ func Load(c *pipeline.Container, m *sync.Map) (*library.Step, error) {
 	return s, nil
 }
 
+// LoadInit attempts to capture the container representing
+// the init process from the pipeline.
+func LoadInit(p *pipeline.Build) (*pipeline.Container, error) {
+	// check if the pipeline provided is empty
+	if p == nil {
+		return nil, fmt.Errorf("empty pipeline provided")
+	}
+
+	// create new container for the init step
+	c := new(pipeline.Container)
+
+	// check if there are steps in the pipeline
+	if len(p.Steps) > 0 {
+		// update the container for the init process
+		c = p.Steps[0]
+	}
+
+	// check if there are stages in the pipeline
+	if len(p.Stages) > 0 {
+		// update the container for the init process
+		c = p.Stages[0].Steps[0]
+	}
+
+	return c, nil
+}
+
 // LoadLogs attempts to capture the library step logs
 // representing the container from the map.
 func LoadLogs(c *pipeline.Container, m *sync.Map) (*library.Log, error) {

@@ -170,6 +170,9 @@ func TestLinux_PlanBuild(t *testing.T) {
 
 		// run create to init steps to be created properly
 		err = _engine.CreateBuild(context.Background())
+		if err != nil {
+			t.Errorf("unable to create build: %v", err)
+		}
 
 		err = _engine.PlanBuild(context.Background())
 
@@ -281,6 +284,9 @@ func TestLinux_AssembleBuild(t *testing.T) {
 
 		// run create to init steps to be created properly
 		err = _engine.CreateBuild(context.Background())
+		if err != nil {
+			t.Errorf("unable to create build: %v", err)
+		}
 
 		err = _engine.AssembleBuild(context.Background())
 
@@ -555,6 +561,9 @@ func TestLinux_DestroyBuild(t *testing.T) {
 
 		// run create to init steps to be created properly
 		err = _engine.CreateBuild(context.Background())
+		if err != nil {
+			t.Errorf("unable to create build: %v", err)
+		}
 
 		err = _engine.DestroyBuild(context.Background())
 

@@ -187,7 +187,7 @@ func (s *secretSvc) exec(ctx context.Context, p *pipeline.SecretSlice) error {
 
 // pull defines a function that pulls the secrets from the server for a given pipeline.
 func (s *secretSvc) pull(secret *pipeline.Secret) (*library.Secret, error) {
-	// nolint: staticheck // reports the value is never used but we return it
+	// nolint: staticcheck // reports the value is never used but we return it
 	_secret := new(library.Secret)
 
 	switch secret.Type {
@@ -303,6 +303,8 @@ func (s *secretSvc) stream(ctx context.Context, ctn *pipeline.Container) error {
 		logs.Write(append(scanner.Bytes(), []byte("\n")...))
 
 		// if we have at least 1000 bytes in our buffer
+		//
+		// nolint: gomnd // ignore magic number
 		if logs.Len() > 1000 {
 			logger.Trace(logs.String())
 

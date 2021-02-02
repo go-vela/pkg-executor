@@ -17,7 +17,6 @@ import (
 
 	"github.com/go-vela/sdk-go/vela"
 
-	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/library"
 	"github.com/go-vela/types/pipeline"
 )
@@ -27,7 +26,6 @@ func TestLinux_CreateService(t *testing.T) {
 	_build := testBuild()
 	_repo := testRepo()
 	_user := testUser()
-	_steps := testSteps()
 
 	gin.SetMode(gin.TestMode)
 
@@ -48,11 +46,12 @@ func TestLinux_CreateService(t *testing.T) {
 		failure   bool
 		container *pipeline.Container
 	}{
-		{
+		{ // basic service container
 			failure: false,
 			container: &pipeline.Container{
 				ID:          "service_github_octocat_1_postgres",
-				Directory:   "/home/github/octocat",
+				Detach:      true,
+				Directory:   "/vela/src/github.com/github/octocat",
 				Environment: map[string]string{"FOO": "bar"},
 				Image:       "postgres:12-alpine",
 				Name:        "postgres",
@@ -61,11 +60,12 @@ func TestLinux_CreateService(t *testing.T) {
 				Pull:        "not_present",
 			},
 		},
-		{
+		{ // service container with image not found
 			failure: true,
 			container: &pipeline.Container{
 				ID:          "service_github_octocat_1_postgres",
-				Directory:   "/home/github/octocat",
+				Detach:      true,
+				Directory:   "/vela/src/github.com/github/octocat",
 				Environment: map[string]string{"FOO": "bar"},
 				Image:       "postgres:notfound",
 				Name:        "postgres",
@@ -74,13 +74,17 @@ func TestLinux_CreateService(t *testing.T) {
 				Pull:        "not_present",
 			},
 		},
+		{ // empty service container
+			failure:   true,
+			container: new(pipeline.Container),
+		},
 	}
 
 	// run tests
 	for _, test := range tests {
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(_steps),
+			WithPipeline(new(pipeline.Build)),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
@@ -111,7 +115,6 @@ func TestLinux_PlanService(t *testing.T) {
 	_build := testBuild()
 	_repo := testRepo()
 	_user := testUser()
-	_steps := testSteps()
 
 	gin.SetMode(gin.TestMode)
 
@@ -132,11 +135,12 @@ func TestLinux_PlanService(t *testing.T) {
 		failure   bool
 		container *pipeline.Container
 	}{
-		{
+		{ // basic service container
 			failure: false,
 			container: &pipeline.Container{
 				ID:          "service_github_octocat_1_postgres",
-				Directory:   "/home/github/octocat",
+				Detach:      true,
+				Directory:   "/vela/src/github.com/github/octocat",
 				Environment: map[string]string{"FOO": "bar"},
 				Image:       "postgres:12-alpine",
 				Name:        "postgres",
@@ -145,18 +149,9 @@ func TestLinux_PlanService(t *testing.T) {
 				Pull:        "not_present",
 			},
 		},
-		{
-			failure: true,
-			container: &pipeline.Container{
-				ID:          "service_github_octocat_1_postgres",
-				Directory:   "/home/github/octocat",
-				Environment: map[string]string{"FOO": "bar"},
-				Image:       "postgres:12-alpine",
-				Name:        "postgres",
-				Number:      0,
-				Ports:       []string{"5432:5432"},
-				Pull:        "not_present",
-			},
+		{ // empty service container
+			failure:   true,
+			container: new(pipeline.Container),
 		},
 	}
 
@@ -164,7 +159,7 @@ func TestLinux_PlanService(t *testing.T) {
 	for _, test := range tests {
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(_steps),
+			WithPipeline(new(pipeline.Build)),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
@@ -195,7 +190,6 @@ func TestLinux_ExecService(t *testing.T) {
 	_build := testBuild()
 	_repo := testRepo()
 	_user := testUser()
-	_steps := testSteps()
 
 	gin.SetMode(gin.TestMode)
 
@@ -216,11 +210,12 @@ func TestLinux_ExecService(t *testing.T) {
 		failure   bool
 		container *pipeline.Container
 	}{
-		{
+		{ // basic service container
 			failure: false,
 			container: &pipeline.Container{
 				ID:          "service_github_octocat_1_postgres",
-				Directory:   "/home/github/octocat",
+				Detach:      true,
+				Directory:   "/vela/src/github.com/github/octocat",
 				Environment: map[string]string{"FOO": "bar"},
 				Image:       "postgres:12-alpine",
 				Name:        "postgres",
@@ -229,17 +224,23 @@ func TestLinux_ExecService(t *testing.T) {
 				Pull:        "not_present",
 			},
 		},
-		{
+		{ // service container with image not found
 			failure: true,
 			container: &pipeline.Container{
-				ID:          "service_github_octocat_1_notfound",
-				Directory:   "/home/github/octocat",
+				ID:          "service_github_octocat_1_postgres",
+				Detach:      true,
+				Directory:   "/vela/src/github.com/github/octocat",
 				Environment: map[string]string{"FOO": "bar"},
-				Image:       "postgres:12-alpine",
-				Name:        "notfound",
-				Number:      2,
-				Pull:        "always",
+				Image:       "postgres:notfound",
+				Name:        "postgres",
+				Number:      1,
+				Ports:       []string{"5432:5432"},
+				Pull:        "not_present",
 			},
+		},
+		{ // empty service container
+			failure:   true,
+			container: new(pipeline.Container),
 		},
 	}
 
@@ -247,7 +248,7 @@ func TestLinux_ExecService(t *testing.T) {
 	for _, test := range tests {
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(_steps),
+			WithPipeline(new(pipeline.Build)),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
@@ -257,8 +258,10 @@ func TestLinux_ExecService(t *testing.T) {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
 
-		_engine.serviceLogs.Store(test.container.ID, new(library.Log))
-		_engine.services.Store(test.container.ID, new(library.Service))
+		if !test.container.Empty() {
+			_engine.services.Store(test.container.ID, new(library.Service))
+			_engine.serviceLogs.Store(test.container.ID, new(library.Log))
+		}
 
 		err = _engine.ExecService(context.Background(), test.container)
 
@@ -281,7 +284,6 @@ func TestLinux_StreamService(t *testing.T) {
 	_build := testBuild()
 	_repo := testRepo()
 	_user := testUser()
-	_steps := testSteps()
 
 	gin.SetMode(gin.TestMode)
 
@@ -300,15 +302,14 @@ func TestLinux_StreamService(t *testing.T) {
 	// setup tests
 	tests := []struct {
 		failure   bool
-		logs      *library.Log
 		container *pipeline.Container
 	}{
-		{ // container step succeeds
+		{ // basic service container
 			failure: false,
-			logs:    new(library.Log),
 			container: &pipeline.Container{
 				ID:          "service_github_octocat_1_postgres",
-				Directory:   "/vela/src/vcs.company.com/github/octocat",
+				Detach:      true,
+				Directory:   "/vela/src/github.com/github/octocat",
 				Environment: map[string]string{"FOO": "bar"},
 				Image:       "postgres:12-alpine",
 				Name:        "postgres",
@@ -317,33 +318,9 @@ func TestLinux_StreamService(t *testing.T) {
 				Pull:        "not_present",
 			},
 		},
-		{ // container step fails because of nil logs
-			failure: true,
-			logs:    nil,
-			container: &pipeline.Container{
-				ID:          "service_github_octocat_1_postgres",
-				Directory:   "/vela/src/vcs.company.com/github/octocat",
-				Environment: map[string]string{"FOO": "bar"},
-				Image:       "postgres:12-alpine",
-				Name:        "postgres",
-				Number:      1,
-				Ports:       []string{"5432:5432"},
-				Pull:        "not_present",
-			},
-		},
-		{ // container step fails because of invalid container id
-			failure: true,
-			logs:    new(library.Log),
-			container: &pipeline.Container{
-				ID:          "service_github_octocat_1_notfound",
-				Directory:   "/vela/src/vcs.company.com/github/octocat",
-				Environment: map[string]string{"FOO": "bar"},
-				Image:       "postgres:12-alpine",
-				Name:        "notfound",
-				Number:      1,
-				Ports:       []string{"5432:5432"},
-				Pull:        "not_present",
-			},
+		{ // empty service container
+			failure:   true,
+			container: new(pipeline.Container),
 		},
 	}
 
@@ -351,7 +328,7 @@ func TestLinux_StreamService(t *testing.T) {
 	for _, test := range tests {
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(_steps),
+			WithPipeline(new(pipeline.Build)),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
@@ -361,11 +338,10 @@ func TestLinux_StreamService(t *testing.T) {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
 
-		if test.logs != nil {
-			_engine.serviceLogs.Store(test.container.ID, test.logs)
+		if !test.container.Empty() {
+			_engine.services.Store(test.container.ID, new(library.Service))
+			_engine.serviceLogs.Store(test.container.ID, new(library.Log))
 		}
-
-		_engine.services.Store(test.container.ID, new(library.Service))
 
 		err = _engine.StreamService(context.Background(), test.container)
 
@@ -388,7 +364,6 @@ func TestLinux_DestroyService(t *testing.T) {
 	_build := testBuild()
 	_repo := testRepo()
 	_user := testUser()
-	_steps := testSteps()
 
 	gin.SetMode(gin.TestMode)
 
@@ -404,22 +379,17 @@ func TestLinux_DestroyService(t *testing.T) {
 		t.Errorf("unable to create runtime engine: %v", err)
 	}
 
-	_service := new(library.Service)
-	_service.SetName("postgres")
-	_service.SetNumber(1)
-	_service.SetStatus(constants.StatusPending)
-
 	// setup tests
 	tests := []struct {
 		failure   bool
 		container *pipeline.Container
-		service   *library.Service
 	}{
-		{
+		{ // basic service container
 			failure: false,
 			container: &pipeline.Container{
 				ID:          "service_github_octocat_1_postgres",
-				Directory:   "/home/github/octocat",
+				Detach:      true,
+				Directory:   "/vela/src/github.com/github/octocat",
 				Environment: map[string]string{"FOO": "bar"},
 				Image:       "postgres:12-alpine",
 				Name:        "postgres",
@@ -427,35 +397,6 @@ func TestLinux_DestroyService(t *testing.T) {
 				Ports:       []string{"5432:5432"},
 				Pull:        "not_present",
 			},
-			service: _service,
-		},
-		{
-			failure: true,
-			container: &pipeline.Container{
-				ID:          "service_github_octocat_1_notfound",
-				Directory:   "/home/github/octocat",
-				Environment: map[string]string{"FOO": "bar"},
-				Image:       "postgres:12-alpine",
-				Name:        "notfound",
-				Number:      1,
-				Ports:       []string{"5432:5432"},
-				Pull:        "not_present",
-			},
-			service: new(library.Service),
-		},
-		{
-			failure: true,
-			container: &pipeline.Container{
-				ID:          "service_github_octocat_1_ignorenotfound",
-				Directory:   "/home/github/octocat",
-				Environment: map[string]string{"FOO": "bar"},
-				Image:       "postgres:12-alpine",
-				Name:        "ignorenotfound",
-				Number:      1,
-				Ports:       []string{"5432:5432"},
-				Pull:        "not_present",
-			},
-			service: new(library.Service),
 		},
 	}
 
@@ -463,7 +404,7 @@ func TestLinux_DestroyService(t *testing.T) {
 	for _, test := range tests {
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(_steps),
+			WithPipeline(new(pipeline.Build)),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
@@ -472,8 +413,6 @@ func TestLinux_DestroyService(t *testing.T) {
 		if err != nil {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
-
-		_engine.services.Store(test.container.ID, test.service)
 
 		err = _engine.DestroyService(context.Background(), test.container)
 

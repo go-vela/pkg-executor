@@ -356,6 +356,18 @@ func TestLinux_StreamStep(t *testing.T) {
 				Pull:        "not_present",
 			},
 		},
+		{ // step container with name not found
+			failure: true,
+			container: &pipeline.Container{
+				ID:          "step_github_octocat_1_notfound",
+				Directory:   "/vela/src/github.com/github/octocat",
+				Environment: map[string]string{"FOO": "bar"},
+				Image:       "alpine:latest",
+				Name:        "notfound",
+				Number:      1,
+				Pull:        "not_present",
+			},
+		},
 		{ // empty step container
 			failure:   true,
 			container: new(pipeline.Container),
@@ -442,6 +454,18 @@ func TestLinux_DestroyStep(t *testing.T) {
 				Environment: map[string]string{"FOO": "bar"},
 				Image:       "alpine:latest",
 				Name:        "echo",
+				Number:      1,
+				Pull:        "not_present",
+			},
+		},
+		{ // step container with ignoring name not found
+			failure: true,
+			container: &pipeline.Container{
+				ID:          "step_github_octocat_1_ignorenotfound",
+				Directory:   "/vela/src/github.com/github/octocat",
+				Environment: map[string]string{"FOO": "bar"},
+				Image:       "alpine:latest",
+				Name:        "ignorenotfound",
 				Number:      1,
 				Pull:        "not_present",
 			},

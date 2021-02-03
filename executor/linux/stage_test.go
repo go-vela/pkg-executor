@@ -97,6 +97,10 @@ func TestLinux_CreateStage(t *testing.T) {
 				},
 			},
 		},
+		{ // empty stage
+			failure: true,
+			stage:   new(pipeline.Stage),
+		},
 	}
 
 	// run tests
@@ -113,10 +117,12 @@ func TestLinux_CreateStage(t *testing.T) {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
 
-		// run create to init steps to be created properly
-		err = _engine.CreateBuild(context.Background())
-		if err != nil {
-			t.Errorf("unable to create build: %v", err)
+		if len(test.stage.Name) > 0 {
+			// run create to init steps to be created properly
+			err = _engine.CreateBuild(context.Background())
+			if err != nil {
+				t.Errorf("unable to create build: %v", err)
+			}
 		}
 
 		err = _engine.CreateStage(context.Background(), test.stage)
@@ -311,6 +317,23 @@ func TestLinux_ExecStage(t *testing.T) {
 						Image:       "alpine:notfound",
 						Name:        "echo",
 						Number:      1,
+						Pull:        "not_present",
+					},
+				},
+			},
+		},
+		{ // stage with step container with bad number
+			failure: true,
+			stage: &pipeline.Stage{
+				Name: "echo",
+				Steps: pipeline.ContainerSlice{
+					{
+						ID:          "github_octocat_1_echo_echo",
+						Directory:   "/vela/src/github.com/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "alpine:latest",
+						Name:        "echo",
+						Number:      0,
 						Pull:        "not_present",
 					},
 				},

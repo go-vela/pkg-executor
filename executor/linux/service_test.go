@@ -149,6 +149,20 @@ func TestLinux_PlanService(t *testing.T) {
 				Pull:        "not_present",
 			},
 		},
+		{ // service container with nil environment
+			failure: true,
+			container: &pipeline.Container{
+				ID:          "service_github_octocat_1_postgres",
+				Detach:      true,
+				Directory:   "/vela/src/github.com/github/octocat",
+				Environment: nil,
+				Image:       "postgres:12-alpine",
+				Name:        "postgres",
+				Number:      1,
+				Ports:       []string{"5432:5432"},
+				Pull:        "not_present",
+			},
+		},
 		{ // empty service container
 			failure:   true,
 			container: new(pipeline.Container),

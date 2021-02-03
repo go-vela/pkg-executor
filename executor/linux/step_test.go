@@ -155,6 +155,18 @@ func TestLinux_PlanStep(t *testing.T) {
 				Pull:        "not_present",
 			},
 		},
+		{ // step container with nil environment
+			failure: true,
+			container: &pipeline.Container{
+				ID:          "step_github_octocat_1_echo",
+				Directory:   "/vela/src/github.com/github/octocat",
+				Environment: nil,
+				Image:       "alpine:latest",
+				Name:        "echo",
+				Number:      1,
+				Pull:        "not_present",
+			},
+		},
 		{ // empty step container
 			failure:   true,
 			container: new(pipeline.Container),

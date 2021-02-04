@@ -7,7 +7,6 @@ package local
 import (
 	"fmt"
 	"os"
-	"strings"
 	"syscall"
 
 	"github.com/go-vela/pkg-executor/internal/service"
@@ -77,8 +76,22 @@ func (c *client) CancelBuild() (*library.Build, error) {
 			s = library.ServiceFromContainer(_service)
 		}
 
-		// if service has not succeeded, set it as canceled
-		if !strings.EqualFold(s.GetStatus(), constants.StatusSuccess) {
+		// if service state was not terminal, set it as canceled
+		switch s.GetStatus() {
+		// service is in a error state
+		case constants.StatusError:
+			break
+		// service is in a failure state
+		case constants.StatusFailure:
+			break
+		// service is in a killed state
+		case constants.StatusKilled:
+			break
+		// service is in a success state
+		case constants.StatusSuccess:
+			break
+		default:
+			// update the service with a canceled state
 			s.SetStatus(constants.StatusCanceled)
 		}
 	}
@@ -96,8 +109,22 @@ func (c *client) CancelBuild() (*library.Build, error) {
 			s = library.StepFromContainer(_step)
 		}
 
-		// if step has not succeeded, set it as canceled
-		if !strings.EqualFold(s.GetStatus(), constants.StatusSuccess) {
+		// if step state was not terminal, set it as canceled
+		switch s.GetStatus() {
+		// step is in a error state
+		case constants.StatusError:
+			break
+		// step is in a failure state
+		case constants.StatusFailure:
+			break
+		// step is in a killed state
+		case constants.StatusKilled:
+			break
+		// step is in a success state
+		case constants.StatusSuccess:
+			break
+		default:
+			// update the step with a canceled state
 			s.SetStatus(constants.StatusCanceled)
 		}
 	}
@@ -117,8 +144,22 @@ func (c *client) CancelBuild() (*library.Build, error) {
 				s = library.StepFromContainer(_step)
 			}
 
-			// if step has not succeeded, set it as canceled
-			if !strings.EqualFold(s.GetStatus(), constants.StatusSuccess) {
+			// if stage state was not terminal, set it as canceled
+			switch s.GetStatus() {
+			// stage is in a error state
+			case constants.StatusError:
+				break
+			// stage is in a failure state
+			case constants.StatusFailure:
+				break
+			// stage is in a killed state
+			case constants.StatusKilled:
+				break
+			// stage is in a success state
+			case constants.StatusSuccess:
+				break
+			default:
+				// update the step with a canceled state
 				s.SetStatus(constants.StatusCanceled)
 			}
 		}

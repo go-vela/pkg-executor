@@ -52,7 +52,7 @@ func (c *client) CancelBuild() (*library.Build, error) {
 		return nil, err
 	}
 
-	// set the build status to cancelled
+	// set the build status to canceled
 	b.SetStatus(constants.StatusCanceled)
 
 	p, err := os.FindProcess(os.Getpid())

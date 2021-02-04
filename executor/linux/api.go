@@ -58,7 +58,7 @@ func (c *client) CancelBuild() (*library.Build, error) {
 	// set the build status to canceled
 	b.SetStatus(constants.StatusCanceled)
 
-	// get the current build from the client
+	// get the current pipeline from the client
 	pipeline, err := c.GetPipeline()
 	if err != nil {
 		return nil, err

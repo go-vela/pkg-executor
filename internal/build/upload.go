@@ -47,7 +47,7 @@ func Upload(b *library.Build, c *vela.Client, e error, l *logrus.Entry, r *libra
 	if !strings.EqualFold(b.GetStatus(), constants.StatusCanceled) {
 		// check if the error provided is empty
 		if e != nil {
-			// update the build  with error based values
+			// update the build with error based values
 			b.SetError(e.Error())
 			b.SetStatus(constants.StatusError)
 		}

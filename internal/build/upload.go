@@ -5,6 +5,7 @@
 package build
 
 import (
+	"strings"
 	"time"
 
 	"github.com/go-vela/sdk-go/vela"
@@ -42,11 +43,14 @@ func Upload(b *library.Build, c *vela.Client, e error, l *logrus.Entry, r *libra
 		b.SetStatus(constants.StatusSuccess)
 	}
 
-	// check if the error provided is empty
-	if e != nil {
-		// update the build  with error based values
-		b.SetError(e.Error())
-		b.SetStatus(constants.StatusError)
+	// check if the build is not in a canceled status
+	if !strings.EqualFold(b.GetStatus(), constants.StatusCanceled) {
+		// check if the error provided is empty
+		if e != nil {
+			// update the build  with error based values
+			b.SetError(e.Error())
+			b.SetStatus(constants.StatusError)
+		}
 	}
 
 	// update the build with the finished timestamp

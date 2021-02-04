@@ -5,6 +5,7 @@
 package build
 
 import (
+	"strings"
 	"time"
 
 	"github.com/go-vela/sdk-go/vela"
@@ -16,12 +17,15 @@ import (
 // Snapshot creates a moment in time record of the build
 // and attempts to upload it to the server.
 func Snapshot(b *library.Build, c *vela.Client, e error, l *logrus.Entry, r *library.Repo) {
-	// check if the error provided is empty
-	if e != nil {
-		// populate build fields with error based values
-		b.SetError(e.Error())
-		b.SetStatus(constants.StatusError)
-		b.SetFinished(time.Now().UTC().Unix())
+	// check if the build is not in a canceled status
+	if !strings.EqualFold(b.GetStatus(), constants.StatusCanceled) {
+		// check if the error provided is empty
+		if e != nil {
+			// populate build fields with error based values
+			b.SetError(e.Error())
+			b.SetStatus(constants.StatusError)
+			b.SetFinished(time.Now().UTC().Unix())
+		}
 	}
 
 	// check if the logger provided is empty

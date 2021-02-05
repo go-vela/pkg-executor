@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"syscall"
+	"time"
 
 	"github.com/go-vela/pkg-executor/internal/service"
 	"github.com/go-vela/pkg-executor/internal/step"
@@ -64,16 +65,22 @@ func (c *client) CancelBuild() (*library.Build, error) {
 	}
 
 	// cancel non successful services
+	// nolint: dupl // false positive, steps/services are different
 	for _, _service := range pipeline.Services {
 		// load the service from the client
 		//
 		// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/service#Load
 		s, err := service.Load(_service, &c.services)
 		if err != nil {
-			// create the service from the container
-			//
-			// https://pkg.go.dev/github.com/go-vela/types/library#ServiceFromContainer
-			s = library.ServiceFromContainer(_service)
+			// create the library service object
+			s = new(library.Service)
+			s.SetName(_service.Name)
+			s.SetNumber(_service.Number)
+			s.SetImage(_service.Image)
+			s.SetStarted(time.Now().UTC().Unix())
+			s.SetHost(c.build.GetHost())
+			s.SetRuntime(c.build.GetRuntime())
+			s.SetDistribution(c.build.GetDistribution())
 		}
 
 		// if service state was not terminal, set it as canceled
@@ -93,20 +100,28 @@ func (c *client) CancelBuild() (*library.Build, error) {
 		default:
 			// update the service with a canceled state
 			s.SetStatus(constants.StatusCanceled)
+			// add a step to a map
+			c.steps.Store(_service.ID, s)
 		}
 	}
 
 	// cancel non successful steps
+	// nolint: dupl // false positive, steps/services are different
 	for _, _step := range pipeline.Steps {
 		// load the step from the client
 		//
 		// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Load
 		s, err := step.Load(_step, &c.steps)
 		if err != nil {
-			// create the step from the container
-			//
-			// https://pkg.go.dev/github.com/go-vela/types/library#StepFromContainer
-			s = library.StepFromContainer(_step)
+			// create the library step object
+			s = new(library.Step)
+			s.SetName(_step.Name)
+			s.SetNumber(_step.Number)
+			s.SetImage(_step.Image)
+			s.SetStarted(time.Now().UTC().Unix())
+			s.SetHost(c.build.GetHost())
+			s.SetRuntime(c.build.GetRuntime())
+			s.SetDistribution(c.build.GetDistribution())
 		}
 
 		// if step state was not terminal, set it as canceled
@@ -126,6 +141,8 @@ func (c *client) CancelBuild() (*library.Build, error) {
 		default:
 			// update the step with a canceled state
 			s.SetStatus(constants.StatusCanceled)
+			// add a step to a map
+			c.steps.Store(_step.ID, s)
 		}
 	}
 
@@ -138,10 +155,16 @@ func (c *client) CancelBuild() (*library.Build, error) {
 			// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Load
 			s, err := step.Load(_step, &c.steps)
 			if err != nil {
-				// create the step from the container
-				//
-				// https://pkg.go.dev/github.com/go-vela/types/library#StepFromContainer
-				s = library.StepFromContainer(_step)
+				// create the library step object
+				s = new(library.Step)
+				s.SetName(_step.Name)
+				s.SetNumber(_step.Number)
+				s.SetImage(_step.Image)
+				s.SetStage(_stage.Name)
+				s.SetStarted(time.Now().UTC().Unix())
+				s.SetHost(c.build.GetHost())
+				s.SetRuntime(c.build.GetRuntime())
+				s.SetDistribution(c.build.GetDistribution())
 			}
 
 			// if stage state was not terminal, set it as canceled
@@ -161,6 +184,8 @@ func (c *client) CancelBuild() (*library.Build, error) {
 			default:
 				// update the step with a canceled state
 				s.SetStatus(constants.StatusCanceled)
+				// add a step to a map
+				c.steps.Store(_step.ID, s)
 			}
 		}
 	}

@@ -100,7 +100,7 @@ func (c *client) CancelBuild() (*library.Build, error) {
 		default:
 			// update the service with a canceled state
 			s.SetStatus(constants.StatusCanceled)
-			// add a step to a map
+			// add a service to a map
 			c.services.Store(_service.ID, s)
 		}
 	}

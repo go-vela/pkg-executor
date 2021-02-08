@@ -98,7 +98,7 @@ func (c *client) ExecService(ctx context.Context, ctn *pipeline.Container) error
 
 	go func() {
 		// stream logs from container
-		err := c.StreamService(ctx, ctn)
+		err := c.StreamService(context.Background(), ctn)
 		if err != nil {
 			fmt.Fprintln(os.Stdout, "unable to stream logs for service:", err)
 		}

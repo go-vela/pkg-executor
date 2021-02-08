@@ -156,7 +156,7 @@ func (c *client) ExecStep(ctx context.Context, ctn *pipeline.Container) error {
 	go func() {
 		logger.Debug("streaming logs for container")
 		// stream logs from container
-		err := c.StreamStep(ctx, ctn)
+		err := c.StreamStep(context.Background(), ctn)
 		if err != nil {
 			logger.Error(err)
 		}

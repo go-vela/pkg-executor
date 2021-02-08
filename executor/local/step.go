@@ -108,7 +108,7 @@ func (c *client) ExecStep(ctx context.Context, ctn *pipeline.Container) error {
 
 	go func() {
 		// stream logs from container
-		err := c.StreamStep(ctx, ctn)
+		err := c.StreamStep(context.Background(), ctn)
 		if err != nil {
 			// TODO: Should this be changed or removed?
 			fmt.Println(err)

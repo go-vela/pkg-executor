@@ -145,7 +145,7 @@ func (c *client) ExecService(ctx context.Context, ctn *pipeline.Container) error
 	go func() {
 		logger.Debug("streaming logs for container")
 		// stream logs from container
-		err := c.StreamService(ctx, ctn)
+		err := c.StreamService(context.Background(), ctn)
 		if err != nil {
 			logger.Error(err)
 		}

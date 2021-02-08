@@ -68,7 +68,7 @@ func (c *client) PlanService(ctx context.Context, ctn *pipeline.Container) error
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
 	logger := c.logger.WithField("service", ctn.Name)
 
-	// update the engine service object
+	// create the library service object
 	_service := new(library.Service)
 	_service.SetName(ctn.Name)
 	_service.SetNumber(ctn.Number)

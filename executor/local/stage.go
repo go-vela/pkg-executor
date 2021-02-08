@@ -106,14 +106,16 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]
 
 // DestroyStage cleans up the stage after execution.
 func (c *client) DestroyStage(ctx context.Context, s *pipeline.Stage) error {
+	var err error
+
 	// destroy the steps for the stage
 	for _, _step := range s.Steps {
 		// destroy the step
-		err := c.DestroyStep(ctx, _step)
+		err = c.DestroyStep(ctx, _step)
 		if err != nil {
-			return err
+			fmt.Fprintln(os.Stdout, "unable to destroy step: ", err)
 		}
 	}
 
-	return nil
+	return err
 }

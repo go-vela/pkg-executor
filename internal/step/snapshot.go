@@ -5,6 +5,7 @@
 package step
 
 import (
+	"strings"
 	"time"
 
 	"github.com/go-vela/sdk-go/vela"
@@ -17,24 +18,27 @@ import (
 // Snapshot creates a moment in time record of the
 // step and attempts to upload it to the server.
 func Snapshot(ctn *pipeline.Container, b *library.Build, c *vela.Client, l *logrus.Entry, r *library.Repo, s *library.Step) {
-	// check if the container is running in headless mode
-	if !ctn.Detach {
-		// update the step fields to indicate a success
-		s.SetStatus(constants.StatusSuccess)
-		s.SetFinished(time.Now().UTC().Unix())
-	}
-
-	// check if the container has an unsuccessful exit code
-	if ctn.ExitCode != 0 {
-		// check if container failures should be ignored
-		if !ctn.Ruleset.Continue {
-			// set build status to failure
-			b.SetStatus(constants.StatusFailure)
+	// check if the build is not in a canceled status
+	if !strings.EqualFold(s.GetStatus(), constants.StatusCanceled) {
+		// check if the container is running in headless mode
+		if !ctn.Detach {
+			// update the step fields to indicate a success
+			s.SetStatus(constants.StatusSuccess)
+			s.SetFinished(time.Now().UTC().Unix())
 		}
 
-		// update the step fields to indicate a failure
-		s.SetExitCode(ctn.ExitCode)
-		s.SetStatus(constants.StatusFailure)
+		// check if the container has an unsuccessful exit code
+		if ctn.ExitCode != 0 {
+			// check if container failures should be ignored
+			if !ctn.Ruleset.Continue {
+				// set build status to failure
+				b.SetStatus(constants.StatusFailure)
+			}
+
+			// update the step fields to indicate a failure
+			s.SetExitCode(ctn.ExitCode)
+			s.SetStatus(constants.StatusFailure)
+		}
 	}
 
 	// check if the logger provided is empty

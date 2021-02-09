@@ -7,7 +7,6 @@ package linux
 import (
 	"context"
 	"flag"
-	"io/ioutil"
 	"net/http/httptest"
 	"testing"
 
@@ -52,6 +51,16 @@ func TestLinux_CreateBuild(t *testing.T) {
 		build    *library.Build
 		pipeline string
 	}{
+		{ // basic secrets pipeline
+			failure:  false,
+			build:    _build,
+			pipeline: "testdata/build/secrets/basic.yml",
+		},
+		{ // basic services pipeline
+			failure:  false,
+			build:    _build,
+			pipeline: "testdata/build/services/basic.yml",
+		},
 		{ // basic steps pipeline
 			failure:  false,
 			build:    _build,
@@ -62,7 +71,7 @@ func TestLinux_CreateBuild(t *testing.T) {
 			build:    _build,
 			pipeline: "testdata/build/stages/basic.yml",
 		},
-		{ // pipeline with empty build
+		{ // steps pipeline with empty build
 			failure:  true,
 			build:    new(library.Build),
 			pipeline: "testdata/build/steps/basic.yml",
@@ -71,18 +80,19 @@ func TestLinux_CreateBuild(t *testing.T) {
 
 	// run test
 	for _, test := range tests {
-		file, _ := ioutil.ReadFile(test.pipeline)
-
-		p, _ := compiler.
+		_pipeline, err := compiler.
 			WithBuild(_build).
 			WithRepo(_repo).
-			WithUser(_user).
 			WithMetadata(_metadata).
-			Compile(file)
+			WithUser(_user).
+			Compile(test.pipeline)
+		if err != nil {
+			t.Errorf("unable to compile pipeline %s: %v", test.pipeline, err)
+		}
 
 		_engine, err := New(
 			WithBuild(test.build),
-			WithPipeline(p),
+			WithPipeline(_pipeline),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
@@ -135,6 +145,14 @@ func TestLinux_PlanBuild(t *testing.T) {
 		failure  bool
 		pipeline string
 	}{
+		{ // basic secrets pipeline
+			failure:  false,
+			pipeline: "testdata/build/secrets/basic.yml",
+		},
+		{ // basic services pipeline
+			failure:  false,
+			pipeline: "testdata/build/services/basic.yml",
+		},
 		{ // basic steps pipeline
 			failure:  false,
 			pipeline: "testdata/build/steps/basic.yml",
@@ -147,18 +165,19 @@ func TestLinux_PlanBuild(t *testing.T) {
 
 	// run test
 	for _, test := range tests {
-		file, _ := ioutil.ReadFile(test.pipeline)
-
-		p, _ := compiler.
+		_pipeline, err := compiler.
 			WithBuild(_build).
 			WithRepo(_repo).
-			WithUser(_user).
 			WithMetadata(_metadata).
-			Compile(file)
+			WithUser(_user).
+			Compile(test.pipeline)
+		if err != nil {
+			t.Errorf("unable to compile pipeline %s: %v", test.pipeline, err)
+		}
 
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(p),
+			WithPipeline(_pipeline),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
@@ -217,15 +236,39 @@ func TestLinux_AssembleBuild(t *testing.T) {
 		failure  bool
 		pipeline string
 	}{
+		{ // basic secrets pipeline
+			failure:  false,
+			pipeline: "testdata/build/secrets/basic.yml",
+		},
+		{ // secrets pipeline with image not found
+			failure:  true,
+			pipeline: "testdata/build/secrets/img_notfound.yml",
+		},
+		{ // secrets pipeline with ignoring image not found
+			failure:  true,
+			pipeline: "testdata/build/secrets/img_ignorenotfound.yml",
+		},
+		{ // basic services pipeline
+			failure:  false,
+			pipeline: "testdata/build/services/basic.yml",
+		},
+		{ // services pipeline with image not found
+			failure:  true,
+			pipeline: "testdata/build/services/img_notfound.yml",
+		},
+		{ // services pipeline with ignoring image not found
+			failure:  true,
+			pipeline: "testdata/build/services/img_ignorenotfound.yml",
+		},
 		{ // basic steps pipeline
 			failure:  false,
 			pipeline: "testdata/build/steps/basic.yml",
 		},
-		{ // pipeline with steps image tag not found
+		{ // steps pipeline with image not found
 			failure:  true,
 			pipeline: "testdata/build/steps/img_notfound.yml",
 		},
-		{ // pipeline with steps image tag ignoring not found
+		{ // steps pipeline with ignoring image not found
 			failure:  true,
 			pipeline: "testdata/build/steps/img_ignorenotfound.yml",
 		},
@@ -233,46 +276,31 @@ func TestLinux_AssembleBuild(t *testing.T) {
 			failure:  false,
 			pipeline: "testdata/build/stages/basic.yml",
 		},
-		{ // pipeline with stages image tag not found
+		{ // stages pipeline with image not found
 			failure:  true,
 			pipeline: "testdata/build/stages/img_notfound.yml",
 		},
-		{ // pipeline with stages image tag ignoring not found
+		{ // stages pipeline with ignoring image not found
 			failure:  true,
 			pipeline: "testdata/build/stages/img_ignorenotfound.yml",
-		},
-		{ // pipeline with service image tag not found
-			failure:  true,
-			pipeline: "testdata/build/services/img_notfound.yml",
-		},
-		{ // pipeline with service image tag ignoring not found
-			failure:  true,
-			pipeline: "testdata/build/services/img_ignorenotfound.yml",
-		},
-		{ // pipeline with stages image tag not found
-			failure:  true,
-			pipeline: "testdata/build/secrets/img_notfound.yml",
-		},
-		{ // pipeline with stages image tag ignoring not found
-			failure:  true,
-			pipeline: "testdata/build/secrets/img_ignorenotfound.yml",
 		},
 	}
 
 	// run test
 	for _, test := range tests {
-		file, _ := ioutil.ReadFile(test.pipeline)
-
-		p, _ := compiler.
+		_pipeline, err := compiler.
 			WithBuild(_build).
 			WithRepo(_repo).
-			WithUser(_user).
 			WithMetadata(_metadata).
-			Compile(file)
+			WithUser(_user).
+			Compile(test.pipeline)
+		if err != nil {
+			t.Errorf("unable to compile pipeline %s: %v", test.pipeline, err)
+		}
 
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(p),
+			WithPipeline(_pipeline),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
@@ -331,62 +359,47 @@ func TestLinux_ExecBuild(t *testing.T) {
 		failure  bool
 		pipeline string
 	}{
+		{ // basic services pipeline
+			failure:  false,
+			pipeline: "testdata/build/services/basic.yml",
+		},
+		{ // services pipeline with image not found
+			failure:  true,
+			pipeline: "testdata/build/services/img_notfound.yml",
+		},
 		{ // basic steps pipeline
 			failure:  false,
 			pipeline: "testdata/build/steps/basic.yml",
 		},
-		{ // pipeline with step image tag not found
+		{ // steps pipeline with image not found
 			failure:  true,
 			pipeline: "testdata/build/steps/img_notfound.yml",
-		},
-		{ // pipeline with step name not found
-			failure:  true,
-			pipeline: "testdata/build/steps/name_notfound.yml",
 		},
 		{ // basic stages pipeline
 			failure:  false,
 			pipeline: "testdata/build/stages/basic.yml",
 		},
-		{ // pipeline with stage step image tag not found
+		{ // stages pipeline with image not found
 			failure:  true,
 			pipeline: "testdata/build/stages/img_notfound.yml",
-		},
-		{ // pipeline with stage step name not found
-			failure:  true,
-			pipeline: "testdata/build/stages/name_notfound.yml",
-		},
-		{ // basic services pipeline
-			failure:  false,
-			pipeline: "testdata/build/services/basic.yml",
-		},
-		{ // pipeline with service image tag not found
-			failure:  true,
-			pipeline: "testdata/build/services/img_notfound.yml",
-		},
-		{ // pipeline with service name not found
-			failure:  true,
-			pipeline: "testdata/build/services/name_notfound.yml",
-		},
-		{ // basic secrets pipeline
-			failure:  false,
-			pipeline: "testdata/build/secrets/basic.yml",
 		},
 	}
 
 	// run test
 	for _, test := range tests {
-		file, _ := ioutil.ReadFile(test.pipeline)
-
-		p, _ := compiler.
+		_pipeline, err := compiler.
 			WithBuild(_build).
 			WithRepo(_repo).
-			WithUser(_user).
 			WithMetadata(_metadata).
-			Compile(file)
+			WithUser(_user).
+			Compile(test.pipeline)
+		if err != nil {
+			t.Errorf("unable to compile pipeline %s: %v", test.pipeline, err)
+		}
 
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(p),
+			WithPipeline(_pipeline),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
@@ -396,46 +409,27 @@ func TestLinux_ExecBuild(t *testing.T) {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
 
-		for _, service := range p.Services {
-			s := &library.Service{
-				Name:   &service.Name,
-				Number: &service.Number,
-			}
-
-			_engine.services.Store(service.ID, s)
-			_engine.serviceLogs.Store(service.ID, new(library.Log))
-		}
-
-		for _, stage := range p.Stages {
-			for _, step := range stage.Steps {
-				s := &library.Step{
-					Name:   &step.Name,
-					Number: &step.Number,
-				}
-
-				_engine.steps.Store(step.ID, s)
-				_engine.stepLogs.Store(step.ID, new(library.Log))
-			}
-		}
-
-		for _, step := range p.Steps {
-			s := &library.Step{
-				Name:   &step.Name,
-				Number: &step.Number,
-			}
-
-			_engine.steps.Store(step.ID, s)
-			_engine.stepLogs.Store(step.ID, new(library.Log))
-		}
-
 		// run create to init steps to be created properly
 		err = _engine.CreateBuild(context.Background())
 		if err != nil {
 			t.Errorf("unable to create build: %v", err)
 		}
 
-		// create volume for runtime host config
-		err = _runtime.CreateVolume(context.Background(), p)
+		// TODO: hack - remove this
+		//
+		// When using our Docker mock we default the list of
+		// Docker images that have privileged access. One of
+		// these images is target/vela-git which is injected
+		// by the compiler into every build.
+		//
+		// The problem this causes is that we haven't called
+		// all the necessary functions we do in a real world
+		// scenario to ensure we can run privileged images.
+		//
+		// This is the necessary function to create the
+		// runtime host config so we can run images
+		// in a privileged fashion.
+		err = _runtime.CreateVolume(context.Background(), _pipeline)
 		if err != nil {
 			t.Errorf("unable to create runtime volume: %w", err)
 		}
@@ -498,58 +492,55 @@ func TestLinux_DestroyBuild(t *testing.T) {
 		failure  bool
 		pipeline string
 	}{
-		// { // pipeline empty
-		// 	failure:  true,
-		// 	pipeline:     "testdata/build/empty.yml",
-		// },
-		{ // basic steps pipeline
+		{ // basic secrets pipeline
 			failure:  false,
-			pipeline: "testdata/build/steps/basic.yml",
+			pipeline: "testdata/build/secrets/basic.yml",
 		},
-		{ // pipeline with step image tag not found
+		{ // secrets pipeline with name not found
 			failure:  false,
-			pipeline: "testdata/build/steps/img_notfound.yml",
-		},
-		{ // basic stages pipeline
-			failure:  false,
-			pipeline: "testdata/build/stages/basic.yml",
-		},
-		{ // pipeline with stage step image tag not found
-			failure:  false,
-			pipeline: "testdata/build/stages/img_notfound.yml",
+			pipeline: "testdata/build/secrets/name_notfound.yml",
 		},
 		{ // basic services pipeline
 			failure:  false,
 			pipeline: "testdata/build/services/basic.yml",
 		},
-		{ // pipeline with service image tag not found
+		{ // services pipeline with name not found
 			failure:  false,
-			pipeline: "testdata/build/services/img_notfound.yml",
+			pipeline: "testdata/build/services/name_notfound.yml",
+		},
+		{ // basic steps pipeline
+			failure:  false,
+			pipeline: "testdata/build/steps/basic.yml",
+		},
+		{ // steps pipeline with name not found
+			failure:  false,
+			pipeline: "testdata/build/steps/name_notfound.yml",
 		},
 		{ // basic stages pipeline
 			failure:  false,
-			pipeline: "testdata/build/secrets/basic.yml",
+			pipeline: "testdata/build/stages/basic.yml",
 		},
-		{ // pipeline with secret image tag not found
+		{ // stages pipeline with name not found
 			failure:  false,
-			pipeline: "testdata/build/secrets/img_notfound.yml",
+			pipeline: "testdata/build/stages/name_notfound.yml",
 		},
 	}
 
 	// run test
 	for _, test := range tests {
-		file, _ := ioutil.ReadFile(test.pipeline)
-
-		p, _ := compiler.
+		_pipeline, err := compiler.
 			WithBuild(_build).
 			WithRepo(_repo).
-			WithUser(_user).
 			WithMetadata(_metadata).
-			Compile(file)
+			WithUser(_user).
+			Compile(test.pipeline)
+		if err != nil {
+			t.Errorf("unable to compile pipeline %s: %v", test.pipeline, err)
+		}
 
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(p),
+			WithPipeline(_pipeline),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),

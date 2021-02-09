@@ -7,27 +7,42 @@ package linux
 import (
 	"context"
 	"errors"
+	"flag"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/urfave/cli/v2"
 
+	"github.com/go-vela/compiler/compiler/native"
 	"github.com/go-vela/mock/server"
 
 	"github.com/go-vela/pkg-runtime/runtime/docker"
 
 	"github.com/go-vela/sdk-go/vela"
 
-	"github.com/go-vela/types/library"
 	"github.com/go-vela/types/pipeline"
 )
 
 func TestLinux_CreateStage(t *testing.T) {
 	// setup types
+	_file := "testdata/build/stages/basic.yml"
 	_build := testBuild()
 	_repo := testRepo()
 	_user := testUser()
-	_stages := testStages()
+	_metadata := testMetadata()
+
+	compiler, _ := native.New(cli.NewContext(nil, flag.NewFlagSet("test", 0), nil))
+
+	_pipeline, err := compiler.
+		WithBuild(_build).
+		WithRepo(_repo).
+		WithMetadata(_metadata).
+		WithUser(_user).
+		Compile(_file)
+	if err != nil {
+		t.Errorf("unable to compile pipeline %s: %v", _file, err)
+	}
 
 	gin.SetMode(gin.TestMode)
 
@@ -46,80 +61,45 @@ func TestLinux_CreateStage(t *testing.T) {
 	// setup tests
 	tests := []struct {
 		failure bool
-		logs    *library.Log
 		stage   *pipeline.Stage
 	}{
-		{
+		{ // basic stage
 			failure: false,
-			logs:    new(library.Log),
 			stage: &pipeline.Stage{
-				Name: "clone",
+				Name: "echo",
 				Steps: pipeline.ContainerSlice{
 					{
-						ID:          "github_octocat_1_clone_clone",
-						Directory:   "/home/github/octocat",
+						ID:          "github_octocat_1_echo_echo",
+						Directory:   "/vela/src/github.com/github/octocat",
 						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/vela-git:v0.3.0",
-						Name:        "clone",
-						Number:      2,
-						Pull:        "always",
+						Image:       "alpine:latest",
+						Name:        "echo",
+						Number:      1,
+						Pull:        "not_present",
 					},
 				},
 			},
 		},
-		{
+		{ // stage with step container with image not found
 			failure: true,
-			logs:    nil,
 			stage: &pipeline.Stage{
-				Name: "clone",
+				Name: "echo",
 				Steps: pipeline.ContainerSlice{
 					{
-						ID:          "github_octocat_1_clone_clone",
-						Directory:   "/home/github/octocat",
+						ID:          "github_octocat_1_echo_echo",
+						Directory:   "/vela/src/github.com/github/octocat",
 						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/vela-git:v0.3.0",
-						Name:        "clone",
-						Number:      2,
-						Pull:        "always",
+						Image:       "alpine:notfound",
+						Name:        "echo",
+						Number:      1,
+						Pull:        "not_present",
 					},
 				},
 			},
 		},
-		{
+		{ // empty stage
 			failure: true,
-			logs:    new(library.Log),
-			stage: &pipeline.Stage{
-				Name: "clone",
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "github_octocat_1_clone_clone",
-						Directory:   "/home/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/vela-git:notfound",
-						Name:        "clone",
-						Number:      2,
-						Pull:        "always",
-					},
-				},
-			},
-		},
-		{
-			failure: true,
-			logs:    new(library.Log),
-			stage: &pipeline.Stage{
-				Name: "clone",
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "github_octocat_1_clone_clone",
-						Directory:   "/home/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/vela-git:ignorenotfound",
-						Name:        "clone",
-						Number:      2,
-						Pull:        "always",
-					},
-				},
-			},
+			stage:   new(pipeline.Stage),
 		},
 	}
 
@@ -127,7 +107,7 @@ func TestLinux_CreateStage(t *testing.T) {
 	for _, test := range tests {
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(_stages),
+			WithPipeline(_pipeline),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
@@ -137,7 +117,7 @@ func TestLinux_CreateStage(t *testing.T) {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
 
-		if test.logs != nil {
+		if len(test.stage.Name) > 0 {
 			// run create to init steps to be created properly
 			err = _engine.CreateBuild(context.Background())
 			if err != nil {
@@ -166,7 +146,6 @@ func TestLinux_PlanStage(t *testing.T) {
 	_build := testBuild()
 	_repo := testRepo()
 	_user := testUser()
-	_stages := testStages()
 
 	gin.SetMode(gin.TestMode)
 
@@ -182,53 +161,75 @@ func TestLinux_PlanStage(t *testing.T) {
 		t.Errorf("unable to create runtime engine: %v", err)
 	}
 
+	testMap := map[string]chan error{"foo": make(chan error, 1)}
+	testMap["foo"] <- nil
+	close(testMap["foo"])
+
+	errMap := map[string]chan error{"foo": make(chan error, 1)}
+	errMap["foo"] <- errors.New("bar")
+	close(errMap["foo"])
+
 	// setup tests
 	tests := []struct {
 		failure  bool
-		err      error
-		stageMap map[string]chan error
 		stage    *pipeline.Stage
+		stageMap map[string]chan error
 	}{
-		{
-			failure:  false,
-			err:      nil,
-			stageMap: map[string]chan error{},
+		{ // basic stage
+			failure: false,
 			stage: &pipeline.Stage{
-				Name: "clone",
+				Name: "echo",
 				Steps: pipeline.ContainerSlice{
 					{
-						ID:          "github_octocat_1_clone_clone",
-						Directory:   "/home/github/octocat",
+						ID:          "github_octocat_1_echo_echo",
+						Directory:   "/vela/src/github.com/github/octocat",
 						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/vela-git:v0.3.0",
-						Name:        "clone",
-						Number:      2,
-						Pull:        "always",
+						Image:       "alpine:latest",
+						Name:        "echo",
+						Number:      1,
+						Pull:        "not_present",
 					},
 				},
 			},
+			stageMap: make(map[string]chan error),
 		},
-		{
-			failure: true,
-			err:     errors.New("simulated error for stage"),
-			stageMap: map[string]chan error{
-				"init": make(chan error, 1),
-			},
+		{ // basic stage with nil stage map
+			failure: false,
 			stage: &pipeline.Stage{
-				Name:  "clone",
-				Needs: []string{"init"},
+				Name:  "echo",
+				Needs: []string{"foo"},
 				Steps: pipeline.ContainerSlice{
 					{
-						ID:          "github_octocat_1_clone_clone",
-						Directory:   "/home/github/octocat",
+						ID:          "github_octocat_1_echo_echo",
+						Directory:   "/vela/src/github.com/github/octocat",
 						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/vela-git:v0.3.0",
-						Name:        "clone",
-						Number:      2,
-						Pull:        "always",
+						Image:       "alpine:latest",
+						Name:        "echo",
+						Number:      1,
+						Pull:        "not_present",
 					},
 				},
 			},
+			stageMap: testMap,
+		},
+		{ // basic stage with error stage map
+			failure: true,
+			stage: &pipeline.Stage{
+				Name:  "echo",
+				Needs: []string{"foo"},
+				Steps: pipeline.ContainerSlice{
+					{
+						ID:          "github_octocat_1_echo_echo",
+						Directory:   "/vela/src/github.com/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "alpine:latest",
+						Name:        "echo",
+						Number:      1,
+						Pull:        "not_present",
+					},
+				},
+			},
+			stageMap: errMap,
 		},
 	}
 
@@ -236,7 +237,7 @@ func TestLinux_PlanStage(t *testing.T) {
 	for _, test := range tests {
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(_stages),
+			WithPipeline(new(pipeline.Build)),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
@@ -244,14 +245,6 @@ func TestLinux_PlanStage(t *testing.T) {
 		)
 		if err != nil {
 			t.Errorf("unable to create executor engine: %v", err)
-		}
-
-		if len(test.stageMap) > 0 {
-			if test.err != nil {
-				test.stageMap["init"] <- test.err
-			}
-
-			close(test.stageMap["init"])
 		}
 
 		err = _engine.PlanStage(context.Background(), test.stage, test.stageMap)
@@ -275,7 +268,6 @@ func TestLinux_ExecStage(t *testing.T) {
 	_build := testBuild()
 	_repo := testRepo()
 	_user := testUser()
-	_stages := testStages()
 
 	gin.SetMode(gin.TestMode)
 
@@ -296,54 +288,53 @@ func TestLinux_ExecStage(t *testing.T) {
 		failure bool
 		stage   *pipeline.Stage
 	}{
-		{
+		{ // basic stage
 			failure: false,
 			stage: &pipeline.Stage{
-				Name: "clone",
+				Name: "echo",
 				Steps: pipeline.ContainerSlice{
 					{
-						ID:          "github_octocat_1_clone_clone",
-						Directory:   "/home/github/octocat",
+						ID:          "github_octocat_1_echo_echo",
+						Directory:   "/vela/src/github.com/github/octocat",
 						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/vela-git:v0.3.0",
-						Name:        "clone",
-						Number:      2,
-						Pull:        "always",
+						Image:       "alpine:latest",
+						Name:        "echo",
+						Number:      1,
+						Pull:        "not_present",
 					},
 				},
 			},
 		},
-		{
+		{ // stage with step container with image not found
 			failure: true,
 			stage: &pipeline.Stage{
-				Name: "clone",
+				Name: "echo",
 				Steps: pipeline.ContainerSlice{
 					{
-						ID:          "github_octocat_1_bad_clone_clone",
-						Directory:   "/home/github/octocat",
+						ID:          "github_octocat_1_echo_echo",
+						Directory:   "/vela/src/github.com/github/octocat",
 						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/vela-git:v0.3.0",
-						Name:        "clone",
+						Image:       "alpine:notfound",
+						Name:        "echo",
+						Number:      1,
+						Pull:        "not_present",
+					},
+				},
+			},
+		},
+		{ // stage with step container with bad number
+			failure: true,
+			stage: &pipeline.Stage{
+				Name: "echo",
+				Steps: pipeline.ContainerSlice{
+					{
+						ID:          "github_octocat_1_echo_echo",
+						Directory:   "/vela/src/github.com/github/octocat",
+						Environment: map[string]string{"FOO": "bar"},
+						Image:       "alpine:latest",
+						Name:        "echo",
 						Number:      0,
-						Pull:        "always",
-					},
-				},
-			},
-		},
-
-		{
-			failure: true,
-			stage: &pipeline.Stage{
-				Name: "clone",
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "github_octocat_1_clone_notfound",
-						Directory:   "/home/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/vela-git:v0.3.0",
-						Name:        "notfound",
-						Number:      2,
-						Pull:        "always",
+						Pull:        "not_present",
 					},
 				},
 			},
@@ -353,13 +344,11 @@ func TestLinux_ExecStage(t *testing.T) {
 	// run tests
 	for _, test := range tests {
 		stageMap := make(map[string]chan error)
-		stageMap["init"] = make(chan error)
-		stageMap["clone"] = make(chan error)
 		stageMap["echo"] = make(chan error)
 
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(_stages),
+			WithPipeline(new(pipeline.Build)),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
@@ -367,20 +356,6 @@ func TestLinux_ExecStage(t *testing.T) {
 		)
 		if err != nil {
 			t.Errorf("unable to create executor engine: %v", err)
-		}
-
-		_engine.steps.Store(_stages.Stages[0].Steps[0].ID, new(library.Step))
-		_engine.stepLogs.Store(_stages.Stages[0].Steps[0].ID, new(library.Log))
-
-		err = _engine.CreateStep(context.Background(), test.stage.Steps[0])
-		if err != nil {
-			t.Errorf("unable to create step: %v", err)
-		}
-
-		// create volume for runtime host config
-		err = _runtime.CreateVolume(context.Background(), _stages)
-		if err != nil {
-			t.Errorf("unable to create runtime volume: %w", err)
 		}
 
 		err = _engine.ExecStage(context.Background(), test.stage, stageMap)
@@ -404,7 +379,6 @@ func TestLinux_DestroyStage(t *testing.T) {
 	_build := testBuild()
 	_repo := testRepo()
 	_user := testUser()
-	_stages := testStages()
 
 	gin.SetMode(gin.TestMode)
 
@@ -424,43 +398,23 @@ func TestLinux_DestroyStage(t *testing.T) {
 	tests := []struct {
 		failure bool
 		stage   *pipeline.Stage
-		step    *library.Step
 	}{
-		{
+		{ // basic stage
 			failure: false,
 			stage: &pipeline.Stage{
-				Name: "clone",
+				Name: "echo",
 				Steps: pipeline.ContainerSlice{
 					{
-						ID:          "github_octocat_1_clone_clone",
-						Directory:   "/home/github/octocat",
+						ID:          "github_octocat_1_echo_echo",
+						Directory:   "/vela/src/github.com/github/octocat",
 						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/vela-git:v0.3.0",
-						Name:        "clone",
-						Number:      2,
-						Pull:        "always",
+						Image:       "alpine:latest",
+						Name:        "echo",
+						Number:      1,
+						Pull:        "not_present",
 					},
 				},
 			},
-			step: new(library.Step),
-		},
-		{
-			failure: true,
-			stage: &pipeline.Stage{
-				Name: "clone",
-				Steps: pipeline.ContainerSlice{
-					{
-						ID:          "github_octocat_1_clone_notfound",
-						Directory:   "/home/github/octocat",
-						Environment: map[string]string{"FOO": "bar"},
-						Image:       "target/vela-git:v0.3.0",
-						Name:        "notfound",
-						Number:      2,
-						Pull:        "always",
-					},
-				},
-			},
-			step: new(library.Step),
 		},
 	}
 
@@ -468,7 +422,7 @@ func TestLinux_DestroyStage(t *testing.T) {
 	for _, test := range tests {
 		_engine, err := New(
 			WithBuild(_build),
-			WithPipeline(_stages),
+			WithPipeline(new(pipeline.Build)),
 			WithRepo(_repo),
 			WithRuntime(_runtime),
 			WithUser(_user),
@@ -477,8 +431,6 @@ func TestLinux_DestroyStage(t *testing.T) {
 		if err != nil {
 			t.Errorf("unable to create executor engine: %v", err)
 		}
-
-		_engine.steps.Store(test.stage.Steps[0].ID, test.step)
 
 		err = _engine.DestroyStage(context.Background(), test.stage)
 

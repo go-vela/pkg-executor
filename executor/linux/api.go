@@ -5,9 +5,8 @@
 package linux
 
 import (
+	"context"
 	"fmt"
-	"os"
-	"syscall"
 	"time"
 
 	"github.com/go-vela/pkg-executor/internal/service"
@@ -191,14 +190,9 @@ func (c *client) CancelBuild() (*library.Build, error) {
 		}
 	}
 
-	p, err := os.FindProcess(os.Getpid())
+	err = c.DestroyBuild(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("unable to find PID: %v", err)
-	}
-
-	err = p.Signal(syscall.SIGTERM)
-	if err != nil {
-		return nil, fmt.Errorf("unable to cancel PID: %v", err)
+		return nil, err
 	}
 
 	return b, nil

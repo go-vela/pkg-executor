@@ -45,7 +45,7 @@ func Environment(c *pipeline.Container, b *library.Build, r *library.Repo, s *li
 		// populate environment variables from build library
 		//
 		// https://pkg.go.dev/github.com/go-vela/types/library#Build.Environment
-		c.Environment = appendMap(c.Environment, b.Environment(workspace, channel))
+		c.MergeEnv(b.Environment(workspace, channel))
 	}
 
 	// check if the repo provided is empty
@@ -53,7 +53,7 @@ func Environment(c *pipeline.Container, b *library.Build, r *library.Repo, s *li
 		// populate environment variables from build library
 		//
 		// https://pkg.go.dev/github.com/go-vela/types/library#Repo.Environment
-		c.Environment = appendMap(c.Environment, r.Environment())
+		c.MergeEnv(r.Environment())
 	}
 
 	// check if the step provided is empty
@@ -61,17 +61,8 @@ func Environment(c *pipeline.Container, b *library.Build, r *library.Repo, s *li
 		// populate environment variables from step library
 		//
 		// https://pkg.go.dev/github.com/go-vela/types/library#Service.Environment
-		c.Environment = appendMap(c.Environment, s.Environment())
+		c.MergeEnv(s.Environment())
 	}
 
 	return nil
-}
-
-// helper function to merge two maps together.
-func appendMap(originalMap, otherMap map[string]string) map[string]string {
-	for key, value := range otherMap {
-		originalMap[key] = value
-	}
-
-	return originalMap
 }

@@ -2,6 +2,8 @@ module github.com/go-vela/pkg-executor
 
 go 1.15
 
+replace github.com/go-vele/types => ../types
+
 require (
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-vela/compiler v0.7.2

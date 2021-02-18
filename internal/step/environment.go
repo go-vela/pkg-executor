@@ -44,6 +44,8 @@ func Environment(c *pipeline.Container, b *library.Build, r *library.Repo, s *li
 
 		// populate environment variables from build library
 		//
+		// https://pkg.go.dev/github.com/go-vela/types/pipeline#Container.MergeEnv
+		// ->
 		// https://pkg.go.dev/github.com/go-vela/types/library#Build.Environment
 		err := c.MergeEnv(b.Environment(workspace, channel))
 		if err != nil {
@@ -55,6 +57,8 @@ func Environment(c *pipeline.Container, b *library.Build, r *library.Repo, s *li
 	if r != nil {
 		// populate environment variables from build library
 		//
+		// https://pkg.go.dev/github.com/go-vela/types/pipeline#Container.MergeEnv
+		// ->
 		// https://pkg.go.dev/github.com/go-vela/types/library#Repo.Environment
 		err := c.MergeEnv(r.Environment())
 		if err != nil {
@@ -66,6 +70,8 @@ func Environment(c *pipeline.Container, b *library.Build, r *library.Repo, s *li
 	if s != nil {
 		// populate environment variables from step library
 		//
+		// https://pkg.go.dev/github.com/go-vela/types/pipeline#Container.MergeEnv
+		// ->
 		// https://pkg.go.dev/github.com/go-vela/types/library#Service.Environment
 		err := c.MergeEnv(s.Environment())
 		if err != nil {

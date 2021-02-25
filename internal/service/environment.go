@@ -44,34 +44,40 @@ func Environment(c *pipeline.Container, b *library.Build, r *library.Repo, s *li
 
 		// populate environment variables from build library
 		//
+		// https://pkg.go.dev/github.com/go-vela/types/pipeline#Container.MergeEnv
+		// ->
 		// https://pkg.go.dev/github.com/go-vela/types/library#Build.Environment
-		c.Environment = appendMap(c.Environment, b.Environment(workspace, channel))
+		err := c.MergeEnv(b.Environment(workspace, channel))
+		if err != nil {
+			return err
+		}
 	}
 
 	// check if the repo provided is empty
 	if r != nil {
 		// populate environment variables from repo library
 		//
+		// https://pkg.go.dev/github.com/go-vela/types/pipeline#Container.MergeEnv
+		// ->
 		// https://pkg.go.dev/github.com/go-vela/types/library#Repo.Environment
-		c.Environment = appendMap(c.Environment, r.Environment())
+		err := c.MergeEnv(r.Environment())
+		if err != nil {
+			return err
+		}
 	}
 
 	// check if the service provided is empty
 	if s != nil {
 		// populate environment variables from service library
 		//
+		// https://pkg.go.dev/github.com/go-vela/types/pipeline#Container.MergeEnv
+		// ->
 		// https://pkg.go.dev/github.com/go-vela/types/library#Service.Environment
-		c.Environment = appendMap(c.Environment, s.Environment())
+		err := c.MergeEnv(s.Environment())
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
-}
-
-// helper function to merge two maps together.
-func appendMap(originalMap, otherMap map[string]string) map[string]string {
-	for key, value := range otherMap {
-		originalMap[key] = value
-	}
-
-	return originalMap
 }

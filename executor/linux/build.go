@@ -28,7 +28,7 @@ func (c *client) CreateBuild(ctx context.Context) error {
 	c.build.SetStatus(constants.StatusRunning)
 	c.build.SetStarted(time.Now().UTC().Unix())
 	c.build.SetHost(c.Hostname)
-	c.build.SetDistribution(constants.DriverLinux)
+	c.build.SetDistribution(c.Driver())
 	c.build.SetRuntime(c.Runtime.Driver())
 
 	c.logger.Info("uploading build state")

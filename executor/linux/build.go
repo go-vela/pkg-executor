@@ -92,19 +92,8 @@ func (c *client) PlanBuild(ctx context.Context) error {
 
 	// defer taking a snapshot of the init step
 	//
-	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Upload
-	defer func() { step.Snapshot(c.init, c.build, c.Vela, c.logger, c.repo, _init) }()
-
-	defer func() {
-		c.logger.Infof("uploading %s step logs", c.init.Name)
-		// send API call to update the logs for the step
-		//
-		// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateStep
-		_log, _, err = c.Vela.Log.UpdateStep(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), c.init.Number, _log)
-		if err != nil {
-			c.logger.Errorf("unable to upload %s logs: %v", c.init.Name, err)
-		}
-	}()
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#SnapshotInit
+	defer func() { step.SnapshotInit(c.init, c.build, c.Vela, c.logger, c.repo, _init, _log) }()
 
 	c.logger.Info("creating network")
 	// create the runtime network for the pipeline

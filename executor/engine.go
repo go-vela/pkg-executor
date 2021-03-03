@@ -15,6 +15,12 @@ import (
 // with the different supported operating systems.
 type Engine interface {
 
+	// Engine Interface Functions
+
+	// Driver defines a function that outputs
+	// the configured executor driver.
+	Driver() string
+
 	// API interface functions
 
 	// GetBuild defines a function for the API

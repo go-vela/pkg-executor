@@ -61,6 +61,19 @@ func (c *client) PlanBuild(ctx context.Context) error {
 	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/build#Snapshot
 	defer func() { build.Snapshot(c.build, nil, c.err, nil, nil) }()
 
+	// load the init step from the client
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#Load
+	_init, err := step.Load(c.init, &c.steps)
+	if err != nil {
+		return err
+	}
+
+	// defer taking a snapshot of the init step
+	//
+	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#SnapshotInit
+	defer func() { step.SnapshotInit(c.init, c.build, nil, nil, nil, _init, nil) }()
+
 	// create a step pattern for log output
 	_pattern := fmt.Sprintf(stepPattern, c.init.Name)
 

@@ -3,7 +3,7 @@ module github.com/go-vela/pkg-executor
 go 1.15
 
 require (
-	github.com/gin-gonic/gin v1.6.3
+	github.com/gin-gonic/gin v1.7.1
 	github.com/go-vela/compiler v0.7.4
 	github.com/go-vela/mock v0.7.4
 	github.com/go-vela/pkg-runtime v0.7.4

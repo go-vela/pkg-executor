@@ -9,7 +9,7 @@ require (
 	github.com/go-vela/pkg-runtime v0.7.5-0.20210413175127-199fcc4510c2
 	github.com/go-vela/sdk-go v0.7.4
 	github.com/go-vela/types v0.7.4
-	github.com/google/go-cmp v0.5.4
+	github.com/google/go-cmp v0.5.5
 	github.com/joho/godotenv v1.3.0
 	github.com/onsi/ginkgo v1.14.2 // indirect
 	github.com/onsi/gomega v1.10.4 // indirect

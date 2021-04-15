@@ -61,9 +61,9 @@ func run(c *cli.Context) error {
 
 	// setup the runtime
 	r, err := runtime.New(&runtime.Setup{
-		Driver:    c.String("runtime.driver"),
-		Config:    c.String("runtime.config"),
-		Namespace: c.String("runtime.namespace"),
+		Driver:     c.String("runtime.driver"),
+		ConfigFile: c.String("runtime.config"),
+		Namespace:  c.String("runtime.namespace"),
 	})
 	if err != nil {
 		return err

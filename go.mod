@@ -6,7 +6,7 @@ require (
 	github.com/gin-gonic/gin v1.7.1
 	github.com/go-vela/compiler v0.7.4
 	github.com/go-vela/mock v0.7.4
-	github.com/go-vela/pkg-runtime v0.7.4
+	github.com/go-vela/pkg-runtime v0.7.5-0.20210413175127-199fcc4510c2
 	github.com/go-vela/sdk-go v0.7.4
 	github.com/go-vela/types v0.7.4
 	github.com/google/go-cmp v0.5.5

@@ -10,10 +10,7 @@ require (
 	github.com/go-vela/sdk-go v0.7.4
 	github.com/go-vela/types v0.7.4
 	github.com/google/go-cmp v0.5.5
-	github.com/gophercloud/gophercloud v0.1.0 // indirect
 	github.com/joho/godotenv v1.3.0
-	github.com/onsi/ginkgo v1.14.2 // indirect
-	github.com/onsi/gomega v1.10.4 // indirect
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli/v2 v2.3.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c

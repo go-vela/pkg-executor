@@ -353,3 +353,15 @@ func injectSecrets(ctn *pipeline.Container, m map[string]*library.Secret) error 
 
 	return nil
 }
+
+// escapeNewlineSecrets is a helper function to double-escape escaped newlines.
+// double-escaped newlines are resolved to newlines during env substitution
+func escapeNewlineSecrets(m map[string]*library.Secret) {
+	for i, secret := range m {
+		// only double-escape secrets that have been manually escaped
+		if !strings.Contains(secret.GetValue(), "\\\\n") {
+			s := strings.Replace(secret.GetValue(), "\\n", "\\\n", -1)
+			m[i].Value = &s
+		}
+	}
+}

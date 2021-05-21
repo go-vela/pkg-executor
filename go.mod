@@ -8,7 +8,7 @@ require (
 	github.com/go-vela/mock v0.7.5-0.20210416160452-fa8721fcc6a1
 	github.com/go-vela/pkg-runtime v0.7.5-0.20210428154035-f007d6e59a10
 	github.com/go-vela/sdk-go v0.7.4
-	github.com/go-vela/types v0.7.4
+	github.com/go-vela/types v0.7.5-0.20210520185150-62027576a4ad
 	github.com/google/go-cmp v0.5.5
 	github.com/joho/godotenv v1.3.0
 	github.com/sirupsen/logrus v1.8.1

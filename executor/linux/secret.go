@@ -347,9 +347,21 @@ func injectSecrets(ctn *pipeline.Container, m map[string]*library.Secret) error 
 		logrus.Tracef("matching secret %s to container %s", _secret.Source, ctn.Name)
 		// ensure the secret matches with the container
 		if s.Match(ctn) {
-			ctn.Environment[strings.ToUpper(_secret.Target)] = strings.Replace(s.GetValue(), "\\n", "\\\n", -1)
+			ctn.Environment[strings.ToUpper(_secret.Target)] = s.GetValue()
 		}
 	}
 
 	return nil
+}
+
+// escapeNewlineSecrets is a helper function to double-escape escaped newlines.
+// double-escaped newlines are resolved to newlines during env substitution
+func escapeNewlineSecrets(m map[string]*library.Secret) {
+	for i, secret := range m {
+		// only double-escape secrets that have been manually escaped
+		if !strings.Contains(secret.GetValue(), "\\\\n") {
+			s := strings.Replace(secret.GetValue(), "\\n", "\\\n", -1)
+			m[i].Value = &s
+		}
+	}
 }

@@ -19,24 +19,27 @@ var Flags = []cli.Flag{
 	// Logging Flags
 
 	&cli.StringFlag{
-		EnvVars: []string{"VELA_LOG_FORMAT", "EXECUTOR_LOG_FORMAT"},
-		Name:    "executor.log.format",
-		Usage:   "format of logs to output",
-		Value:   "json",
+		EnvVars:  []string{"VELA_LOG_FORMAT", "EXECUTOR_LOG_FORMAT"},
+		FilePath: "/vela/executor/log_format",
+		Name:     "executor.log.format",
+		Usage:    "format of logs to output",
+		Value:    "json",
 	},
 	&cli.StringFlag{
-		EnvVars: []string{"VELA_LOG_LEVEL", "EXECUTOR_LOG_LEVEL"},
-		Name:    "executor.log.level",
-		Usage:   "level of logs to output",
-		Value:   "info",
+		EnvVars:  []string{"VELA_LOG_LEVEL", "EXECUTOR_LOG_LEVEL"},
+		FilePath: "/vela/executor/log_level",
+		Name:     "executor.log.level",
+		Usage:    "level of logs to output",
+		Value:    "info",
 	},
 
 	// Executor Flags
 
 	&cli.StringFlag{
-		EnvVars: []string{"VELA_EXECUTOR_DRIVER", "EXECUTOR_DRIVER"},
-		Name:    "executor.driver",
-		Usage:   "driver to be used for the executor",
-		Value:   constants.DriverLinux,
+		EnvVars:  []string{"VELA_EXECUTOR_DRIVER", "EXECUTOR_DRIVER"},
+		FilePath: "/vela/executor/driver",
+		Name:     "executor.driver",
+		Usage:    "driver to be used for the executor",
+		Value:    constants.DriverLinux,
 	},
 }

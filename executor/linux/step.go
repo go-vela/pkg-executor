@@ -207,10 +207,6 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 		return err
 	}
 
-	// create new buffer for uploading logs
-	logs := new(bytes.Buffer)
-
-	// nolint: dupl // ignore similar code
 	defer func() {
 		// tail the runtime container
 		rc, err := c.Runtime.TailContainer(ctx, ctn)
@@ -252,6 +248,53 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 	}
 	defer rc.Close()
 
+	// create new channel for processing logs
+	done := make(chan bool)
+	// create new buffer for uploading logs
+	logs := new(bytes.Buffer)
+
+	// nolint: dupl // ignore similar code
+	go func() {
+		logger.Debug("polling logs for container")
+
+		// spawn "infinite" loop that will upload logs
+		// from the buffer until the channel is closed
+		for {
+			// sleep for "1s" before attempting to upload logs
+			time.Sleep(1 * time.Second)
+
+			// create a non-blocking select to check if the channel is closed
+			select {
+			// channel is closed
+			case <-done:
+				logger.Trace("channel closed for polling container logs")
+
+				// return out of the go routine
+				return
+			// channel is not closed
+			default:
+				logger.Trace(logs.String())
+
+				// update the existing log with the new bytes
+				//
+				// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+				_log.AppendData(logs.Bytes())
+
+				logger.Debug("appending logs")
+				// send API call to append the logs for the step
+				//
+				// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateStep
+				_log, _, err = c.Vela.Log.UpdateStep(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), ctn.Number, _log)
+				if err != nil {
+					logger.Error(err)
+				}
+
+				// flush the buffer of logs
+				logs.Reset()
+			}
+		}
+	}()
+
 	// create new scanner from the container output
 	scanner := bufio.NewScanner(rc)
 
@@ -259,31 +302,10 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 	for scanner.Scan() {
 		// write all the logs from the scanner
 		logs.Write(append(scanner.Bytes(), []byte("\n")...))
-
-		// if we have at least 1000 bytes in our buffer
-		//
-		// nolint: gomnd // ignore magic number
-		if logs.Len() > 1000 {
-			logger.Trace(logs.String())
-
-			// update the existing log with the new bytes
-			//
-			// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-			_log.AppendData(logs.Bytes())
-
-			logger.Debug("appending logs")
-			// send API call to append the logs for the step
-			//
-			// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateStep
-			_log, _, err = c.Vela.Log.UpdateStep(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), ctn.Number, _log)
-			if err != nil {
-				return err
-			}
-
-			// flush the buffer of logs
-			logs.Reset()
-		}
 	}
+
+	// close channel to stop processing logs
+	close(done)
 
 	return scanner.Err()
 }

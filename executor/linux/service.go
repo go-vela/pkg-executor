@@ -5,11 +5,11 @@
 package linux
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"os"
 	"time"
 
 	"github.com/go-vela/pkg-executor/internal/service"
@@ -169,9 +169,6 @@ func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) err
 		return err
 	}
 
-	// create new buffer for uploading logs
-	logs := new(bytes.Buffer)
-
 	// nolint: dupl // ignore similar code
 	defer func() {
 		// tail the runtime container
@@ -214,40 +211,48 @@ func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) err
 	}
 	defer rc.Close()
 
-	// create new scanner from the container output
-	scanner := bufio.NewScanner(rc)
-
-	// scan entire container output
-	for scanner.Scan() {
-		// write all the logs from the scanner
-		logs.Write(append(scanner.Bytes(), []byte("\n")...))
-
-		// if we have at least 1000 bytes in our buffer
-		//
-		// nolint: gomnd // ignore magic number
-		if logs.Len() > 1000 {
-			logger.Trace(logs.String())
-
-			// update the existing log with the new bytes
-			//
-			// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-			_log.AppendData(logs.Bytes())
-
-			logger.Debug("appending logs")
-			// send API call to append the logs for the service
-			//
-			// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateService
-			_log, _, err = c.Vela.Log.UpdateService(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), ctn.Number, _log)
-			if err != nil {
-				return err
-			}
-
-			// flush the buffer of logs
-			logs.Reset()
-		}
+	// TODO: consider moving most (all?) of this into the Vela Go SDK
+	client := &http.Client{
+		Timeout: time.Duration(c.repo.GetTimeout()),
 	}
 
-	return scanner.Err()
+	url := fmt.Sprintf(
+		"%s/api/v1/repos/%s/%s/builds/%d/steps/%d/stream",
+		os.Getenv("VELA_SERVER_ADDR"),
+		c.repo.GetOrg(),
+		c.repo.GetName(),
+		c.build.GetNumber(),
+		ctn.Number,
+	)
+
+	logger.Debug("creating request for container logs")
+	// create a request to post the logs from the runtime container
+	req, err := http.NewRequest("POST", url, rc)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "text/event-stream")
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("VELA_SERVER_SECRET")))
+
+	logger.Debug("posting container logs")
+	// post the logs from the runtime container
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	if resp == nil {
+		logger.Debugf("empty response received from %s", url)
+
+		return nil
+	}
+	defer resp.Body.Close()
+
+	logger.Infof("received %s from %s", resp.Status, url)
+
+	// END TODO
+
+	return nil
 }
 
 // DestroyService cleans up services after execution.

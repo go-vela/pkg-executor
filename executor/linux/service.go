@@ -213,7 +213,7 @@ func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) err
 
 	// TODO: consider moving most (all?) of this into the Vela Go SDK
 	client := &http.Client{
-		Timeout: time.Duration(c.repo.GetTimeout()),
+		Timeout: 10 * time.Second,
 	}
 
 	url := fmt.Sprintf(

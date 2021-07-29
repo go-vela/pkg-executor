@@ -265,6 +265,13 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 
 			// create a non-blocking select to check if the channel is closed
 			select {
+			// after repo timeout of idle (no response) end the stream
+			//
+			// this is a safety mechanism
+			case <-time.After(time.Duration(c.repo.GetTimeout())):
+				logger.Tracef("repo timeout of %d exceeded", c.repo.GetTimeout())
+
+				return
 			// channel is closed
 			case <-done:
 				logger.Trace("channel closed for polling container logs")

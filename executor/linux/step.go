@@ -268,7 +268,7 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 			// after repo timeout of idle (no response) end the stream
 			//
 			// this is a safety mechanism
-			case <-time.After(time.Duration(c.repo.GetTimeout())):
+			case <-time.After(time.Duration(c.repo.GetTimeout()) * time.Minute):
 				logger.Tracef("repo timeout of %d exceeded", c.repo.GetTimeout())
 
 				return

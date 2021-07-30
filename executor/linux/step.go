@@ -6,16 +6,19 @@ package linux
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"os"
 	"time"
 
 	"github.com/go-vela/pkg-executor/internal/step"
 	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/library"
 	"github.com/go-vela/types/pipeline"
+
+	"github.com/gorilla/websocket"
 )
 
 // CreateStep configures the step for execution.
@@ -207,9 +210,6 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 		return err
 	}
 
-	// create new buffer for uploading logs
-	logs := new(bytes.Buffer)
-
 	// nolint: dupl // ignore similar code
 	defer func() {
 		// tail the runtime container
@@ -252,38 +252,68 @@ func (c *client) StreamStep(ctx context.Context, ctn *pipeline.Container) error 
 	}
 	defer rc.Close()
 
+	// TODO: consider moving most (all?) of this into the Vela Go SDK
+	url := fmt.Sprintf(
+		"ws://server:8080/api/v1/repos/%s/%s/builds/%d/steps/%d/stream",
+		c.repo.GetOrg(),
+		c.repo.GetName(),
+		c.build.GetNumber(),
+		ctn.Number,
+	)
+
+	headers := http.Header{}
+	headers.Add("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("VELA_SERVER_SECRET")))
+
+	logger.Debugf("creating websocket connection to %s", url)
+	// create a connection to the url to stream logs
+	//
+	// https://pkg.go.dev/github.com/gorilla/websocket#Dialer.Dial
+	conn, _, err := websocket.DefaultDialer.DialContext(ctx, url, headers)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
 	// create new scanner from the container output
 	scanner := bufio.NewScanner(rc)
 
+	logger.Debug("scanning container logs")
 	// scan entire container output
 	for scanner.Scan() {
-		// write all the logs from the scanner
-		logs.Write(append(scanner.Bytes(), []byte("\n")...))
+		logger.Trace(scanner.Text())
 
-		// if we have at least 1000 bytes in our buffer
+		// set timeout of 10s to send the logs
 		//
-		// nolint: gomnd // ignore magic number
-		if logs.Len() > 1000 {
-			logger.Trace(logs.String())
+		// https://pkg.go.dev/github.com/gorilla/websocket#Conn.SetWriteDeadline
+		err := conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+		if err != nil {
+			return err
+		}
 
-			// update the existing log with the new bytes
-			//
-			// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
-			_log.AppendData(logs.Bytes())
-
-			logger.Debug("appending logs")
-			// send API call to append the logs for the step
-			//
-			// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#LogService.UpdateStep
-			_log, _, err = c.Vela.Log.UpdateStep(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), ctn.Number, _log)
-			if err != nil {
-				return err
-			}
-
-			// flush the buffer of logs
-			logs.Reset()
+		// send call to update the logs for the service
+		//
+		// https://pkg.go.dev/github.com/gorilla/websocket#Conn.WriteMessage
+		err = conn.WriteMessage(websocket.TextMessage, scanner.Bytes())
+		if err != nil {
+			return err
 		}
 	}
+
+	// create close message for the websocket connection
+	closeMessage := websocket.FormatCloseMessage(
+		websocket.CloseNormalClosure, "finished scanning container logs",
+	)
+
+	logger.Debugf("closing websocket connection to %s", url)
+	// send call to close the websocket connection
+	//
+	// https://pkg.go.dev/github.com/gorilla/websocket#Conn.WriteMessage
+	err = conn.WriteMessage(websocket.CloseMessage, closeMessage)
+	if err != nil {
+		return err
+	}
+
+	// END TODO
 
 	return scanner.Err()
 }

@@ -10,6 +10,7 @@ require (
 	github.com/go-vela/sdk-go v0.8.1
 	github.com/go-vela/types v0.8.2
 	github.com/google/go-cmp v0.5.6
+	github.com/gorilla/websocket v1.4.2
 	github.com/joho/godotenv v1.3.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli/v2 v2.3.0

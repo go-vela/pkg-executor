@@ -1,6 +1,6 @@
 module github.com/go-vela/pkg-executor
 
-go 1.15
+go 1.16
 
 require (
 	github.com/gin-gonic/gin v1.7.3
@@ -14,4 +14,5 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli/v2 v2.3.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	golang.org/x/sys v0.0.0-20210806184541-e5e7981a1069 // indirect
 )

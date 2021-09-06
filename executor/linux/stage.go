@@ -108,7 +108,7 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m *sync.Map) 
 		// retrieve the error channel for the current stage
 		errChan, ok := m.Load(s.Name)
 		if !ok {
-			logger.Debug("unable to access error channel")
+			logger.Debugf("error channel for stage %s not found", s.Name)
 
 			return
 		}

@@ -103,7 +103,7 @@ func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m *sync.Map) 
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
 	logger := c.logger.WithField("stage", s.Name)
 
-	// close the error channel after executing the stage
+	// close the stage channel at the end
 	defer func() {
 		// retrieve the error channel for the current stage
 		errChan, ok := m.Load(s.Name)

@@ -7,6 +7,7 @@ package linux
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/go-vela/pkg-executor/internal/step"
 	"github.com/go-vela/types/pipeline"
@@ -61,7 +62,7 @@ func (c *client) CreateStage(ctx context.Context, s *pipeline.Stage) error {
 }
 
 // PlanStage prepares the stage for execution.
-func (c *client) PlanStage(ctx context.Context, s *pipeline.Stage, m map[string]chan error) error {
+func (c *client) PlanStage(ctx context.Context, s *pipeline.Stage, m *sync.Map) error {
 	// update engine logger with stage metadata
 	//
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
@@ -72,7 +73,7 @@ func (c *client) PlanStage(ctx context.Context, s *pipeline.Stage, m map[string]
 	for _, needs := range s.Needs {
 		logger.Debugf("looking up dependency %s", needs)
 		// check if a dependency stage has completed
-		stageErr, ok := m[needs]
+		stageErr, ok := m.Load(needs)
 		if !ok { // stage not found so we continue
 			continue
 		}
@@ -82,7 +83,7 @@ func (c *client) PlanStage(ctx context.Context, s *pipeline.Stage, m map[string]
 		select {
 		case <-ctx.Done():
 			return fmt.Errorf("errgroup context is done")
-		case err := <-stageErr:
+		case err := <-stageErr.(chan error):
 			if err != nil {
 				logger.Errorf("%s stage returned error: %v", needs, err)
 				return err
@@ -96,14 +97,25 @@ func (c *client) PlanStage(ctx context.Context, s *pipeline.Stage, m map[string]
 }
 
 // ExecStage runs a stage.
-func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]chan error) error {
+func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m *sync.Map) error {
 	// update engine logger with stage metadata
 	//
 	// https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry.WithField
 	logger := c.logger.WithField("stage", s.Name)
 
-	// close the stage channel at the end
-	defer close(m[s.Name])
+	// close the error channel after executing the stage
+	defer func() {
+		// retrieve the error channel for the current stage
+		errChan, ok := m.Load(s.Name)
+		if !ok {
+			logger.Debug("unable to access error channel")
+
+			return
+		}
+
+		// close the error channel
+		close(errChan.(chan error))
+	}()
 
 	logger.Debug("starting execution of stage")
 	// execute the steps for the stage

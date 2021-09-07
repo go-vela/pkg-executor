@@ -9,6 +9,7 @@ import (
 	"errors"
 	"flag"
 	"net/http/httptest"
+	"sync"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -161,19 +162,25 @@ func TestLinux_PlanStage(t *testing.T) {
 		t.Errorf("unable to create runtime engine: %v", err)
 	}
 
-	testMap := map[string]chan error{"foo": make(chan error, 1)}
-	testMap["foo"] <- nil
-	close(testMap["foo"])
+	testMap := new(sync.Map)
+	testMap.Store("foo", make(chan error, 1))
 
-	errMap := map[string]chan error{"foo": make(chan error, 1)}
-	errMap["foo"] <- errors.New("bar")
-	close(errMap["foo"])
+	tm, _ := testMap.Load("foo")
+	tm.(chan error) <- nil
+	close(tm.(chan error))
+
+	errMap := new(sync.Map)
+	errMap.Store("foo", make(chan error, 1))
+
+	em, _ := errMap.Load("foo")
+	em.(chan error) <- errors.New("bar")
+	close(em.(chan error))
 
 	// setup tests
 	tests := []struct {
 		failure  bool
 		stage    *pipeline.Stage
-		stageMap map[string]chan error
+		stageMap *sync.Map
 	}{
 		{ // basic stage
 			failure: false,
@@ -191,7 +198,7 @@ func TestLinux_PlanStage(t *testing.T) {
 					},
 				},
 			},
-			stageMap: make(map[string]chan error),
+			stageMap: new(sync.Map),
 		},
 		{ // basic stage with nil stage map
 			failure: false,
@@ -343,8 +350,8 @@ func TestLinux_ExecStage(t *testing.T) {
 
 	// run tests
 	for _, test := range tests {
-		stageMap := make(map[string]chan error)
-		stageMap["echo"] = make(chan error)
+		stageMap := new(sync.Map)
+		stageMap.Store("echo", make(chan error, 1))
 
 		_engine, err := New(
 			WithBuild(_build),

@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -287,7 +288,7 @@ func (c *client) ExecBuild(ctx context.Context) error {
 	// https://pkg.go.dev/golang.org/x/sync/errgroup?tab=doc#WithContext
 	stages, stageCtx := errgroup.WithContext(ctx)
 	// create a map to track the progress of each stage
-	stageMap := make(map[string]chan error)
+	stageMap := new(sync.Map)
 
 	// iterate through each stage in the pipeline
 	for _, _stage := range c.pipeline.Stages {
@@ -300,7 +301,7 @@ func (c *client) ExecBuild(ctx context.Context) error {
 		stage := _stage
 
 		// create a new channel for each stage in the map
-		stageMap[stage.Name] = make(chan error)
+		stageMap.Store(stage.Name, make(chan error))
 
 		// spawn errgroup routine for the stage
 		//

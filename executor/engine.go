@@ -6,6 +6,7 @@ package executor
 
 import (
 	"context"
+	"sync"
 
 	"github.com/go-vela/types/library"
 	"github.com/go-vela/types/pipeline"
@@ -81,10 +82,10 @@ type Engine interface {
 	CreateStage(context.Context, *pipeline.Stage) error
 	// PlanStage defines a function that
 	// prepares the stage for execution.
-	PlanStage(context.Context, *pipeline.Stage, map[string]chan error) error
+	PlanStage(context.Context, *pipeline.Stage, *sync.Map) error
 	// ExecStage defines a function that
 	// runs a stage.
-	ExecStage(context.Context, *pipeline.Stage, map[string]chan error) error
+	ExecStage(context.Context, *pipeline.Stage, *sync.Map) error
 	// DestroyStage defines a function that
 	// cleans up the stage after execution.
 	DestroyStage(context.Context, *pipeline.Stage) error

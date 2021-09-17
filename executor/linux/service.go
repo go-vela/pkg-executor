@@ -8,8 +8,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"net/http"
-	"os"
 	"time"
 
 	"github.com/go-vela/pkg-executor/internal/service"
@@ -211,46 +209,17 @@ func (c *client) StreamService(ctx context.Context, ctn *pipeline.Container) err
 	}
 	defer rc.Close()
 
-	// TODO: consider moving most (all?) of this into the Vela Go SDK
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
+	// set the timeout to the repo timeout
+	// to ensure the stream is not cut off
+	c.Vela.SetTimeout(time.Minute * time.Duration(c.repo.GetTimeout()))
 
-	url := fmt.Sprintf(
-		"%s/api/v1/repos/%s/%s/builds/%d/steps/%d/stream",
-		os.Getenv("VELA_SERVER_ADDR"),
-		c.repo.GetOrg(),
-		c.repo.GetName(),
-		c.build.GetNumber(),
-		ctn.Number,
-	)
-
-	logger.Debug("creating request for container logs")
-	// create a request to post the logs from the runtime container
-	req, err := http.NewRequest("POST", url, rc)
+	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#SvcService.Stream
+	_, err = c.Vela.Svc.Stream(c.repo.GetOrg(), c.repo.GetName(), c.build.GetNumber(), ctn.Number, rc)
 	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "text/event-stream")
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("VELA_SERVER_SECRET")))
-
-	logger.Debug("posting container logs")
-	// post the logs from the runtime container
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
+		logger.Errorf("unable to stream logs: %v", err)
 	}
 
-	if resp == nil {
-		logger.Debugf("empty response received from %s", url)
-
-		return nil
-	}
-	defer resp.Body.Close()
-
-	logger.Infof("received %s from %s", resp.Status, url)
-
-	// END TODO
+	logger.Info("finished streaming logs")
 
 	return nil
 }

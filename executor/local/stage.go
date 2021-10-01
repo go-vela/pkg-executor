@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/go-vela/pkg-executor/internal/step"
 	"github.com/go-vela/types/pipeline"
@@ -49,11 +50,11 @@ func (c *client) CreateStage(ctx context.Context, s *pipeline.Stage) error {
 }
 
 // PlanStage prepares the stage for execution.
-func (c *client) PlanStage(ctx context.Context, s *pipeline.Stage, m map[string]chan error) error {
+func (c *client) PlanStage(ctx context.Context, s *pipeline.Stage, m *sync.Map) error {
 	// ensure dependent stages have completed
 	for _, needs := range s.Needs {
 		// check if a dependency stage has completed
-		stageErr, ok := m[needs]
+		stageErr, ok := m.Load(needs)
 		if !ok { // stage not found so we continue
 			continue
 		}
@@ -62,7 +63,7 @@ func (c *client) PlanStage(ctx context.Context, s *pipeline.Stage, m map[string]
 		select {
 		case <-ctx.Done():
 			return fmt.Errorf("errgroup context is done")
-		case err := <-stageErr:
+		case err := <-stageErr.(chan error):
 			if err != nil {
 				return err
 			}
@@ -75,9 +76,16 @@ func (c *client) PlanStage(ctx context.Context, s *pipeline.Stage, m map[string]
 }
 
 // ExecStage runs a stage.
-func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m map[string]chan error) error {
+func (c *client) ExecStage(ctx context.Context, s *pipeline.Stage, m *sync.Map) error {
 	// close the stage channel at the end
-	defer close(m[s.Name])
+	defer func() {
+		errChan, ok := m.Load(s.Name)
+		if !ok {
+			return
+		}
+
+		close(errChan.(chan error))
+	}()
 
 	// execute the steps for the stage
 	for _, _step := range s.Steps {

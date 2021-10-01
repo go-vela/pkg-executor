@@ -131,12 +131,13 @@ github.com/go-playground/validator/v10 v10.4.1 h1:pH2c5ADXtd66mxoE0Zm9SUhxE20r7a
 github.com/go-playground/validator/v10 v10.4.1/go.mod h1:nlOn6nFhuKACm19sB/8EGNn9GlaMV7XkbRSipzJ0Ii4=
 github.com/go-vela/compiler v0.9.0 h1:JYnBuXgDGyqT68ohLbVMxQiUld/Esr22MncfGdYNLc0=
 github.com/go-vela/compiler v0.9.0/go.mod h1:FbYLiz+psgcqpQaeKpVP00YNuvc/tMLrYCdgTkb/lCM=
-github.com/go-vela/mock v0.9.0 h1:c1bhTmVQ8xIYFvBi8SBSWc83IkXXUTzi20P3IVjKaJ4=
 github.com/go-vela/mock v0.9.0/go.mod h1:PMfa8HcsLCOfr1bVQ2+I6udUCuEnB5BXir4r+uVysXE=
+github.com/go-vela/mock v0.9.1-0.20211001185918-7c31308f19fd h1:Feil57YFLwVcMzsCjDT+V938A5SulJ0/8QGqykLN+MY=
+github.com/go-vela/mock v0.9.1-0.20211001185918-7c31308f19fd/go.mod h1:vJAxrKg8WpsMWoC3kN2bPyjHo0ZeRJl3f7//SpPVIQk=
 github.com/go-vela/pkg-runtime v0.9.0 h1:56pTuYqtjc7eYJ/srunRlN6zoOvX75gb2O1soEAHhkk=
 github.com/go-vela/pkg-runtime v0.9.0/go.mod h1:Zpw2R5YS31RFgDNoDR5XIiDM99mdKaF3PFJf/spVmPo=
-github.com/go-vela/sdk-go v0.9.0 h1:tfn3Jm05aICaAiKzG8cqU2yFZKKDL+ntNqoB65WCrq0=
-github.com/go-vela/sdk-go v0.9.0/go.mod h1:YWqJ9+JaALHzCxr8rtBOGE/VUpNnYQlBkVGBuvq4j6E=
+github.com/go-vela/sdk-go v0.9.1-0.20211001205048-89431964db41 h1:ZqnuXOzmDtIk5vhS7XWgkpk+Td+aI6pP8fiEpxImVKE=
+github.com/go-vela/sdk-go v0.9.1-0.20211001205048-89431964db41/go.mod h1:pzj+/rUnCLBW0bSpm9OE+AFT4rBEiAcupFHOi1ptqUM=
 github.com/go-vela/types v0.9.0 h1:vAwxYzG8KSDtvpSALOoHzac4wrMM+NFW1QxoXrjXWSc=
 github.com/go-vela/types v0.9.0/go.mod h1:uiQ8TITRIemGwgnfACIHaTdcTVJaZTo7eO1HZeFgnHc=
 github.com/gogo/protobuf v1.3.1/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXPKa29o=
@@ -258,6 +259,7 @@ github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxv
 github.com/kr/fs v0.1.0/go.mod h1:FFnZGqtBN9Gxj7eW1uZ42v5BccTP0vu6NEaFoC2HwRg=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
 github.com/kr/pretty v0.2.0/go.mod h1:ipq/a2n7PKx3OHsz4KJII5eveXtPO4qwEXGdVfWzfnI=
+github.com/kr/pretty v0.3.0/go.mod h1:640gp4NfQd8pI5XOwp5fnNeVWj67G7CFk/SaSQn7NBk=
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
 github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=
@@ -322,6 +324,7 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4/go.mod h1:xMI15A0UPsDsEKsMN9yxemIoYk6Tm2C1GtYGdfGttqA=
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
+github.com/rogpeppe/go-internal v1.6.1/go.mod h1:xXDCJY+GAPziupqXw64V24skbSoqbTEfhy4qGm1nDQc=
 github.com/russross/blackfriday/v2 v2.0.1 h1:lPqVAte+HuHNfhJ/0LC98ESWRz8afy9tM/0RK8m9o+Q=
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/shopspring/decimal v1.2.0 h1:abSATXmQEYyShuxI4/vyW3tV1MrKAJzCZ/0zLUXYbsQ=

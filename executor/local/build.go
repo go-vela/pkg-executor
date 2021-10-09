@@ -32,6 +32,12 @@ func (c *client) CreateBuild(ctx context.Context) error {
 	c.build.SetDistribution(c.Driver())
 	c.build.SetRuntime(c.Runtime.Driver())
 
+	// setup the runtime build
+	c.err = c.Runtime.SetupBuild(ctx, c.pipeline)
+	if c.err != nil {
+		return fmt.Errorf("unable to create build %s: %w", c.pipeline.ID, c.err)
+	}
+
 	// load the init step from the pipeline
 	//
 	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#LoadInit
@@ -230,6 +236,12 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 
 	// output a new line for readability to stdout
 	fmt.Fprintln(os.Stdout, "")
+
+	// assemble runtime build just before any containers execute
+	c.err = c.Runtime.AssembleBuild(ctx, c.pipeline)
+	if c.err != nil {
+		return fmt.Errorf("unable to assemble runtime build %s: %w", c.pipeline.ID, c.err)
+	}
 
 	return c.err
 }

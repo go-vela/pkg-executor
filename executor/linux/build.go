@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Target Brands, Inc. All rights reserved.
+=// Copyright (c) 2021 Target Brands, Inc. All rights reserved.
 //
 // Use of this source code is governed by the LICENSE file in this repository.
 
@@ -39,6 +39,12 @@ func (c *client) CreateBuild(ctx context.Context) error {
 	c.build, _, c.err = c.Vela.Build.Update(c.repo.GetOrg(), c.repo.GetName(), c.build)
 	if c.err != nil {
 		return fmt.Errorf("unable to upload build state: %v", c.err)
+	}
+
+	// setup the runtime build
+	c.err = c.Runtime.SetupBuild(ctx, c.pipeline)
+	if c.err != nil {
+		return fmt.Errorf("unable to create build %s: %w", c.pipeline.ID, c.err)
 	}
 
 	// load the init step from the pipeline
@@ -187,13 +193,6 @@ func (c *client) PlanBuild(ctx context.Context) error {
 //
 // nolint: funlen // ignore function length due to comments and logging messages
 func (c *client) AssembleBuild(ctx context.Context) error {
-	// Setup is about to run for the first container. Run the PreAssembleBuild
-	// Runtime engine hook before running SetupContainer for any of the containers.
-	c.err = c.Runtime.PreAssembleBuild(ctx, c.pipeline)
-	if c.err != nil {
-		return fmt.Errorf("unable to pre-assemble build %s: %w", c.pipeline.ID, c.err)
-	}
-
 	// defer taking a snapshot of the build
 	//
 	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/build#Snapshot
@@ -350,11 +349,10 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 		_log.AppendData(image)
 	}
 
-	// All containers are ready. Run the PostAssembleBuild Runtime engine hook
-	// before executing any of the containers.
-	c.err = c.Runtime.PostAssembleBuild(ctx, c.pipeline)
+	// assemble runtime build just before any containers execute
+	c.err = c.Runtime.AssembleBuild(ctx, c.pipeline)
 	if c.err != nil {
-		return fmt.Errorf("unable to post-assemble build %s: %w", c.pipeline.ID, c.err)
+		return fmt.Errorf("unable to assemble runtime build %s: %w", c.pipeline.ID, c.err)
 	}
 
 	// update the init log with progress

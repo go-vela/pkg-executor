@@ -553,5 +553,12 @@ func (c *client) DestroyBuild(ctx context.Context) error {
 		c.logger.Errorf("unable to remove network: %v", err)
 	}
 
+	c.logger.Info("deleting runtime build")
+	// remove the runtime network for the pipeline
+	err = c.Runtime.RemoveBuild(ctx, c.pipeline)
+	if err != nil {
+		c.logger.Errorf("unable to remove runtime build: %v", err)
+	}
+
 	return err
 }

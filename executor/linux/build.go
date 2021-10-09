@@ -187,6 +187,13 @@ func (c *client) PlanBuild(ctx context.Context) error {
 //
 // nolint: funlen // ignore function length due to comments and logging messages
 func (c *client) AssembleBuild(ctx context.Context) error {
+	// Setup is about to run for the first container. Run the PreAssembleBuild
+	// Runtime engine hook before running SetupContainer for any of the containers.
+	c.err = c.Runtime.PreAssembleBuild(ctx, c.pipeline)
+	if c.err != nil {
+		return fmt.Errorf("unable to pre-assemble build %s: %w", c.pipeline.ID, c.err)
+	}
+
 	// defer taking a snapshot of the build
 	//
 	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/build#Snapshot
@@ -341,6 +348,13 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 		//
 		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
 		_log.AppendData(image)
+	}
+
+	// All containers are ready. Run the PostAssembleBuild Runtime engine hook
+	// before executing any of the containers.
+	c.err = c.Runtime.PostAssembleBuild(ctx, c.pipeline)
+	if c.err != nil {
+		return fmt.Errorf("unable to post-assemble build %s: %w", c.pipeline.ID, c.err)
 	}
 
 	// update the init log with progress

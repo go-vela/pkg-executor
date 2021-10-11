@@ -349,6 +349,21 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 		_log.AppendData(image)
 	}
 
+	// inspect the runtime build (eg a kubernetes pod) for the pipeline
+	buildOutput, err := c.Runtime.InspectBuild(ctx, c.pipeline)
+	if err != nil {
+		c.err = err
+		return fmt.Errorf("unable to inspect build: %w", err)
+	}
+
+	if len(buildOutput) > 0 {
+		// update the init log with progress
+		// (an empty value allows the runtime to opt out of providing this)
+		//
+		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+		_log.AppendData(buildOutput)
+	}
+
 	// assemble runtime build just before any containers execute
 	c.err = c.Runtime.AssembleBuild(ctx, c.pipeline)
 	if c.err != nil {

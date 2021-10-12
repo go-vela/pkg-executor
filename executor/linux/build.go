@@ -503,7 +503,7 @@ func (c *client) DestroyBuild(ctx context.Context) error {
 
 	defer func() {
 		c.logger.Info("deleting runtime build")
-		// remove the runtime network for the pipeline
+		// remove the runtime build for the pipeline
 		err = c.Runtime.RemoveBuild(ctx, c.pipeline)
 		if err != nil {
 			c.logger.Errorf("unable to remove runtime build: %v", err)
@@ -580,7 +580,7 @@ func (c *client) DestroyBuild(ctx context.Context) error {
 	}
 
 	c.logger.Info("deleting runtime build")
-	// remove the runtime network for the pipeline
+	// remove the runtime build for the pipeline
 	err = c.Runtime.RemoveBuild(ctx, c.pipeline)
 	if err != nil {
 		c.logger.Errorf("unable to remove runtime build: %v", err)

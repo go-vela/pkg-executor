@@ -42,6 +42,7 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 	_step.SetNumber(ctn.Number)
 	_step.SetImage(ctn.Image)
 	_step.SetStage(ctn.Environment["VELA_STEP_STAGE"])
+	_step.SetStatus(constants.StatusPending)
 	_step.SetHost(c.build.GetHost())
 	_step.SetRuntime(c.build.GetRuntime())
 	_step.SetDistribution(c.build.GetDistribution())

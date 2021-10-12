@@ -350,6 +350,15 @@ func (c *client) ExecBuild(ctx context.Context) error {
 func (c *client) DestroyBuild(ctx context.Context) error {
 	var err error
 
+	defer func() {
+		fmt.Fprintln(os.Stdout, "deleting runtime build")
+		// remove the runtime network for the pipeline
+		err = c.Runtime.RemoveBuild(ctx, c.pipeline)
+		if err != nil {
+			fmt.Fprintln(os.Stdout, "unable to destroy runtime build:", err)
+		}
+	}()
+
 	// destroy the steps for the pipeline
 	for _, _step := range c.pipeline.Steps {
 		// TODO: remove hardcoded reference

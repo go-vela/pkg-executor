@@ -25,7 +25,6 @@ func (c *client) CreateBuild(ctx context.Context) error {
 	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/build#Snapshot
 	defer func() { build.Snapshot(c.build, c.Vela, c.err, c.logger, c.repo) }()
 
-	c.logger.Debug(c.build.String())
 	// update the build fields
 	c.build.SetStatus(constants.StatusRunning)
 	c.build.SetStarted(time.Now().UTC().Unix())
@@ -41,7 +40,6 @@ func (c *client) CreateBuild(ctx context.Context) error {
 	if c.err != nil {
 		return fmt.Errorf("unable to upload build state: %v", c.err)
 	}
-	c.logger.Debug(c.build.String())
 
 	// setup the runtime build
 	c.err = c.Runtime.SetupBuild(ctx, c.pipeline)

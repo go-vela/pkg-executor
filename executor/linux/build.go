@@ -33,6 +33,7 @@ func (c *client) CreateBuild(ctx context.Context) error {
 	c.build.SetRuntime(c.Runtime.Driver())
 
 	c.logger.Info("uploading build state")
+	c.logger.Debug(c.build.String())
 	// send API call to update the build
 	//
 	// https://pkg.go.dev/github.com/go-vela/sdk-go/vela?tab=doc#BuildService.Update
@@ -40,6 +41,7 @@ func (c *client) CreateBuild(ctx context.Context) error {
 	if c.err != nil {
 		return fmt.Errorf("unable to upload build state: %v", c.err)
 	}
+	c.logger.Debug(c.build.String())
 
 	// setup the runtime build
 	c.err = c.Runtime.SetupBuild(ctx, c.pipeline)

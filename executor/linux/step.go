@@ -37,15 +37,11 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 
 	// create a library step object to facilitate injecting environment as early as possible
 	// (PlanStep is too late to inject environment vars for the kubernetes runtime).
-	_step := new(library.Step)
-	_step.SetName(ctn.Name)
-	_step.SetNumber(ctn.Number)
-	_step.SetImage(ctn.Image)
-	_step.SetStage(ctn.Environment["VELA_STEP_STAGE"])
+	_step, err := c.newLibraryStep(ctx, ctn)
+	if err != nil {
+		return err
+	}
 	_step.SetStatus(constants.StatusPending)
-	_step.SetHost(c.build.GetHost())
-	_step.SetRuntime(c.build.GetRuntime())
-	_step.SetDistribution(c.build.GetDistribution())
 
 	// update the step container environment
 	//
@@ -77,6 +73,18 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 	return nil
 }
 
+func (c *client) newLibraryStep(ctx context.Context, ctn *pipeline.Container) (*library.Step, error) {
+	_step := new(library.Step)
+	_step.SetName(ctn.Name)
+	_step.SetNumber(ctn.Number)
+	_step.SetImage(ctn.Image)
+	_step.SetStage(ctn.Environment["VELA_STEP_STAGE"])
+	_step.SetHost(c.build.GetHost())
+	_step.SetRuntime(c.build.GetRuntime())
+	_step.SetDistribution(c.build.GetDistribution())
+	return _step, nil
+}
+
 // PlanStep prepares the step for execution.
 func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
 	var err error
@@ -87,16 +95,12 @@ func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
 	logger := c.logger.WithField("step", ctn.Name)
 
 	// create the library step object
-	_step := new(library.Step)
-	_step.SetName(ctn.Name)
-	_step.SetNumber(ctn.Number)
-	_step.SetImage(ctn.Image)
-	_step.SetStage(ctn.Environment["VELA_STEP_STAGE"])
+	_step, err := c.newLibraryStep(ctx, ctn)
+	if err != nil {
+		return err
+	}
 	_step.SetStatus(constants.StatusRunning)
 	_step.SetStarted(time.Now().UTC().Unix())
-	_step.SetHost(c.build.GetHost())
-	_step.SetRuntime(c.build.GetRuntime())
-	_step.SetDistribution(c.build.GetDistribution())
 
 	logger.Debug("uploading step state")
 	// send API call to update the step

@@ -14,6 +14,7 @@ import (
 	"github.com/go-vela/types/constants"
 	"github.com/go-vela/types/library"
 	"github.com/go-vela/types/pipeline"
+	"golang.org/x/sync/errgroup"
 )
 
 // CreateService configures the service for execution.
@@ -140,14 +141,21 @@ func (c *client) ExecService(ctx context.Context, ctn *pipeline.Container) error
 		return err
 	}
 
-	go func() {
+	// create an error group with the parent context
+	//
+	// https://pkg.go.dev/golang.org/x/sync/errgroup?tab=doc#WithContext
+	logs, logCtx := errgroup.WithContext(ctx)
+
+	logs.Go(func() error {
 		logger.Debug("streaming logs for container")
 		// stream logs from container
-		err := c.StreamService(context.Background(), ctn)
+		err := c.StreamService(logCtx, ctn)
 		if err != nil {
 			logger.Error(err)
 		}
-	}()
+
+		return nil
+	})
 
 	return nil
 }

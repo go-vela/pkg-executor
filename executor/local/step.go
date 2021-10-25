@@ -60,6 +60,7 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 	return nil
 }
 
+// newLibraryStep create a library step object.
 func (c *client) newLibraryStep(ctx context.Context, ctn *pipeline.Container) (*library.Step, error) {
 	_step := new(library.Step)
 	_step.SetName(ctn.Name)

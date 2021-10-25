@@ -413,12 +413,5 @@ func (c *client) DestroyBuild(ctx context.Context) error {
 		fmt.Fprintln(os.Stdout, "unable to destroy runtime network:", err)
 	}
 
-	// remove Runtime build metadata
-	err = c.Runtime.RemoveBuild(ctx, c.pipeline)
-	if err != nil {
-		// output the error information to stdout
-		fmt.Fprintln(os.Stdout, "unable to destroy runtime build:", err)
-	}
-
 	return err
 }

@@ -38,7 +38,7 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 
 	// create a library step object to facilitate injecting environment as early as possible
 	// (PlanStep is too late to inject environment vars for the kubernetes runtime).
-	_step, err := c.newLibraryStep(ctx, ctn)
+	_step, err := c.newLibraryStep(ctn)
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func (c *client) CreateStep(ctx context.Context, ctn *pipeline.Container) error 
 }
 
 // newLibraryStep creates a library step object.
-func (c *client) newLibraryStep(ctx context.Context, ctn *pipeline.Container) (*library.Step, error) {
+func (c *client) newLibraryStep(ctn *pipeline.Container) (*library.Step, error) {
 	_step := new(library.Step)
 	_step.SetName(ctn.Name)
 	_step.SetNumber(ctn.Number)
@@ -97,7 +97,7 @@ func (c *client) PlanStep(ctx context.Context, ctn *pipeline.Container) error {
 	logger := c.logger.WithField("step", ctn.Name)
 
 	// create the library step object
-	_step, err := c.newLibraryStep(ctx, ctn)
+	_step, err := c.newLibraryStep(ctn)
 	if err != nil {
 		return err
 	}

@@ -41,6 +41,12 @@ func (c *client) CreateBuild(ctx context.Context) error {
 		return fmt.Errorf("unable to upload build state: %v", c.err)
 	}
 
+	// setup the runtime build
+	c.err = c.Runtime.SetupBuild(ctx, c.pipeline)
+	if c.err != nil {
+		return fmt.Errorf("unable to setup build %s: %w", c.pipeline.ID, c.err)
+	}
+
 	// load the init step from the pipeline
 	//
 	// https://pkg.go.dev/github.com/go-vela/pkg-executor/internal/step#LoadInit
@@ -343,6 +349,27 @@ func (c *client) AssembleBuild(ctx context.Context) error {
 		_log.AppendData(image)
 	}
 
+	// inspect the runtime build (eg a kubernetes pod) for the pipeline
+	buildOutput, err := c.Runtime.InspectBuild(ctx, c.pipeline)
+	if err != nil {
+		c.err = err
+		return fmt.Errorf("unable to inspect build: %w", err)
+	}
+
+	if len(buildOutput) > 0 {
+		// update the init log with progress
+		// (an empty value allows the runtime to opt out of providing this)
+		//
+		// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
+		_log.AppendData(buildOutput)
+	}
+
+	// assemble runtime build just before any containers execute
+	c.err = c.Runtime.AssembleBuild(ctx, c.pipeline)
+	if c.err != nil {
+		return fmt.Errorf("unable to assemble runtime build %s: %w", c.pipeline.ID, c.err)
+	}
+
 	// update the init log with progress
 	//
 	// https://pkg.go.dev/github.com/go-vela/types/library?tab=doc#Log.AppendData
@@ -471,6 +498,15 @@ func (c *client) ExecBuild(ctx context.Context) error {
 // DestroyBuild cleans up the build after execution.
 func (c *client) DestroyBuild(ctx context.Context) error {
 	var err error
+
+	defer func() {
+		c.logger.Info("deleting runtime build")
+		// remove the runtime build for the pipeline
+		err = c.Runtime.RemoveBuild(ctx, c.pipeline)
+		if err != nil {
+			c.logger.Errorf("unable to remove runtime build: %v", err)
+		}
+	}()
 
 	// destroy the steps for the pipeline
 	for _, _step := range c.pipeline.Steps {

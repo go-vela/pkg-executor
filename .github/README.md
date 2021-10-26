@@ -1,5 +1,11 @@
 # pkg-executor
 
+> DISCLAIMER:
+>
+> The contents of this repository have been migrated into [go-vela/worker](https://github.com/go-vela/worker).
+>
+> This was done as a part of [go-vela/community#395](https://github.com/go-vela/community/issues/395) to deliver [on a proposal](https://github.com/go-vela/community/blob/master/proposals/2021/08-25_repo-structure.md).
+
 [![license](https://img.shields.io/crates/l/gl.svg)](../LICENSE)
 [![GoDoc](https://godoc.org/github.com/go-vela/pkg-executor?status.svg)](https://godoc.org/github.com/go-vela/pkg-executor)
 [![Go Report Card](https://goreportcard.com/badge/go-vela/pkg-executor)](https://goreportcard.com/report/go-vela/pkg-executor)
